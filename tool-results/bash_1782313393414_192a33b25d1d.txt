@@ -1,0 +1,680 @@
+=== Sheet: Farmer Registration ===
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes	Credit Score Components
+Farmer Registration	Enrollment Date	YES	Text Box(Non Editable)	Current Date		0.1
+	Enrollment Place	NO	DropDown	Catalogue Value	At Farmer Place/At Cooperative/At Farmer Organization/At Warehouse	
+	Farmer Code	NO	Text Box	Unique Code	Auto Generate	
+	Is Certified Farmer	NO	Radio	NO	YES/NO	
+	Certification Type	NO	DropDown	Individual/Group	Show when is Certified Famer is YES	
+	Year of ICS	NO	DropDown	Year	Show when is Certified Famer is YES	
+	Cooperative	YES	DropDown		Show this field to the FO user only and load the cooperative that mapped with the logged FO user	
+Farmer Information	Full name	YES	Text Box			
+	Last Name	YES	Text Box			
+	Contact Number	YES	Text Box		Contact Number is used as username for farmer application login	
+	Farmer Photo	YES	File Upload/Photo Capture			
+	National Id Proof	NO	DropDown	Catalogue Value	National ID No/Driving License/Passpost/	
+	Proof No	NO	Text Box		Show when is National Id Proof DropDown value is selected	
+	ID Proof Photo	NO	File Upload/Photo Capture		Show when is National Id Proof DropDown value is selected	
+	Gender	YES	DropDown	Catalogue Value	Male/Female/Other	
+	DOB	NO	Datepicker			
+	Age	NO	Autocalulate			
+	Education	NO	DropDown	Catalogue Value	Primary/Secondary/UG/PG/Other	
+	Marital Status	NO	DropDown	Catalogue Value	Un-Married/Married/Widow	
+	Guardian/parentName	NO	Text Box			
+	Email	NO	Text Box			
+	Password	YES	Text Box			
+	Confirm Password	YES	Text Box			
+Contact Information	Country	YES	DropDown	Location Master		
+	Province	YES	DropDown	Location Master	Province Should Load depend on Country Selected	
+	District	YES	DropDown	Location Master	District Should Load depend on Province Selected	
+	Commune	YES	DropDown	Location Master	Commune Should Load depend on District Selected	
+	Village	NO	Text Box			
+	Zip Code	NO	Text Box			
+	Communication Address (Pin Farmer Location)	NO	Google Map			
+Family Information	Spouse Name	NO	Text Box			
+	No of Family Members	NO	Text Box			
+	Total Children below 18 years in family	NO	Text Box		Male and Female Seperate	
+	Total No. of school going Children(<18 Yrs)	NO	Text Box		Male and Female Seperate	
+Asset Information	Housing Ownership	NO	DropDown	Catalogue Value	Owned/Rent/Lease/	
+	House Type	NO	DropDown	Catalogue Value	Brick house/ woden house/other	
+	Consumer Electronics	NO	DropDown multiple choice	Catalogue Value	TV/Washing Machine/Air Conditioner/Frigde	
+	Vehicle 	NO	DropDown multiple choice	Catalogue Value	Bike/Car/Boat	
+Finance Information(can add multiple list)	Account Type	yes	DropDown	Catalogue Value	Add Multiple Bank Information	
+	Account No	yes	Text Box			
+
+=== Sheet: Farm Land Creation ===
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes	
+Field/Farm Information	Farmer	YES	DropDown	Farmer Master		
+	Field/Plot/Farm Name	YES	Text Box			
+	Total Land Holding (ha)	YES	Text Box with unit			
+	Pin Farm Location	NO	Google Map			
+	Farm Land Plotting	YES	Google Map			
+	Farm Photo	no	File Upload/Photo Capture			
+	Land Survey No	NO	Text Box		Red Book	
+	Land Ownership	Yes	DropDown	Owned/Rent/Lease/	Owned/Rent/Lease/	
+	Approach Road	NO	Multi Select	close main road/inner field/close main canal	close main road/inner field/close main canal	
+	Land Topology	NO	DropDown	Valley/Plains/Plateaus	Valley/Plains/Plateaus	
+	Land Gradient	NO	Multi Select	Up Land/Low Land	Up Land/Low Land	
+	Land Document	NO	File Upload/Photo Capture			
+	Water Source	NO	DropDown	Well/Bore Well/ Pump	Well/Bore Well/ Pump	
+	Power Source 	NO	DropDown	Solar/Electricity/Fuel	Solar/Electricity/Fuel	
+Soil and Irrigation Information	Fertitlity Status	NO	DropDown	Good/Normal/Poor	Good/Normal/Poor	
+	Irrigation Source	NO	Multi Select	Rainfed/Irrigated		
+	Irrigation Type	NO	DropDown	Catalogue Value	Show when Irrigation Source Irrigated	Drip/Canal/others
+Farm Labour Information	Full-time Workers Count	NO	dropdown	full- time/part-time/family member		
+	Part-time Workers Count	NO	Text Box			
+	Seasonal Workers Count	NO	Text Box			
+	family workers count	No	Text Box			
+Conversion Information	Last Date of Chemical Application	NO	Datepicker			
+	Conventional Lands	NO	Text Box			
+	Fallow/Pasture Land	NO	Text Box			
+	Conventional Crops	NO	Text Box			
+	Est Yield(Kg)	NO	Text Box			
+Conversion Status	Certification Type	No	DropDown	NPOP/NOP	NPOP/NOP	
+Show this section When Farmer is Certified	Current Conversion Status	No	DropDown	IC-1/IC-2/IC-3/Organic/SRP	IC-1/IC-2/IC-3/Organic/SRP	
+	Date	No	Datepicker			
+	Inspector name	No	Text Box			
+	Qualified	No	Yes/No			
+	Remarks	No	Text Area	Show when Qualified is No		
+Soil Analysis Information	Collection Date	no	Datepicker			
+	Lab Testing Date	no	Datepicker			
+	Result Date	no	Datepicker			
+	Report Upload	NO	File Upload			
+	no of samples collected and area	NO	Text Box with UOM			
+	Criteria	NO	DropDown	pH/Sulphur(S)/Nitrogen(N)	pH/Sulphur(S)/Nitrogen(N)	add multiple
+	Criteria Value	NO	Text Box with UOM	ppm/mg/g		
+
+=== Sheet: Cultivation Creation ===
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Cultivation Information	Farm / Plot Name	YES	DropDown	Select the Plot name from the dropdown	
+	Crop Category	NO	Radio/DropDown	Main Crop	Main Crop, Inter Crop, Border Crop
+	Harvest Season	YES	DropDown	Season Master	
+	Cultivated Crop	YES	DropDown	Crop Master	
+	Crop Variety	YES	DropDown	List  Variety  for the selected Crop	
+	Cultivation Area(Ha)	YES	Text Box		
+	Sowing Date	YES	Datepicker		
+	Crop Calander	YES	DropDown	List Crop Calander for the selected Crop	
+	Est Yield	NO	Text Box with unit		
+	Cultivation Plotting	YES	Google Map		
+	Photo	YES	File Upload/Photo Capture		
+Seed Information	Seed Source	YES	DropDown	Seed Company/Agent/Self-save	
+	is Seed Treated	NO	Radio	Yes	YES/NO
+	Seed Type	NO	DropDown		Certified 1/certified 2/self-save/other
+	Seed Quantity Used (total seed for plot)	yes	Text Box with unit		
+	Price of seed	Yes			
+	Seed cost			[Quantity of used seed * Price]	
+	Type of sowing	yes	Dropdown		Row sowing/hand sowing/drone sowing/Transplanting/re-planting
+	Sowing charges by	yes	Dropdown		hour/hectare
+	Sowing charges	yes	textbox		
+	Sowing cost		textbox	[plot area * sowing charges]	
+
+=== Sheet: Credit Score Blue Print ===
+Credit Scoring Blueprint Table				
+Factor	Weight	Data Points (from your app)	Scoring Rules (0–100)	Backend Formula
+Demographics	0.15	Age, Education, Marital Status, Family Size	Age: 25–50 = 100; 18–24 = 80; 51–65 = 70; >65 = 50	(Age + Education + Marital + Family)/4
+			Education: PG/UG = 100; Secondary = 70; Primary = 50	
+			Marital: Married = 100; Unmarried = 80; Widow = 60	
+			Family: ≤4 = 100; 5–6 = 80; >6 = 60	
+Asset Ownership	0.25	Land Area, House Type, Farm Equipment, Livestock	Land: >5ha=100; 2–5=80; 1–2=60	(Land + House + Equipment + Livestock)/4
+			House: Brick=100; Wooden=70; Hut=50	
+			Equipment: Tractor+Irrigation=100; one=70; none=50	
+			Livestock: >10=100; 5–10=80; <5=60	
+Crop Performance	0.25	Crop Type, Yield History, Productivity	Crop: High-value=100; Staples=80; Others=60	(Crop + Yield + Productivity)/3
+			Yield: ≥90%=100; 70–89%=80; <70%=50	
+			Productivity: >5t/ha=100; 3–5=80; <3=50	
+Financial Discipline	0.35	Loan History, Repayment Timeliness, Insurance Coverage	Loan: No=100; Yes <50% income=80; >50%=60	(Loan + Repayment + Insurance)/3
+			Repayment: On-time=100; 1 delay=80; >1=50	
+			Insurance: All three=100; one=70; none=50	
+Final Score	1.0	All above	Weighted sum: (Demo0.15 + Asset0.25 + Crop0.25 + Finance0.35)*9	Total Score out of 900
+
+=== Sheet: (Old)Terra Nexus ===
+1. Land Preparation						
+Section Name	Question	Question Type	Comments	Mandatory		
+General Information						
+	Transaction Date	Autopopulate	Current Date and time - Non Editable	M		
+	Commune	Dropdown		M		
+	Farmer	Depedent Dropdown	Farmer list load based on Selected Commune	M		
+	Farm Land	Depedent Dropdown	Farm Land list load based on Selected Farmer	M		
+	Farm Size	Autopopulate				
+	Season	Dropdown	Season Master	M		
+	Created Used	Autopopulate	FO Name and Mobile Number			
+	Latitude	Autopopulate	Capture current coordinates			
+	Longitude	Autopopulate	Capture current coordinates			
+Land Preparation Informations						
+	Date of Event	Date Picker	Default Current Date	M		
+	Activity	Dropdown	plowing/harrowing/leveling			
+	If Plowing is choosed					
+	Method of Implements	Dropdown	Bullock/Tractor/moldboard plow/ Hydrotiller /Rotovator	M		
+	Did you Flood the field	Radio	Yes/No	M		
+	If Yes is choosed					
+	How many days does the land was submerged	Text box		M		
+	Does another tillage Operation required	Radio	Yes/No	M		
+	If Yes is choosed					
+	Date of Event	Date Picker		M		
+	If Harrowing is Choosed					
+	Did Compost Material was build ?	Radio	Yes/No	M		
+	If Yes is choosed					
+	What are the material are used for compost ?					
+	Material Name	Text box	Add multiple Items			
+	Qty	Text box				
+	If Leveling is choosed					
+	Did Cover Crops are grown after harvest ?	Radio	Yes/No	M		
+	Photo Capture	File Upload		M		
+Labour and Cost Details						
+	Activity Done By	DropDown	Self/Family Workers/labour/Machine	M		
+	If Labour is choose					
+	Gender	Dropdown	Male/Female/Other	Add multiple Items	M	
+	Age Group	Dropdown	11-18/19-30/31-40/41-50/Above 50		M	
+	Man-Days	Textbox			M	
+	Wages per Day	Textbox			M	
+	Cost	Auto Calculate	[Man-days x Wages per Day]		M	
+
+=== Sheet: (Old)Terra Blue ===
+Section Name	Label Name	Purpose of Collecting This Data and Uses	Mandatory	Data Types	Default Values	Note														
+Pond Registration	Pond ID	Unique identifier for each pond; enables tracking and management across modules.	Yes	String	-	Primary Key														
+	Size	Total area of the pond; used for calculating stocking density and operational costs.	Yes	Float (hectares)	-															
+	Location	Geographic location of the pond; needed for regulatory compliance and environmental assessments.	Yes	String	-															
+	Water Source	Type of water source (e.g., river, well); necessary for assessing water quality and availability.	Yes	String	-															
+	Date of Registration	Date when the pond was registered; important for tracking purposes.	Yes	Date	-															
+	Depth	Average depth of the pond; important for environmental assessments.	No	Float	-															
+	Water Quality	Initial assessment of water quality; necessary for planning.	Yes	String	-															
+	Aquatic Vegetation	Types and amounts of aquatic vegetation present; important for habitat assessment.	No	String	-															
+Hatchery Management	Hatchery ID	Unique identifier for each hatchery; essential for tracking operations.	Yes	String	-	Primary Key														
+	Breeding Stock Info	Track parent fish to manage breeding program; includes species, health.	Yes	String	None															
+	Spawning Schedule	Schedule for breeding to plan resources; needed for resource management.	Yes	Date	None															
+	Hatching Rates	Determine efficiency and success of breeding practices; percentage of hatched eggs.	Yes	Float	0.0															
+	Fertilization Method	Optimize methods to improve hatching rates; methods used during breeding.	No	String	None															
+	Environment Conditions	Track conditions during hatching to understand success factors; includes water temperature, oxygen level.	No	String	None															
+	Hatchling Survival	Determine early life survival rates for forecasting stock numbers; percentage of survival.	Yes	Float	0.0															
+	Egg Collection Date	Date when eggs were collected; important for tracking hatching cycles.	Yes	Date	-															
+	Incubation Duration	Duration of incubation; necessary for timing hatching.	Yes	Integer	-															
+Nursery Management	Nursery ID	Unique identifier for each nursery; vital for tracking.	Yes	String	-	Primary Key														
+	Nursery Capacity	Maximum capacity of the nursery; used for planning and management.	Yes	Integer	-															
+	Nursery Costs	Costs associated with nursery operations; important for budget analysis.	Yes	Float (currency)	0.0															
+	Fish Species	Species of fish stocked in the nursery; necessary for growth and health management.	Yes	String	-															
+	Stocking Density	Number of fish per unit area; essential for management and growth predictions.	Yes	Float	-															
+	Feed Schedule	Schedule for feeding nursery stock; critical for growth management.	Yes	String	-															
+	Growth Metrics	Metrics to track growth progress (e.g., size, weight); important for performance assessment.	Yes	String	-															
+	Water Quality Monitoring	Regular checks on water quality parameters; crucial for nursery health.	Yes	String	None															
+Feed Management	Feed ID	Unique identifier for each feed type; essential for inventory and cost management.	Yes	String	-	Primary Key														
+	Feed Type	Type of feed used (e.g., pellets, live food); necessary for dietary assessments.	Yes	String	-															
+	Feed Stock	Quantity of feed available in stock; essential for inventory management and procurement planning.	Yes	Float	0.0															
+	Feed Cost	Costs of feed per unit; essential for calculating total feed expenses over a cultivation period.	Yes	Float (currency)	-															
+	Feed Quantity	Quantity of feed available; necessary for inventory management.	Yes	Float	0.0															
+	Feed Schedule	Schedule for feeding; critical for growth management.	Yes	Date	-															
+	Feed Supplier	Name of the supplier; important for procurement management.	Yes	String	-															
+	Feeding Frequency	Frequency of feeding (e.g., daily, bi-weekly); necessary for proper nutrition management.	Yes	String	-															
+	Feed Conversion Ratio (FCR)	Ratio of feed input to weight gain; essential for assessing feed efficiency and performance.	Yes	Float	0.0	Important for cost analysis and operational efficiency.														
+Fish Management	Fish ID	Unique identifier for each batch of fish; critical for tracking.	Yes	String	-	Primary Key														
+	Species	Species of fish being cultivated; necessary for growth and health management.	Yes	String	-															
+	Stocking Density	Number of fish per unit area; essential for management and growth predictions.	Yes	Float	-															
+	Stocking Date	Monitor time since stocking for growth and health checks	Yes	Date	None	Required for each pond														
+	Population Count	Track fish numbers to prevent overcrowding and ensure optimum density	Yes	Integer	0.0	Include updates for mortality														
+	Fish Health Status	Current health status of the fish; important for timely interventions.	Yes	String	-															
+
+=== Sheet: (Old)Terra Bean ===
+Stage	Activity (Label Name)	Purpose and Usage	Mandatory	Data Type	Default Values	Notes
+1. Land Cleaning	Debushing/Bush Clearing	To clear the land of unwanted vegetation	Yes	Yes/No	No	Capture photos before and after
+	Removal of Stones and Rocks	To prepare the land for cultivation	Yes	Yes/No	No	Capture photos of cleared land
+	Leveling	To ensure an even surface for planting	Yes	Yes/No	No	Photo documentation required
+	Tree Felling	To remove trees obstructing sunlight	Yes	Yes/No	No	Documentation of permits if required
+	Uprooting	To remove stumps and roots from the land	Yes	Yes/No	No	Record method of uprooting
+	Trash Removal	To clean the area of debris and waste	Yes	Yes/No	No	Photo evidence needed
+	Plowing	To turn over the soil for planting	Yes	Yes/No	No	Include depth of plowing
+	Ridge Construction	To create ridges for planting coffee seeds	Yes	Yes/No	No	Photo before and after
+	Thorn Cleaning	To remove thorny plants	Optional	Yes/No	No	
+	Not Done	Activity not performed	No	Yes/No	No	Specify reason if not done
+2. Nursery Preparation	Germination	To ensure seeds sprout into seedlings	Yes	Yes/No	No	Monitor germination rates
+	Sowing	To plant seeds in the nursery	Yes	Yes/No	No	Specify date and number of seeds sown
+3. Nursery Maintenance	Nursery Care	To maintain the health of seedlings	Yes	Yes/No	No	Regular monitoring and reporting needed
+4. Planting	Planting	To transplant seedlings into the main field	Yes	Yes/No	No	Record planting date and method
+5. Young Coffee Maintenance	Manual Collection	To gather data on growth and health	Yes	Yes/No	No	Include photo evidence
+	Thinning	To reduce overcrowding of young plants	Yes	Yes/No	No	Specify number of plants thinned
+6. Mature Coffee Maintenance	Fertilizing	To provide nutrients to coffee plants	Yes	Yes/No	No	Record type and amount used
+	Pest Control	To manage pests affecting coffee plants	Yes	Yes/No	No	Document pesticides used
+7. Harvesting & Processing	Harvest	To collect mature coffee cherries	Yes	Yes/No	No	Record harvest date and yield
+	Dry Pulped and Washed	To prepare harvested coffee for storage	Yes	Yes/No	No	Include method used
+	Sun Dried	To dry coffee beans under the sun	Yes	Yes/No	No	Monitor drying conditions
+	Roasting	To roast dried coffee beans	Yes	Yes/No	No	Document roasting time and temperature
+	Packing	To package roasted coffee for sale	Yes	Yes/No	No	Record packaging method used
+	Retail	To sell the final product	Yes	Yes/No	No	Document sales volume
+8. Pre Harvesting Activities	Pre-Harvest Inspection	To check for readiness before harvest	Yes	Yes/No	No	Include inspection report
+	Quality Check	To assess the quality of coffee cherries	Yes	Yes/No	No	Record findings
+Coffee Certification Assessment Table (Including Rainforest Alliance)						
+Category	Questions	Points	Scoring Method	Answers	Certification Type	Scoring System
+1. Farm Management and Documentation	Farm Management Plan: Do you have a documented farm management plan?	10.0	Yes = 10, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+	Documented Activities: Are all farm activities documented?	5.0	Yes = 5, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+	Traceability System: Is there a system for traceability from farm to point of sale?	10.0	Yes = 10, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+	Worker Registration: Are all workers (including temporary and subcontracted) registered?	5.0	Yes = 5, No = 0	Yes/No	Fair Trade, Rainforest	Compliant/Non-compliant
+2. Environmental Protection	Ecosystem Conservation: Is there a plan to conserve natural ecosystems?	10.0	Yes = 10, No = 0	Yes/No	Rainforest, USDA, 4C, UTZ	Compliant/Non-compliant
+	Soil Erosion Prevention: Are measures taken to prevent soil erosion?	5.0	Yes = 5, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+	Water Conservation: Is water conservation practiced?	5.0	Yes = 5, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+	Waste Management: Is there a waste management system in place?	10.0	Yes = 10, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+3. Soil Management	Soil Fertility Improvement: Are practices implemented to improve soil fertility?	10.0	Yes = 10, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+	Soil Testing: Is soil tested regularly?	5.0	Yes = 5, No = 0	Yes/No	USDA, Rainforest, 4C, UTZ, VietGAP	Compliant/Non-compliant
+	Cover Crops: Are cover crops or mulching used?	5.0	Yes = 5, No = 0	Yes/No	USDA, Rainforest, 4C, UTZ, VietGAP	Compliant/Non-compliant
+4. Pest and Disease Management	Integrated Pest Management (IPM): Is an IPM system in place?	10.0	Yes = 10, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+	Approved Pesticides: Are only approved pesticides used?	5.0	Yes = 5, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+5. Fertilizer Use	Approved Fertilizers: Are only approved fertilizers used?	10.0	Yes = 10, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+	Composting: Is composting practiced?	5.0	Yes = 5, No = 0	Yes/No	USDA, Rainforest, 4C, UTZ, VietGAP	Compliant/Non-compliant
+6. Harvest and Post-Harvest Handling	Hygiene Practices: Are good hygiene practices followed during harvesting?	5.0	Yes = 5, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+	Equipment Maintenance: Is equipment cleaned and maintained?	5.0	Yes = 5, No = 0	Yes/No	Fair Trade, Rainforest, USDA, 4C, UTZ, VietGAP, Halal	Compliant/Non-compliant
+
+=== Sheet: Terra Nexus ===
+1. Crop Master (Enhanced)					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Crop Information	Crop Name	YES	Text Box		
+	Crop Category	YES	DropDown	Staple Crops	Rice/Maize/Cotton/Wheat
+	Crop Image	NO	File Upload		
+	Duration (Days)	NO	Text Box with UOM	Days	Total crop cycle
+	Expected Expense per Ha	NO	Text Box with Currency		
+	Expected Income per Ha	NO	Text Box with Currency		
+	Expected Yield per Ha	NO	Text Box with UOM	Tonnes/Quintals	
+	Climate Zone	YES	DropDown		Tropical/Subtropical/Temperate
+	Water Requirement	NO	Text Box with UOM	mm/season	Total seasonal water need
+Crop Varieties	Variety Name	YES	Text Box		Add Multiple
+	Crop Cycle (Days)	NO	Text Box		
+	Maturity Type	NO	DropDown		Early/Medium/Late
+	Yield Potential	NO	Text Box with UOM	Tonnes/Ha	
+	Disease Resistance	NO	Multi Select		Pest/Disease Master
+Growth Stages	Stage Name	YES	DropDown	Crop Stage Master	Add Multiple
+	Start Day (DAS)	NO	Text Box		Days After Sowing
+	End Day (DAS)	NO	Text Box		Days After Sowing
+	Critical Activities	NO	Text Area		Stage-specific activities
+	Water Requirement	NO	Text Box with UOM	mm/day	Daily water need
+	Nutrient Requirement	NO	Text Box		NPK requirements
+2. Crop Calendar Master (New)					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Calendar Information	Calendar Name	YES	Text Box		Rice Kharif Calendar
+	Crop	YES	DropDown	Crop Master	
+	Variety	YES	DropDown	Variety Master	
+	Season	YES	DropDown	Season Master	
+	Region/Province	YES	DropDown	Location Master	
+	Total Duration	YES	Text Box		Total days
+Stage Calendar	Growth Stage	YES	DropDown	Growth Stage Master	Add Multiple
+	Start DAS	YES	Text Box		Days After Sowing
+	End DAS	YES	Text Box		Days After Sowing
+	Key Activities	YES	Text Area		Stage activities
+	Input Requirements	NO	Text Area		Fertilizer/Pesticide needs
+	Weather Sensitivity	NO	DropDown	Low/Medium/High	Critical period indicator
+3. Enhanced Land Preparation					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+General Information	Transaction Date	YES	Date Picker	Current Date	Non-editable
+	Commune	YES	DropDown	Location Master	
+	Farmer	YES	DropDown	Farmer Master	
+	Farm Land	YES	DropDown	Farm Land Master	
+
+=== Sheet: Terra Orchard ===
+1. Land Preparation					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Land Preparation	Date of Event	YES	Date Picker	Current Date	
+	Primary Clearing	YES	DropDown	Manual	Manual/Mechanical
+	Implements Used	NO	DropDown		Tractor/Excavator
+	Soil Amendment	NO	Radio	No	Yes/No
+	Amendment Type	NO	DropDown	Lime	Lime/Compost/Organic Matter
+	pH Adjustment Value	NO	Text Box		kg/ha
+	Field Levelling	NO	Radio	No	Yes/No
+	Photo Evidence	NO	File Upload		
+2. Planting					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Planting	Planting Date	YES	Date Picker		
+	Crop Type	YES	DropDown	Durian	Durian/Dragon Fruit
+	Variety	YES	DropDown	Variety Master	
+	Planting Density	YES	Text Box w/ UOM	trees/Ha	
+	Planting Method	YES	DropDown	Pit Planting	Pit Planting/Transplanting
+	Pit Dimensions (cm)	NO	Text Box		Depth × Width
+	Initial Fertilizer	NO	Radio	No	Yes/No
+	Fertilizer Type	NO	DropDown	NPK	Show if applied
+3. Irrigation & Nutrient Management					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Irrigation	Irrigation Date	YES	Date Picker	Current Date	
+	Method	YES	DropDown	Drip	Drip/Sprinkler/Flood
+	Volume (L/tree)	NO	Float		
+	Frequency (per week)	NO	Integer		
+	Cost	NO	Float		
+Nutrient Application	Application Date	YES	Date Picker	Current Date	
+	Fertilizer Type	YES	DropDown	Chemical	
+	Product	YES	DropDown	Fertilizer Master	
+	Dose (kg/tree)	YES	Float		
+	Applied Qty (kg)	YES	Float		
+	Cost per Unit	YES	Float		
+	Total Cost	YES	Auto-calc		
+4. Crop Monitoring & Phenology					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Field Visit	Visit Date	YES	Date Picker	Current Date	
+	Growth Stage	YES	DropDown	Stage Master	Custom stages per crop
+	Canopy Cover (%)	NO	Float		
+	Tree Height (m)	NO	Float		
+	Stem Diameter (cm)	NO	Float		Measured at 30 cm above ground
+	Flower Count	NO	Integer		
+	Fruit Set (%)	NO	Float		
+
+=== Sheet: Terra Bean ===
+3. Pre-Harvest & Nursery Management					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Nursery Preparation	Nursery ID	YES	Text Box	Auto Gen	Primary Key
+	Nursery Capacity (#plants)	YES	Integer		
+	Sowing Date	YES	Date Picker		
+	Germination Rate (%)	NO	Text Box		From lab test
+	Seedling Health Status	NO	DropDown	Good	Good/Fair/Poor
+	Transplant Date	YES	Date Picker		
+Nursery Operations	Watering Schedule	YES	Text Area		Frequency, volume
+	Fertilizer Application	NO	Text Area		Type, dose, timing
+	Pest/Disease Checks	NO	Text Area		Findings, actions
+	Photo Documentation	NO	File Upload		
+4. Land Preparation & Planting					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Land Preparation	Date of Event	YES	Date Picker	Current Date	
+	Activity	YES	DropDown	Plowing	Debushing/Plowing/Leveling
+	Implements Used	NO	DropDown		Bullock/Tractor/Rotovator
+	Compost Applied	NO	Radio	No	Yes/No
+	Compost Type	NO	Text Box		Show if Compost = Yes
+	Photo Capture	NO	File Upload		
+Planting	Planting Date	YES	Date Picker		
+	Planting Method	YES	DropDown	Hole Planting	Hole planting/Transplanting
+	Seedling Age (Days)	YES	Integer		
+	Plants per Ha	NO	Integer		
+	Spacing (cm)	NO	Text Box		Row × plant spacing
+5. Crop Monitoring & Alerts					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Field Visit	Visit Date	YES	Date Picker	Current Date	
+	Growth Stage	YES	DropDown	Stage Master	e.g., Vegetative/Flowering/Cherry Development
+	Plant Height (cm)	NO	Text Box		Average
+	Canopy Cover (%)	NO	Text Box		
+	Leaf Color Index	NO	DropDown	Green	Green/Yellow/Red
+	Soil Moisture Status	NO	DropDown	Adequate	Dry/Adequate/Wet
+Stress & Pests	Pest Infestation	NO	Radio	No	Yes/No
+	Pest Type	NO	Multi Select	Pest Master	Show if Infestation = Yes
+	Disease Symptoms	NO	Radio	No	Yes/No
+	Disease Type	NO	Multi Select	Disease Master	Show if Symptoms = Yes
+	Recommendation	NO	Text Area		Action items
+	Alert Triggered	NO	Radio	No	Yes/No (for mobile alert)
+6. Fertilizer & Nutrient Management					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Nutrient Planning	Soil Test Date	NO	Date Picker		
+	pH	NO	Text Box		
+
+=== Sheet: Terra Blue ===
+1. Pond Registration					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Pond Registration	Pond ID	YES	Text Box	Auto Gen	Unique pond identifier
+	Species Culture	YES	DropDown	Pangasius	Pangasius/Tilapia/Shrimp/Catfish
+	Pond Area (ha)	YES	Float (hectares)		Total pond surface area
+	Pond Depth (m)	NO	Float		Average depth
+	Water Source	YES	DropDown	River	River/Canal/Borewell/Pond
+	Salinity (ppt)	NO	Float		Particularly for shrimp
+	Date Registered	YES	Date Picker	Current Date	
+	GPS Coordinates	YES	Text Box		Lat/Long
+	Initial Water Quality	YES	Text Area		pH/DO/Temperature
+	Vegetation Cover	NO	Text Area		Aquatic plants
+	Photo Evidence	NO	File Upload		
+2. Hatchery Management					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Hatchery	Hatchery ID	YES	Text Box	Auto Gen	Unique hatchery identifier
+Management	Broodstock Species	YES	DropDown	Pangasius	Pangasius/Tilapia/Shrimp/Catfish
+	Broodstock Count	YES	Integer		Number of broodstock
+	Spawning Date	YES	Date Picker		
+	Hatching Start Date	YES	Date Picker		
+	Hatching Rate (%)	YES	Float	0.0	Percentage of eggs hatched
+	Water Temperature (°C)	YES	Float		
+	Dissolved Oxygen (mg/L)	YES	Float		
+	Mortality Rate (%)	NO	Float	0.0	During incubation
+	Photo Documentation	NO	File Upload		
+3. Nursery Management					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Nursery	Nursery ID	YES	Text Box	Auto Gen	Unique nursery identifier
+Management	Species	YES	DropDown	Pangasius	
+	Stocking Date	YES	Date Picker		
+	Initial Stocking Density (ind/m³)	YES	Float		Number per cubic meter
+	Nursery Capacity (m³)	YES	Float		Maximum water volume
+	Water Quality	YES	Text Area		pH/DO/Temperature
+	Feed Start Date	YES	Date Picker		
+	Feed Schedule	YES	Text Area		Frequency and quantity
+	Growth Metrics	YES	Text Area		Size/weight sampling at intervals
+	Photo Documentation	NO	File Upload		
+4. Feed Management					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Feed Management	Feed ID	YES	Text Box	Auto Gen	Unique feed type identifier
+	Feed Type	YES	DropDown	Commercial	Commercial/Live/Formula
+	Nutrient Composition	YES	Text Area		Crude protein, lipid, fiber %
+	Feed Cost (currency/unit)	YES	Float		Price per kg
+
+=== Sheet: Terra Veggies ===
+Terra Veggies – Comprehensive Data Schema (Vegetables & Greens)					
+(Focusing on Vietnam’s major domestic and export vegetables: Chillies, Tomatoes, Ginger, Seedless Lime, Potatoes, Cucumbers, Spinach, Mustard Greens)					
+1. Land Preparation					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Land Preparation	Date of Event	YES	Date Picker	Current Date	
+	Clearing Method	YES	DropDown	Manual	Manual/Mechanical
+	Implements Used	NO	DropDown		Tractor/Rotavator/Harrow
+	Soil Amendment	NO	Radio	No	Yes/No
+	Amendment Type	NO	DropDown	Lime/Compost	Lime/Organic Compost/Green Manure
+	Incorporation Method	NO	DropDown	Tillage	Tillage/Irrigation Incorporation
+	pH Adjustment (kg/ha)	NO	Float		
+	Photo Capture	NO	File Upload		
+2. Planting & Transplanting					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Planting	Planting Date	YES	Date Picker		
+	Crop Type	YES	DropDown	Chillies	Chillies/Tomatoes/Ginger/Lime/Potatoes/Cucumber/Leafy Greens
+	Variety	YES	DropDown	Variety Master	
+	Method	YES	DropDown	Direct Sowing	Direct Sowing/Transplanting
+	Seed Rate (kg/ha)	NO	Float		
+	Transplant Date	NO	Date Picker		Show if Transplanting
+	Plants per Ha	YES	Integer		
+	Spacing (cm)	NO	Text Box		Row × Intra-row
+	Seedling Age (days)	NO	Integer		Show if Transplanting
+3. Irrigation & Nutrient Management					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Irrigation	Irrigation Date	YES	Date Picker	Current Date	
+	Method	YES	DropDown	Drip	Drip/Sprinkler/Flood/Furrow
+	Volume (L/Ha)	NO	Float		
+	Frequency (per week)	NO	Integer		
+	Pre-Irrigation Soil Moisture	NO	DropDown	Adequate	Dry/Adequate/Wet
+Nutrient Application	Application Date	YES	Date Picker	Current Date	
+	Fertilizer Type	YES	DropDown	Chemical	Chemical/Organic/Bio
+	Product	YES	DropDown	Fertilizer Master	
+	Dose (kg/Ha)	YES	Float		
+	Applied Qty (kg)	YES	Float		
+	Cost per Unit	YES	Float		
+	Total Cost	YES	Auto-calc		
+4. Crop Monitoring & Phenology					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Field Visit	Visit Date	YES	Date Picker	Current Date	
+	Growth Stage	YES	DropDown	Stage Master	Custom stages per crop
+
+=== Sheet: Terra Graze ===
+1. Farm & Animal Registration					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Farm Registration	Farm ID	YES	Text Box	Auto Gen	Unique farm identifier
+	Farmer Name	YES	Text Box		
+	Location	YES	DropDown	Province/District	Location Master
+	Farm Area (Ha)	NO	Float		Pasture/pen area
+	Production Type	YES	Multi Select	Dairy	Dairy/Beef/Poultry/Pig/Sheep/Goat
+	Registration Date	YES	Date Picker	Current Date	
+2. Animal Inventory & Breeding Management					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Animal Inventory	Record ID	YES	Text Box	Auto Gen	
+	Animal Species	YES	DropDown	Cattle	Cattle/Goat/Sheep/Chicken/Pig
+	Breed	NO	Text Box		
+	Number of Animals	YES	Integer		
+	Age Groups	NO	Text Area		e.g., Calves, Heifers, Cows
+	Gender Distribution	NO	Text Box		Males/Females counts
+Breeding Management	Breeding Event ID	YES	Text Box	Auto Gen	
+	Date of Breeding	YES	Date Picker		
+	Sire ID/Flock	NO	Text Box		
+	Dam ID	NO	Text Box		
+	Expected Birth Date	NO	Date Picker		
+	Actual Birth Date	NO	Date Picker		
+	Offspring Count	NO	Integer		
+3. Feed & Nutrition Management					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Feed Management	Feed Event ID	YES	Text Box	Auto Gen	
+	Date	YES	Date Picker	Current Date	
+	Feed Type	YES	DropDown	Forage	Forage/Concentrate/Mix/Formulated
+	Quantity (kg)	YES	Float		
+	Cost per Unit	NO	Float		
+	Total Cost	NO	Auto-calc		Quantity × Cost
+	Feed Conversion Ratio	NO	Float		For meat/milk species
+4. Health & Veterinary Monitoring					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Health Check	Check ID	YES	Text Box	Auto Gen	
+	Date	YES	Date Picker	Current Date	
+	Species	YES	DropDown	Cattle	
+	Animal ID/Group	NO	Text Box		
+	Health Status	YES	DropDown	Good	Good/Fair/Poor
+	Disease Observed	NO	Multi Select	Disease Master	
+	Treatment Administered	NO	Text Area		Medication/vaccine details
+	Next Check Date	NO	Date Picker		
+
+=== Sheet: Terra Flora(floriculture) ===
+1. Land Preparation					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Land Preparation	Date of Event	YES	Date Picker	Current Date	
+	Clearing Method	YES	DropDown	Manual	Manual/Mechanical
+	Implements Used	NO	DropDown		Tractor/Rotavator/Hoe
+	Soil Amendment	NO	Radio	No	Yes/No
+	Amendment Type	NO	DropDown	Lime/Compost	Lime/Green Manure/Organic Compost
+	Incorporation Method	NO	DropDown	Tillage	Tillage/Irrigation Incorporation
+	Beds Prepared (#)	YES	Integer		Number of planting beds
+	Bed Dimensions (m²)	NO	Float		
+	Photo Capture	NO	File Upload		
+2. Planting & Propagation					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Planting	Planting Date	YES	Date Picker		
+	Crop Type	YES	DropDown	Roses	Roses/Orchids/Chrysanthemum/Baby’s Breath/Lilies
+	Variety	YES	DropDown	Variety Master	
+	Propagation Method	YES	DropDown	Cutting	Cutting/Tissue Culture/Rhizome Division
+	Plants per Bed	YES	Integer		
+	Bed Spacing (m)	NO	Float		Between beds
+	Plant Spacing (cm)	NO	Float		Within bed
+3. Irrigation & Nutrient Management					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Irrigation	Irrigation Date	YES	Date Picker	Current Date	
+	Method	YES	DropDown	Drip	Drip/Sprinkler/Furrow
+	Volume (L/bed)	NO	Float		
+	Frequency (per week)	NO	Integer		
+Nutrient Application	Application Date	YES	Date Picker	Current Date	
+	Fertilizer Type	YES	DropDown	Chemical	Chemical/Organic/Bio
+	Product	YES	DropDown	Fertilizer Master	
+	Dose (g/bed)	YES	Float		
+	Applied Qty (kg)	YES	Float		
+	Cost per Unit	YES	Float		
+	Total Cost	YES	Auto-calc		
+4. Crop Monitoring & Phenology					
+Section Name	Field Name	Mandatory	Data Type	Default Value	Notes
+Field Visit	Visit Date	YES	Date Picker	Current Date	
+	Growth Stage	YES	DropDown	Stage Master	Custom per crop
+	Plant Height (cm)	NO	Float		Average
+	Bud Count per Plant	NO	Integer		For cut flowers
+	Leaf Color	NO	DropDown	Green	Green/Yellow
+Stress & Pests	Pest Presence	NO	Radio	No	Yes/No
+	Pest Type	NO	Multi Select	Pest Master	
+	Disease Symptoms	NO	Radio	No	Yes/No
+
+=== Sheet: Terra Forest(Agroforestry &FMS) ===
+1. Concession & Land Registration				
+Field Name	Description	Type	Mandatory	Notes
+Concession ID	Unique concession identifier	Text	Yes	Auto-generated
+Concessionaire	Holder of concession (company/cooperative)	Dropdown	Yes	
+Province	Province location	Dropdown	Yes	Vietnam-specific
+District	District location	Dropdown	Yes	
+Permit Issue Date	Concession permit start date	DatePicker	Yes	
+Permit Expiry Date	Concession permit end date	DatePicker	Yes	
+2. Forest Inventory & Boundary Mapping				
+Field Name	Description	Type	Mandatory	Notes
+Inventory ID	Unique inventory survey identifier	Text	Yes	Auto-generated
+Survey Date	Date of ground inventory	DatePicker	Yes	
+GIS Boundary	Boundary polygon (GeoJSON/shapefile)	FileUpload	Yes	Geospatial demarcation
+Tree Count by Species	Number of trees per species	JSON/Table	Yes	e.g. {"Dipterocarp":120,"Acacia":80}
+Avg DBH (cm)	Average diameter at breast height per species	Float	No	
+3. Continuous Monitoring & Alerts				
+Field Name	Description	Type	Mandatory	Notes
+Monitoring Event ID	Unique monitoring record identifier	Text	Yes	Auto-generated
+Monitoring Date	Date of monitoring	Date Picker	Yes	
+NDVI Value	Vegetation health index (Normalized Difference Vegetation Index)	Float	No	Satellite-derived
+Deforestation Alert	Flag if deforestation detected	Radio	Yes	Yes/No via satellite analytics
+Alert Details	Description of deforestation event	Text Area	No	
+Change Detection Map	GeoJSON of change polygons	File Upload	No	
+4. Forest Health & Fire Risk				
+Field Name	Description	Type	Mandatory	Notes
+Health Check ID	Unique health check record	Text	Yes	Auto-generated
+Check Date	Date of health assessment	DatePicker	Yes	
+Pest/Disease Detected	Pests or diseases observed	Radio	Yes	Yes/No
+Pest/Disease Details	Type, severity, location	TextArea	No	
+Fire Risk Level	Fire risk index	Dropdown	Yes	Low/Medium/High
+Risk Mapping Model	AI model used for fire risk mapping	Text	No	e.g. CatBoost+GIS
+5. Species Classification & Biodiversity				
+Field Name	Description	Type	Mandatory	Notes
+
+=== Sheet: Terra Silvi (Timber Legality &  ===
+1. Concession & Land Registration				
+Field Name	Description	Type	Mandatory	Notes
+Concession ID	Unique concession license identifier	Text	Yes	Auto-generated
+Concessionaire	Company or cooperative owning concession	Dropdown	Yes	GTIN-linked entity
+Province	Province location of concession	Dropdown	Yes	Vietnam-specific
+District	District location	Dropdown	Yes	Dependent on Province
+Forest Type	Natural or plantation	Dropdown	Yes	As per forest classification
+Species Licensed	Permitted timber species list	Multi-select	Yes	References species master data
+Permit Issue Date	Date permit issued	Date Picker	Yes	Valid for logging
+Permit Expiry Date	Permit expiration date	Date Picker	Yes	
+2. Harvest Planning & Boundary Mapping				
+Field Name	Description	Type	Mandatory	Notes
+Harvest Event ID	Unique harvest operation identifier	Text	Yes	Auto-generated
+Scheduled Harvest Date	Planned harvesting date	Date Picker	Yes	
+Harvest Area (ha)	Planned harvest area	Float	Yes	GIS-based polygon boundaries
+GIS Harvest Boundaries	Geospatial coordinates (shapefile/GeoJSON)	File Upload	Yes	For precise demarcation
+3. Procurement & Supplier Management				
+Field Name	Description	Type	Mandatory	Notes
+Procurement ID	Unique procurement transaction identifier	Text	Yes	Auto-generated
+Supplier ID	Supplier unique ID	Dropdown	Yes	Linked to supplier database
+Supplier Name	Supplier Name	Text	Yes	
+Procurement Date	Date of procurement	Date Picker	Yes	
+Material Type	Type of timber (Logs, Chips, Residues, etc.)	Dropdown	Yes	
+Quantity Procured	Quantity (m³ or tons)	Float	Yes	
+Unit Price	Price per unit	Float	Yes	
+Total Cost	Auto-calculated total cost	Float	Yes	Based on quantity & unit price
+Delivery Documents	Uploaded delivery notes & quality reports	File Upload	Optional	
+4. Timber Classification & Grading				
+Field Name	Description	Type	Mandatory	Notes
+Timber ID	Unique identifier for timber unit or batch	Text	Yes	Auto-generated
+Species	Identified species	Dropdown	Yes	From species master data
+Grade	Assigned timber grade	Dropdown	Yes	Based on quality
+Size Category	Size classification	Dropdown	Yes	Diameter and length ranges
+Moisture Content (%)	Measured moisture content	Float	Optional	Lab testing or sensor-based
+Classification Date	Date of classification	Date Picker	Yes	For traceability
+Supporting Images	Photos or scans supporting classification	File Upload	Optional	AI-assisted or manual input
+
+=== Sheet: Terra Mangrove ===
+1. Site Registration & Mapping				
+Field Name	Description	Type	Mandatory	Notes
+Site ID	Unique mangrove site identifier	Text	Yes	Auto-generated
+Site Name	Official site name	Text	Yes	
+Community / Owner	Managing community or cooperative	Dropdown	Yes	Linked to local cooperatives
+Province	Province location	Dropdown	Yes	Vietnam geographic divisions
+District	District location	Dropdown	Yes	
+Site Area (ha)	Total area of mangrove site	Float	Yes	Hectares
+Registration Date	Date site was registered	Date Picker	Yes	
+GIS Boundary	Boundary polygon (GeoJSON/shapefile)	File Upload	Yes	Geospatial demarcation
+2. Inventory & Species Classification				
+Field Name	Description	Type	Mandatory	Notes
+Inventory ID	Unique inventory survey identifier	Text	Yes	Auto-generated
+Survey Date	Date of ground survey	Date Picker	Yes	
+Seedling Count	Number of seedlings counted	Integer	Yes	
+Survival Rate (%)	Seedling survival percentage	Float	Yes	
+Species Composition	Species mix and percentages	JSON	Yes	e.g. {"Rhizophora":60,"Avicennia":40}
+Classification Method	Method used (AI imagery, manual ID)	Dropdown	Yes	
+3. Continuous Monitoring & Deforestation Alerts				
+Field Name	Description	Type	Mandatory	Notes
+Monitoring Event ID	Unique monitoring record	Text	Yes	Auto-generated
+Monitoring Date	Date of monitoring	Date Picker	Yes	
+NDVI Value	Vegetation health index	Float	No	Satellite-derived
+Canopy Cover (%)	Percent canopy cover	Float	No	Remote sensing
+Deforestation Alert	Flag if deforestation detected	Radio	Yes	Yes/No via satellite analytics
+Alert Details	Details of detected deforestation	Text Area	No	
+4. Forest Health, Fire & Pest Risk				
+Field Name	Description	Type	Mandatory	Notes
+Health Check ID	Unique forest health check record	Text	Yes	Auto-generated
+Check Date	Date of health assessment	Date Picker	Yes	
+Pest/Disease Detected	Indicator if pests or diseases observed	Radio	Yes	Yes/No
+Pest/Disease Details	Type, severity, location	Text Area	No	
+Fire Risk Level	Fire risk category	Dropdown	Yes	Low/Medium/High
+Risk Mapping Model	AI model used for fire/pest risk mapping	Text	No	
