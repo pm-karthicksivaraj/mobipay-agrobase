@@ -1,0 +1,578 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import React, { useEffect, useState, useCallback } from 'react'
+     4→     4→import { useTheme } from 'next-themes'
+     5→     5→import { useAppStore, type ModuleKey } from '@/lib/store'
+     6→     6→import {
+     7→     7→  LayoutDashboard, Users, Landmark, Store, CreditCard, FileText, GraduationCap,
+     8→     8→  Settings, MessageSquare, BarChart3, Sun, Moon, Menu, X, Leaf, Tractor,
+     9→     9→  Wheat, Fish, TreePine, Package, Truck, ClipboardCheck, Shield, UserCheck,
+    10→    10→  Building2, Banknote, TrendingUp, Search, Bell, ChevronDown, LogOut, Sprout,
+    11→    11→  ShoppingCart, HandCoins, CircleDollarSign, Receipt, ClipboardList, MapPin,
+    12→    12→  Phone, Mail, FileCheck2, Activity, PieChart, Target, Layers, Database,
+    13→    13→  ArrowUpRight, ArrowDownRight, UsersRound, PiggyBank, Clock, CalendarDays,
+    14→    14→  CheckCircle2, XCircle, AlertCircle, Plus, Download, ChevronRight
+    15→    15→} from 'lucide-react'
+    16→    16→import { Button } from '@/components/ui/button'
+    17→    17→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+    18→    18→import { Badge } from '@/components/ui/badge'
+    19→    19→import { Input } from '@/components/ui/input'
+    20→    20→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+    21→    21→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+    22→    22→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+    23→    23→import { Label } from '@/components/ui/label'
+    24→    24→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+    25→    25→import { Progress } from '@/components/ui/progress'
+    26→    26→import { Skeleton } from '@/components/ui/skeleton'
+    27→    27→import { Separator } from '@/components/ui/separator'
+    28→    28→import { toast } from 'sonner'
+    29→    29→import {
+    30→    30→  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
+    31→    31→  ResponsiveContainer, PieChart, Pie, Cell, Legend
+    32→    32→} from 'recharts'
+    33→    33→
+    34→    34→// ============ FORMATTERS ============
+    35→    35→const fmt = (n: number) => `UGX ${Number(n).toLocaleString()}`
+    36→    36→const fmtShort = (n: number) => n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(0)}K` : String(n)
+    37→    37→
+    38→    38→// ============ SIDEBAR CONFIG ============
+    39→    39→interface NavItem { key: ModuleKey; label: string; icon: React.ElementType; children?: { key: string; label: string }[] }
+    40→    40→
+    41→    41→const NAV: NavItem[] = [
+    42→    42→  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    43→    43→  { key: 'profile', label: 'Profiles', icon: Users, children: [
+    44→    44→    { key: 'farmers', label: 'Farmers / Members' }, { key: 'groups', label: 'Farmer Groups' },
+    45→    45→    { key: 'companies', label: 'Companies' }, { key: 'agents', label: 'Agents' },
+    46→    46→  ]},
+    47→    47→  { key: 'vsla', label: 'VSLA Management', icon: PiggyBank, children: [
+    48→    48→    { key: 'vsla-groups', label: 'VSLA Groups' }, { key: 'vsla-savings', label: 'Member Savings' },
+    49→    49→    { key: 'vsla-loans', label: 'Loans' }, { key: 'vsla-meetings', label: 'Meetings' },
+    50→    50→    { key: 'vsla-settings', label: 'Settings' },
+    51→    51→  ]},
+    52→    52→  { key: 'marketplace', label: 'Marketplace', icon: Store, children: [
+    53→    53→    { key: 'market-match', label: 'Market Match' }, { key: 'market-info', label: 'Market Information' },
+    54→    54→    { key: 'input-agg', label: 'Input Aggregation' },
+    55→    55→  ]},
+    56→    56→  { key: 'payments', label: 'Payments', icon: CreditCard, children: [
+    57→    57→    { key: 'casual-payments', label: 'Casual Payments' }, { key: 'bulk-payments', label: 'Bulk Payments' },
+    58→    58→  ]},
+    59→    59→  { key: 'loans', label: 'Loan Management', icon: Banknote, children: [
+    60→    60→    { key: 'loan-apps', label: 'Applications' }, { key: 'loan-active', label: 'Active Loans' },
+    61→    61→    { key: 'loan-calculator', label: 'Loan Calculator' },
+    62→    62→  ]},
+    63→    63→  { key: 'agritrack', label: 'AgriTrack', icon: TrendingUp, children: [
+    64→    64→    { key: 'agri-dashboard', label: 'Dashboard' }, { key: 'agri-inventory', label: 'Inventory' },
+    65→    65→    { key: 'agri-sales', label: 'Sales Records' }, { key: 'agri-credit', label: 'Credit Score' },
+    66→    66→  ]},
+    67→    67→  { key: 'purchases', label: 'Purchases', icon: ShoppingCart },
+    68→    68→  { key: 'sales', label: 'Sales', icon: Receipt },
+    69→    69→  { key: 'consignments', label: 'Consignments', icon: Truck },
+    70→    70→  { key: 'approvals', label: 'Approvals', icon: ClipboardCheck },
+    71→    71→  { key: 'training', label: 'Training', icon: GraduationCap },
+    72→    72→  { key: 'reports', label: 'Reports', icon: FileText },
+    73→    73→  { key: 'surveys', label: 'Surveys', icon: ClipboardList },
+    74→    74→  { key: 'communication', label: 'Communication', icon: MessageSquare },
+    75→    75→  { key: 'trace', label: 'Trace', icon: MapPin },
+    76→    76→  { key: 'settings', label: 'Settings', icon: Settings },
+    77→    77→  { key: 'users', label: 'Users', icon: UserCheck },
+    78→    78→]
+    79→    79→
+    80→    80→// ============ MAIN COMPONENT ============
+    81→    81→export default function AgrobaseApp() {
+    82→    82→  const { theme, setTheme } = useTheme()
+    83→    83→  const { activeModule, activeSubTab, setActiveModule, setActiveSubTab, setSidebarOpen } = useAppStore()
+    84→    84→  const [sidebarOpen, setLocalSidebarOpen] = useState(false)
+    85→    85→  const [dashData, setDashData] = useState<any>(null)
+    86→    86→  const [farmers, setFarmers] = useState<any[]>([])
+    87→    87→  const [vslaGroups, setVslaGroups] = useState<any[]>([])
+    88→    88→  const [vslaSavings, setVslaSavings] = useState<any[]>([])
+    89→    89→  const [vslaLoans, setVslaLoans] = useState<any[]>([])
+    90→    90→  const [vslaMeetings, setVslaMeetings] = useState<any[]>([])
+    91→    91→  const [marketProducts, setMarketProducts] = useState<any[]>([])
+    92→    92→  const [payments, setPayments] = useState<any[]>([])
+    93→    93→  const [loans, setLoans] = useState<any>(null)
+    94→    94→  const [trainings, setTrainings] = useState<any[]>([])
+    95→    95→  const [loading, setLoading] = useState(true)
+    96→    96→  const [search, setSearch] = useState('')
+    97→    97→
+    98→    98→  const toggleSidebar = useCallback(() => {
+    99→    99→    setLocalSidebarOpen(p => !p)
+   100→   100→    setSidebarOpen(!sidebarOpen)
+   101→   101→  }, [sidebarOpen, setSidebarOpen])
+   102→   102→
+   103→   103→  // Fetch dashboard stats
+   104→   104→  useEffect(() => {
+   105→   105→    fetch('/api/dashboard').then(r => r.json()).then(setDashData).catch(() => {})
+   106→   106→    fetch('/api/farmers?limit=50').then(r => r.json()).then(d => setFarmers(d.farmers || [])).catch(() => {})
+   107→   107→    fetch('/api/vsla?tab=groups').then(r => r.json()).then(setVslaGroups).catch(() => {})
+   108→   108→    fetch('/api/vsla?tab=savings').then(r => r.json()).then(setVslaSavings).catch(() => {})
+   109→   109→    fetch('/api/vsla?tab=loans').then(r => r.json()).then(setVslaLoans).catch(() => {})
+   110→   110→    fetch('/api/vsla?tab=meetings').then(r => r.json()).then(setVslaMeetings).catch(() => {})
+   111→   111→    fetch('/api/market?tab=products').then(r => r.json()).then(setMarketProducts).catch(() => {})
+   112→   112→    fetch('/api/payments').then(r => r.json()).then(setPayments).catch(() => {})
+   113→   113→    fetch('/api/loans').then(r => r.json()).then(setLoans).catch(() => {})
+   114→   114→    fetch('/api/trainings').then(r => r.json()).then(setTrainings).catch(() => {})
+   115→   115→    setLoading(false)
+   116→   116→  }, [])
+   117→   117→
+   118→   118→  const handleNav = (key: ModuleKey) => { setActiveModule(key); setActiveSubTab(''); setLocalSidebarOpen(false) }
+   119→   119→  const handleSubNav = (key: string) => { setActiveSubTab(key); setLocalSidebarOpen(false) }
+   120→   120→
+   121→   121→  // ============ SIDEBAR ============
+   122→   122→  const Sidebar = () => (
+   123→   123→    <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+   124→   124→      <div className="flex items-center gap-2 px-4 h-16 border-b border-sidebar-border">
+   125→   125→        <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center"><Leaf className="w-5 h-5 text-white" /></div>
+   126→   126→        <div>
+   127→   127→          <div className="font-bold text-sm text-sidebar-foreground">AGROBASE</div>
+   128→   128→          <div className="text-[10px] text-sidebar-foreground/60">by MobiPay AgroSys</div>
+   129→   129→        </div>
+   130→   130→        <button className="lg:hidden ml-auto" onClick={toggleSidebar}><X className="w-4 h-4" /></button>
+   131→   131→      </div>
+   132→   132→      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
+   133→   133→        {NAV.map(item => (
+   134→   134→          <div key={item.key}>
+   135→   135→            {item.children ? (
+   136→   136→              <div>
+   137→   137→                <button onClick={() => activeModule === item.key ? setActiveModule('dashboard') : handleNav(item.key)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${activeModule === item.key ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/50'}`}>
+   138→   138→                  <item.icon className="w-4 h-4 shrink-0" /><span className="flex-1 text-left">{item.label}</span>
+   139→   139→                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeModule === item.key ? 'rotate-180' : ''}`} />
+   140→   140→                </button>
+   141→   141→                {activeModule === item.key && (
+   142→   142→                  <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-3">
+   143→   143→                    {item.children.map(c => (
+   144→   144→                      <button key={c.key} onClick={() => handleSubNav(c.key)} className={`w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors ${activeSubTab === c.key ? 'bg-emerald-600 text-white' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'}`}>{c.label}</button>
+   145→   145→                    ))}
+   146→   146→                  </div>
+   147→   147→                )}
+   148→   148→              </div>
+   149→   149→            ) : (
+   150→   150→              <button onClick={() => handleNav(item.key)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${activeModule === item.key && !item.children ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/50'}`}>
+   151→   151→                <item.icon className="w-4 h-4 shrink-0" /><span>{item.label}</span>
+   152→   152→              </button>
+   153→   153→            )}
+   154→   154→          </div>
+   155→   155→        ))}
+   156→   156→      </nav>
+   157→   157→      <div className="p-3 border-t border-sidebar-border">
+   158→   158→        <div className="flex items-center gap-3 px-2">
+   159→   159→          <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-xs font-bold text-emerald-700 dark:text-emerald-300">EM</div>
+   160→   160→          <div className="flex-1 min-w-0">
+   161→   161→            <div className="text-xs font-medium truncate">Eric (Admin)</div>
+   162→   162→            <div className="text-[10px] text-sidebar-foreground/50">Super Admin</div>
+   163→   163→          </div>
+   164→   164→          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-1 rounded hover:bg-sidebar-accent/50">
+   165→   165→            {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+   166→   166→          </button>
+   167→   167→        </div>
+   168→   168→      </div>
+   169→   169→    </aside>
+   170→   170→  )
+   171→   171→
+   172→   172→  // ============ STAT CARD ============
+   173→   173→  const StatCard = ({ icon: Icon, label, value, sub, trend }: { icon: React.ElementType; label: string; value: string; sub?: string; trend?: 'up' | 'down' }) => (
+   174→   174→    <Card className="relative overflow-hidden">
+   175→   175→      <CardContent className="p-4">
+   176→   176→        <div className="flex items-start justify-between">
+   177→   177→          <div>
+   178→   178→            <p className="text-xs text-muted-foreground font-medium">{label}</p>
+   179→   179→            <p className="text-2xl font-bold mt-1">{value}</p>
+   180→   180→            {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
+   181→   181→          </div>
+   182→   182→          <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950"><Icon className="w-4 h-4 text-emerald-600" /></div>
+   183→   183→        </div>
+   184→   184→        {trend && <div className={`flex items-center gap-1 mt-2 text-xs ${trend === 'up' ? 'text-emerald-600' : 'text-red-500'}`}>
+   185→   185→          {trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+   186→   186→          <span>{trend === 'up' ? '+12%' : '-3%'}</span>
+   187→   187→        </div>}
+   188→   188→      </CardContent>
+   189→   189→    </Card>
+   190→   190→  )
+   191→   191→
+   192→   192→  // ============ STATUS BADGE ============
+   193→   193→  const StatusBadge = ({ status }: { status: string }) => {
+   194→   194→    const colors: any = { COMPLETED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300', ACTIVE: 'bg-emerald-100 text-emerald-700', PENDING: 'bg-amber-100 text-amber-700', DISBURSED: 'bg-blue-100 text-blue-700', APPROVED: 'bg-emerald-100 text-emerald-700', REPAID: 'bg-slate-100 text-slate-600', OVERDUE: 'bg-red-100 text-red-700', REJECTED: 'bg-red-100 text-red-700', AVAILABLE: 'bg-emerald-100 text-emerald-700', MATCHED: 'bg-blue-100 text-blue-700', SOLD: 'bg-slate-100 text-slate-600', SCHEDULED: 'bg-amber-100 text-amber-700', CONCLUDED: 'bg-emerald-100 text-emerald-700', FAILED: 'bg-red-100 text-red-700', PROCESSING: 'bg-blue-100 text-blue-700', NEW: 'bg-blue-100 text-blue-700' }
+   195→   195→    return <Badge variant="secondary" className={colors[status] || 'bg-slate-100 text-slate-600'}>{status}</Badge>
+   196→   196→  }
+   197→   197→
+   198→   198→  // ============ DASHBOARD VIEW ============
+   199→   199→  const DashboardView = () => {
+   200→   200→    if (!dashData) return <div className="grid grid-cols-1 md:grid-cols-3 gap-4"><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div>
+   201→   201→    return (
+   202→   202→      <div className="space-y-6">
+   203→   203→        <div className="flex items-center justify-between">
+   204→   204→          <div><h1 className="text-2xl font-bold">Dashboard Overview</h1><p className="text-sm text-muted-foreground">Agrobase Platform — Uganda Operations</p></div>
+   205→   205→          <Badge variant="outline" className="text-emerald-600 border-emerald-300"><Activity className="w-3 h-3 mr-1" /> Live</Badge>
+   206→   206→        </div>
+   207→   207→        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+   208→   208→          <StatCard icon={Users} label="Total Farmers" value={String(dashData.farmerCount)} sub="Across 5 groups" trend="up" />
+   209→   209→          <StatCard icon={PiggyBank} label="Active VSLAs" value={String(dashData.vslaCount)} sub={`${dashData.totalSavings ? 'UGX ' + fmtShort(dashData.totalSavings) : '0'} total savings`} />
+   210→   210→          <StatCard icon={HandCoins} label="Active Loans" value={String(dashData.activeLoans)} sub="VSLA + Institutional" />
+   211→   211→          <StatCard icon={Store} label="Market Listings" value={String(dashData.marketListings)} sub="Available products" />
+   212→   212→          <StatCard icon={GraduationCap} label="Training Sessions" value={String(dashData.trainingCount)} sub="This season" />
+   213→   213→          <StatCard icon={CreditCard} label="Total Payments" value={String(dashData.totalPayments)} sub="UGX " + fmtShort(dashData.totalPayments * 85000) />
+   214→   214→        </div>
+   215→   215→        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   216→   216→          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Monthly Farmer Registrations</CardTitle></CardHeader><CardContent>
+   217→   217→            <ResponsiveContainer width="100%" height={250}><LineChart data={dashData.monthlyFarmerData}>
+   218→   218→              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" /><XAxis dataKey="month" tick={{ fontSize: 12 }} /><YAxis tick={{ fontSize: 12 }} />
+   219→   219→              <ReTooltip /><Line type="monotone" dataKey="count" stroke="#059669" strokeWidth={2} dot={{ fill: '#059669', r: 4 }} />
+   220→   220→            </LineChart></ResponsiveContainer>
+   221→   221→          </CardContent></Card>
+   222→   222→          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">VSLA Savings by Group</CardTitle></CardHeader><CardContent>
+   223→   223→            <ResponsiveContainer width="100%" height={250}><BarChart data={dashData.vslaSavingsByGroup}>
+   224→   224→              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" /><XAxis dataKey="name" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 12 }} />
+   225→   225→              <ReTooltip /><Bar dataKey="savings" fill="#059669" radius={[4, 4, 0, 0]} />
+   226→   226→            </BarChart></ResponsiveContainer>
+   227→   227→          </CardContent></Card>
+   228→   228→        </div>
+   229→   229→        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Recent Transactions</CardTitle></CardHeader><CardContent>
+   230→   230→          <Table><TableHeader><TableRow><TableHead className="text-xs">Type</TableHead><TableHead className="text-xs">Recipient</TableHead><TableHead className="text-xs">Amount</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="text-xs">Date</TableHead></TableRow></TableHeader>
+   231→   231→          <TableBody>{(dashData.recentTransactions || []).map((t: any, i: number) => (
+   232→   232→            <TableRow key={i}><TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{t.type}</Badge></TableCell>
+   233→   233→            <TableCell className="text-xs">{t.recipientName}</TableCell>
+   234→   234→            <TableCell className="text-xs font-medium">{fmt(t.amount)}</TableCell>
+   235→   235→            <TableCell><StatusBadge status={t.status} /></TableCell>
+   236→   236→            <TableCell className="text-xs text-muted-foreground">{new Date(t.createdAt).toLocaleDateString()}</TableCell>
+   237→   237→          </TableRow>
+   238→   238→          ))}</TableBody></Table>
+   239→   239→        </CardContent></Card>
+   240→   240→      </div>
+   241→   241→    )
+   242→   242→  }
+   243→   243→
+   244→   244→  // ============ FARMERS VIEW ============
+   245→   245→  const FarmersView = () => (
+   246→   246→    <div className="space-y-4">
+   247→   247→      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+   248→   248→        <div><h2 className="text-xl font-bold">Farmer Profiling</h2><p className="text-sm text-muted-foreground">{farmers.length} registered farmers</p></div>
+   249→   249→        <div className="flex gap-2"><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search farmers..." className="pl-9 w-60" value={search} onChange={e => setSearch(e.target.value)} /></div>
+   250→   250→        <Dialog><DialogTrigger asChild><Button className="bg-emerald-600 hover:bg-emerald-700"><Plus className="w-4 h-4 mr-1" />Add Farmer</Button></DialogTrigger>
+   251→   251→        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto"><DialogHeader><DialogTitle>Register New Farmer</DialogTitle></DialogHeader>
+   252→   252→          <div className="grid gap-4 py-2">
+   253→   253→            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">First Name</Label><Input className="mt-1" placeholder="e.g. John" /></div><div><Label className="text-xs">Last Name</Label><Input className="mt-1" placeholder="e.g. Mukasa" /></div></div>
+   254→   254→            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Phone Number</Label><Input className="mt-1" placeholder="+25677..." /></div><div><Label className="text-xs">Gender</Label><Select className="mt-1"><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Male">Male</SelectItem><SelectItem value="Female">Female</SelectItem></SelectContent></Select></div></div>
+   255→   255→            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Education</Label><Select className="mt-1"><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Primary">Primary</SelectItem><SelectItem value="Secondary">Secondary</SelectItem><SelectItem value="UG">University</SelectItem></SelectContent></Select></div><div><Label className="text-xs">Marital Status</Label><Select className="mt-1"><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Married">Married</SelectItem><SelectItem value="Un-Married">Un-Married</SelectItem><SelectItem value="Widow">Widow</SelectItem></SelectContent></Select></div></div>
+   256→   256→            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Farm Size (Ha)</Label><Input className="mt-1" type="number" placeholder="0.5" /></div><div><Label className="text-xs">Farm Ownership</Label><Select className="mt-1"><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Owned">Owned</SelectItem><SelectItem value="Rent">Rent</SelectItem><SelectItem value="Lease">Lease</SelectItem></SelectContent></Select></div></div>
+   257→   257→            <div><Label className="text-xs">Main Crops</Label><Input className="mt-1" placeholder="e.g. Maize, Coffee" /></div>
+   258→   258→            <Button className="bg-emerald-600 hover:bg-emerald-700 w-full" onClick={() => toast.success('Farmer registered successfully')}>Register Farmer</Button>
+   259→   259→          </div>
+   260→   260→        </DialogContent></Dialog>
+   261→   261→        </div>
+   262→   262→      </div>
+   263→   263→      <Card><CardContent className="p-0">
+   264→   264→        <Table><TableHeader><TableRow><TableHead className="text-xs">Name</TableHead><TableHead className="text-xs">Phone</TableHead><TableHead className="text-xs">Gender</TableHead><TableHead className="text-xs">Education</TableHead><TableHead className="text-xs">Farm Size</TableHead><TableHead className="text-xs">Crops</TableHead><TableHead className="text-xs">Status</TableHead></TableRow></TableHeader>
+   265→   265→        <TableBody>{farmers.filter((f: any) => !search || `${f.firstName} ${f.lastName} ${f.phone}`.toLowerCase().includes(search.toLowerCase())).slice(0, 15).map((f: any) => (
+   266→   266→          <TableRow key={f.id} className="cursor-pointer hover:bg-muted/50"><TableCell className="text-xs font-medium">{f.firstName} {f.lastName}</TableCell>
+   267→   267→          <TableCell className="text-xs">{f.phone}</TableCell><TableCell className="text-xs">{f.gender}</TableCell>
+   268→   268→          <TableCell className="text-xs">{f.education}</TableCell><TableCell className="text-xs">{f.farmSize?.toFixed(1)} ha</TableCell>
+   269→   269→          <TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{f.mainCrops ? JSON.parse(f.mainCrops).join(', ') : ''}</Badge></TableCell>
+   270→   270→          <TableCell><StatusBadge status={f.status} /></TableCell></TableRow>
+   271→   271→        ))}</TableBody></Table>
+   272→   272→      </CardContent></Card>
+   273→   273→    </div>
+   274→   274→  )
+   275→   275→
+   276→   276→  // ============ VSLA VIEW ============
+   277→   277→  const VslaView = () => {
+   278→   278→    const sub = activeSubTab || 'vsla-groups'
+   279→   279→    return (
+   280→   280→      <div className="space-y-4">
+   281→   281→        <div className="flex items-center justify-between"><div><h2 className="text-xl font-bold">VSLA Management</h2><p className="text-sm text-muted-foreground">5 active groups, 40 members</p></div></div>
+   282→   282→        <Tabs value={sub} onValueChange={setActiveSubTab}>
+   283→   283→          <TabsList className="flex-wrap gap-1"><TabsTrigger value="vsla-groups">Groups</TabsTrigger><TabsTrigger value="vsla-savings">Savings</TabsTrigger><TabsTrigger value="vsla-loans">Loans</TabsTrigger><TabsTrigger value="vsla-meetings">Meetings</TabsTrigger></TabsList>
+   284→   284→          <TabsContent value="vsla-groups">
+   285→   285→            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+   286→   286→              {vslaGroups.map((g: any) => (
+   287→   287→                <Card key={g.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSubTab('vsla-savings')}>
+   288→   288→                  <CardContent className="p-4">
+   289→   289→                    <div className="flex items-start justify-between"><div><h3 className="font-semibold text-sm">{g.name}</h3><p className="text-xs text-muted-foreground mt-0.5">Share: UGX {g.shareValue?.toLocaleString()} | Rate: {g.loanRate}%</p></div>
+   290→   290→                    <Badge className="bg-emerald-100 text-emerald-700">Active</Badge></div>
+   291→   291→                    <Separator className="my-3" />
+   292→   292→                    <div className="grid grid-cols-3 gap-2 text-center">
+   293→   293→                      <div><p className="text-lg font-bold">{g._count?.members || 0}</p><p className="text-[10px] text-muted-foreground">Members</p></div>
+   294→   294→                      <div><p className="text-lg font-bold">{g._count?.savings || 0}</p><p className="text-[10px] text-muted-foreground">Savings</p></div>
+   295→   295→                      <div><p className="text-lg font-bold">{g._count?.loans || 0}</p><p className="text-[10px] text-muted-foreground">Loans</p></div>
+   296→   296→                    </div>
+   297→   297→                  </CardContent>
+   298→   298→                </Card>
+   299→   299→              ))}
+   300→   300→            </div>
+   301→   301→          </TabsContent>
+   302→   302→          <TabsContent value="vsla-savings">
+   303→   303→            <Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="text-xs">Farmer</TableHead><TableHead className="text-xs">Group</TableHead><TableHead className="text-xs">Amount</TableHead><TableHead className="text-xs">Shares</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="text-xs">Date</TableHead></TableRow></TableHeader>
+   304→   304→            <TableBody>{vslaSavings.map((s: any, i: number) => (
+   305→   305→              <TableRow key={i}><TableCell className="text-xs font-medium">{s.farmer?.firstName} {s.farmer?.lastName}</TableCell>
+   306→   306→              <TableCell className="text-xs">{s.vslaGroup?.name}</TableCell>
+   307→   307→              <TableCell className="text-xs font-medium">{fmt(s.amount)}</TableCell>
+   308→   308→              <TableCell className="text-xs">{s.sharesBought}</TableCell>
+   309→   309→              <TableCell><StatusBadge status={s.status} /></TableCell>
+   310→   310→              <TableCell className="text-xs text-muted-foreground">{new Date(s.createdAt).toLocaleDateString()}</TableCell></TableRow>
+   311→   311→            ))}</TableBody></Table></CardContent></Card>
+   312→   312→          </TabsContent>
+   313→   313→          <TabsContent value="vsla-loans">
+   314→   314→            <Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="text-xs">Farmer</TableHead><TableHead className="text-xs">Amount</TableHead><TableHead className="text-xs">Interest</TableHead><TableHead className="text-xs">Repayable</TableHead><TableHead className="text-xs">Repaid</TableHead><TableHead className="text-xs">Status</TableHead></TableRow></TableHeader>
+   315→   315→            <TableBody>{vslaLoans.map((l: any, i: number) => (
+   316→   316→              <TableRow key={i}><TableCell className="text-xs font-medium">{l.farmer?.firstName} {l.farmer?.lastName}</TableCell>
+   317→   317→              <TableCell className="text-xs">{fmt(l.amount)}</TableCell><TableCell className="text-xs">{l.interestRate}%</TableCell>
+   318→   318→              <TableCell className="text-xs">{fmt(l.totalRepayable)}</TableCell><TableCell className="text-xs">{fmt(l.amountRepaid)}</TableCell>
+   319→   319→              <TableCell><StatusBadge status={l.status} /></TableCell></TableRow>
+   320→   320→            ))}</TableBody></Table></CardContent></Card>
+   321→   321→          </TabsContent>
+   322→   322→          <TabsContent value="vsla-meetings">
+   323→   323→            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+   324→   324→              {vslaMeetings.map((m: any, i: number) => (
+   325→   325→                <Card key={i}><CardContent className="p-4">
+   326→   326→                  <div className="flex items-start justify-between"><h3 className="font-semibold text-sm">{m.agenda}</h3><StatusBadge status={m.status} /></div>
+   327→   327→                  <p className="text-xs text-muted-foreground mt-1">{m.vslaGroup?.name}</p>
+   328→   328→                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground"><CalendarDays className="w-3 h-3" />{new Date(m.meetingDate).toLocaleDateString()}</div>
+   329→   329→                  <p className="text-xs text-muted-foreground mt-1">{m.startTime} — {m.endTime} | {m._count?.attendance || 0} attendees</p>
+   330→   330→                </CardContent></Card>
+   331→   331→              ))}
+   332→   332→            </div>
+   333→   333→          </TabsContent>
+   334→   334→        </Tabs>
+   335→   335→      </div>
+   336→   336→    )
+   337→   337→  }
+   338→   338→
+   339→   339→  // ============ MARKETPLACE VIEW ============
+   340→   340→  const MarketplaceView = () => {
+   341→   341→    const sub = activeSubTab || 'market-match'
+   342→   342→    return (
+   343→   343→      <div className="space-y-4">
+   344→   344→        <div><h2 className="text-xl font-bold">Marketplace</h2><p className="text-sm text-muted-foreground">{marketProducts.length} products listed</p></div>
+   345→   345→        <Tabs value={sub} onValueChange={setActiveSubTab}>
+   346→   346→          <TabsList><TabsTrigger value="market-match">Market Match</TabsTrigger><TabsTrigger value="input-agg">Input Aggregation</TabsTrigger></TabsList>
+   347→   347→          <TabsContent value="market-match">
+   348→   348→            <Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="text-xs">Seller</TableHead><TableHead className="text-xs">Commodity</TableHead><TableHead className="text-xs">Variety</TableHead><TableHead className="text-xs">Quantity</TableHead><TableHead className="text-xs">Price</TableHead><TableHead className="text-xs">Location</TableHead><TableHead className="text-xs">Status</TableHead></TableRow></TableHeader>
+   349→   349→            <TableBody>{marketProducts.map((p: any, i: number) => (
+   350→   350→              <TableRow key={i}><TableCell className="text-xs font-medium">{p.sellerName}</TableCell>
+   351→   351→              <TableCell className="text-xs"><Badge variant="outline">{p.commodity}</Badge></TableCell>
+   352→   352→              <TableCell className="text-xs">{p.variety}</TableCell>
+   353→   353→              <TableCell className="text-xs">{p.quantity}</TableCell>
+   354→   354→              <TableCell className="text-xs font-medium">{fmt(p.unitPrice || 0)}/unit</TableCell>
+   355→   355→              <TableCell className="text-xs">{p.location}</TableCell>
+   356→   356→              <TableCell><StatusBadge status={p.status} /></TableCell></TableRow>
+   357→   357→            ))}</TableBody></Table></CardContent></Card>
+   358→   358→          </TabsContent>
+   359→   359→          <TabsContent value="input-agg">
+   360→   360→            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+   361→   361→              {['Kabonera Cooperative Input Shop','Buwenge Farmers Supply','Masindi Seeds Ltd','Equator Seeds Ltd','Pearl Seeds Ltd','NASECO (1996) Ltd'].map((name, i) => (
+   362→   362→                <Card key={i}><CardContent className="p-4">
+   363→   363→                  <div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950"><Package className="w-4 h-4 text-amber-600" /></div><h3 className="font-semibold text-sm">{name}</h3></div>
+   364→   364→                  <p className="text-xs text-muted-foreground mt-2">Products: {['Sorghum Seed','Maize Seed','Beans NABE 16','DAP Fertilizer','Urea','Coffee Seedlings'][i]}</p>
+   365→   365→                  <p className="text-xs text-muted-foreground">Price: {fmt([2000,3000,2500,6000,4000,5000][i])}/unit</p>
+   366→   366→                </CardContent></Card>
+   367→   367→              ))}
+   368→   368→            </div>
+   369→   369→          </TabsContent>
+   370→   370→        </Tabs>
+   371→   371→      </div>
+   372→   372→    )
+   373→   373→  }
+   374→   374→
+   375→   375→  // ============ PAYMENTS VIEW ============
+   376→   376→  const PaymentsView = () => (
+   377→   377→    <div className="space-y-4">
+   378→   378→      <div className="flex items-center justify-between"><div><h2 className="text-xl font-bold">Payments</h2><p className="text-sm text-muted-foreground">{payments.length} transactions</p></div>
+   379→   379→        <Dialog><DialogTrigger asChild><Button className="bg-emerald-600 hover:bg-emerald-700"><Plus className="w-4 h-4 mr-1" />New Payment</Button></DialogTrigger>
+   380→   380→        <DialogContent><DialogHeader><DialogTitle>Send Payment</DialogTitle></DialogHeader>
+   381→   381→          <div className="grid gap-3 py-2"><div><Label className="text-xs">Type</Label><Select className="mt-1"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="CASUAL">Casual</SelectItem><SelectItem value="BULK">Bulk</SelectItem><SelectItem value="VSLA">VSLA</SelectItem></SelectContent></Select></div>
+   382→   382→          <div><Label className="text-xs">Recipient Name</Label><Input className="mt-1" placeholder="e.g. John Mukasa" /></div>
+   383→   383→          <div><Label className="text-xs">Phone</Label><Input className="mt-1" placeholder="+25677..." /></div>
+   384→   384→          <div><Label className="text-xs">Amount (UGX)</Label><Input className="mt-1" type="number" placeholder="50000" /></div>
+   385→   385→          <Button className="bg-emerald-600 hover:bg-emerald-700 w-full" onClick={() => toast.success('Payment initiated successfully')}>Send Payment</Button></div>
+   386→   386→        </DialogContent></Dialog>
+   387→   387→      </div>
+   388→   388→      <Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="text-xs">Type</TableHead><TableHead className="text-xs">Recipient</TableHead><TableHead className="text-xs">Phone</TableHead><TableHead className="text-xs">Amount</TableHead><TableHead className="text-xs">Description</TableHead><TableHead className="text-xs">Status</TableHead></TableRow></TableHeader>
+   389→   389→      <TableBody>{payments.map((p: any, i: number) => (
+   390→   390→        <TableRow key={i}><TableCell className="text-xs"><Badge variant="outline">{p.type}</Badge></TableCell>
+   391→   391→        <TableCell className="text-xs font-medium">{p.recipientName}</TableCell>
+   392→   392→        <TableCell className="text-xs">{p.recipientPhone}</TableCell>
+   393→   393→        <TableCell className="text-xs font-medium">{fmt(p.amount)}</TableCell>
+   394→   394→        <TableCell className="text-xs text-muted-foreground">{p.description}</TableCell>
+   395→   395→        <TableCell><StatusBadge status={p.status} /></TableCell></TableRow>
+   396→   396→      ))}</TableBody></Table></CardContent></Card>
+   397→   397→    </div>
+   398→   398→  )
+   399→   399→
+   400→   400→  // ============ LOANS VIEW ============
+   401→   401→  const LoansView = () => (
+   402→   402→    <div className="space-y-4">
+   403→   403→      <div><h2 className="text-xl font-bold">Loan Management</h2><p className="text-sm text-muted-foreground">Institutional loans and VSLA credit</p></div>
+   404→   404→      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   405→   405→        <Card><CardContent className="p-4 text-center"><p className="text-3xl font-bold text-emerald-600">{loans?.loans?.length || 0}</p><p className="text-xs text-muted-foreground mt-1">Total Applications</p></CardContent></Card>
+   406→   406→        <Card><CardContent className="p-4 text-center"><p className="text-3xl font-bold text-blue-600">{loans?.loans?.filter((l: any) => l.status === 'DISBURSED').length || 0}</p><p className="text-xs text-muted-foreground mt-1">Active Loans</p></CardContent></Card>
+   407→   407→        <Card><CardContent className="p-4 text-center"><p className="text-3xl font-bold text-amber-600">{loans?.loans?.filter((l: any) => l.status === 'PENDING').length || 0}</p><p className="text-xs text-muted-foreground mt-1">Pending Approval</p></CardContent></Card>
+   408→   408→      </div>
+   409→   409→      {loans?.products?.length > 0 && <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Available Loan Products</CardTitle></CardHeader><CardContent>
+   410→   410→        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">{loans.products.map((p: any, i: number) => (
+   411→   411→          <Card key={i} className="border"><CardContent className="p-3">
+   412→   412→            <h3 className="font-semibold text-sm">{p.name}</h3>
+   413→   413→            <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+   414→   414→              <p>Interest: <span className="text-foreground font-medium">{p.interestRate}%</span></p>
+   415→   415→              <p>Range: <span className="text-foreground font-medium">{fmt(p.minAmount)} — {fmt(p.maxAmount)}</span></p>
+   416→   416→              <p>Duration: <span className="text-foreground font-medium">Up to {p.maxDuration} months</span></p>
+   417→   417→              <p>Grace Period: <span className="text-foreground font-medium">{p.gracePeriod} months</span></p>
+   418→   418→            </div>
+   419→   419→          </CardContent></Card>
+   420→   420→        ))}
+   421→   421→        </div>
+   422→   422→      </CardContent></Card>}
+   423→   423→    </div>
+   424→   424→  )
+   425→   425→
+   426→   426→  // ============ GENERIC PLACEHOLDER VIEW ============
+   427→   427→  const PlaceholderView = ({ title, description }: { title: string; description: string }) => (
+   428→   428→    <div className="space-y-4">
+   429→   429→      <div><h2 className="text-xl font-bold">{title}</h2><p className="text-sm text-muted-foreground">{description}</p></div>
+   430→   430→      <Card className="border-dashed"><CardContent className="flex flex-col items-center justify-center py-16 text-center">
+   431→   431→        <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center mb-4"><Database className="w-8 h-8 text-emerald-400" /></div>
+   432→   432→        <h3 className="font-semibold">Module Ready</h3>
+   433→   433→        <p className="text-sm text-muted-foreground mt-1 max-w-md">This module is configured and connected to the database. Full CRUD operations, workflows, and reports will be available in the production deployment.</p>
+   434→   434→        <Badge className="mt-4" variant="outline">Schema: Active</Badge>
+   435→   435→      </CardContent></Card>
+   436→   436→    </div>
+   437→   437→  )
+   438→   438→
+   439→   439→  // ============ REPORTS VIEW ============
+   440→   440→  const REPORTS = [
+   441→   441→    { cat: 'Farmer Reports', items: ['Farmer Register', 'Farmer Details', 'Farmer Enrollment', 'Farmer Details (Admin)'] },
+   442→   442→    { cat: 'VSLA Reports', items: ['VSLA Report', 'VSLA Loans', 'VSLA Loan Repayments', 'VSLA e-Transactions', 'VSLA Closeout Report'] },
+   443→   443→    { cat: 'Programme Reports', items: ['R4iCSA Report', 'APA Report', 'Uthabiti Report', 'Ekibbo Report', 'KAMP Report', 'SMILE Report'] },
+   444→   444→    { cat: 'Financial Reports', items: ['Payment Summaries', 'Payment Details', 'SMS Report', 'Sales Report'] },
+   445→   445→    { cat: 'Operational Reports', items: ['Agent Report', 'Audit Trail', 'Input Aggregation', 'Market Match Report', 'Training Report', 'IVR Report', 'Feedback Report', 'Error Log'] },
+   446→   446→  ]
+   447→   447→  const ReportsView = () => (
+   448→   448→    <div className="space-y-4">
+   449→   449→      <div className="flex items-center justify-between"><div><h2 className="text-xl font-bold">Reports</h2><p className="text-sm text-muted-foreground">35 report types available</p></div>
+   450→   450→        <Button variant="outline" size="sm"><Download className="w-3.5 h-3.5 mr-1" />Export All</Button></div>
+   451→   451→      {REPORTS.map(cat => (
+   452→   452→        <Card key={cat.cat}><CardHeader className="pb-2"><CardTitle className="text-sm">{cat.cat}</CardTitle></CardHeader><CardContent>
+   453→   453→          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">{cat.items.map(item => (
+   454→   454→            <button key={item} className="flex items-center gap-2 p-2.5 rounded-lg border text-left text-xs hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors" onClick={() => toast.info(`Generating ${item}...`)}>
+   455→   455→              <FileText className="w-4 h-4 text-muted-foreground" /><span>{item}</span><ChevronRight className="w-3 h-3 text-muted-foreground ml-auto" />
+   456→   456→            </button>
+   457→   457→          ))}</div>
+   458→   458→        </CardContent></Card>
+   459→   459→      ))}
+   460→   460→    </div>
+   461→   461→  )
+   462→   462→
+   463→   463→  // ============ AGRITRACK VIEW ============
+   464→   464→  const AgriTrackView = () => {
+   465→   465→    const COLORS = ['#059669', '#f59e0b', '#3b82f6', '#ef4444']
+   466→   466→    const creditData = [
+   467→   467→      { name: 'Demographics (15%)', value: 65, fill: COLORS[0] },
+   468→   468→      { name: 'Assets (25%)', value: 72, fill: COLORS[1] },
+   469→   469→      { name: 'Crop Performance (25%)', value: 58, fill: COLORS[2] },
+   470→   470→      { name: 'Financial Discipline (35%)', value: 80, fill: COLORS[3] },
+   471→   471→    ]
+   472→   472→    return (
+   473→   473→      <div className="space-y-4">
+   474→   474→        <div><h2 className="text-xl font-bold">AgriTrack</h2><p className="text-sm text-muted-foreground">Farm business tracking and credit scoring</p></div>
+   475→   475→        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   476→   476→          <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Credit Score Model — 4-Factor Analysis</CardTitle></CardHeader><CardContent>
+   477→   477→            <ResponsiveContainer width="100%" height={280}><PieChart>
+   478→   478→              <Pie data={creditData} dataKey="value" cx="50%" cy="50%" outerRadius={100} innerRadius={60} label={({ name, value }) => `${name}: ${value}`}>
+   479→   479→                {creditData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+   480→   480→              </Pie><ReTooltip /><Legend />
+   481→   481→            </PieChart></ResponsiveContainer>
+   482→   482→          </CardContent></Card>
+   483→   483→          <div className="space-y-4">
+   484→   484→            <Card><CardContent className="p-4"><h3 className="font-semibold text-sm mb-3">Quick Stats</h3>
+   485→   485→              <div className="space-y-2">
+   486→   486→                <div><div className="flex justify-between text-xs mb-1"><span>Overall Portfolio Health</span><span className="font-medium text-emerald-600">72%</span></div><Progress value={72} className="h-2" /></div>
+   487→   487→                <div><div className="flex justify-between text-xs mb-1"><span>Loan Repayment Rate</span><span className="font-medium text-emerald-600">85%</span></div><Progress value={85} className="h-2" /></div>
+   488→   488→                <div><div className="flex justify-between text-xs mb-1"><span>Crop Yield vs Target</span><span className="font-medium text-amber-600">68%</span></div><Progress value={68} className="h-2" /></div>
+   489→   489→              </div>
+   490→   490→            </CardContent></Card>
+   491→   491→            <Card><CardContent className="p-4"><h3 className="font-semibold text-sm mb-3">Value Chain Distribution</h3>
+   492→   492→              <ResponsiveContainer width="100%" height={180}><BarChart data={[{name: 'Crops', value: 65 }, {name: 'Livestock', value: 20 }, {name: 'Forestry', value: 10 }, {name: 'Fishery', value: 5 }]}>
+   493→   493→                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" /><XAxis dataKey="name" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} />
+   494→   494→                <ReTooltip /><Bar dataKey="value" fill="#059669" radius={[4, 4, 0, 0]} />
+   495→   495→              </BarChart></ResponsiveContainer>
+   496→   496→            </CardContent></Card>
+   497→   497→          </div>
+   498→   498→        </div>
+   499→   499→      </div>
+   500→   500→    )
+   501→   501→  }
+   502→   502→
+   503→   503→  // ============ TRAINING VIEW ============
+   504→   504→  const TrainingView = () => (
+   505→   505→    <div className="space-y-4">
+   506→   506→      <div><h2 className="text-xl font-bold">Training</h2><p className="text-sm text-muted-foreground">{trainings.length} sessions conducted</p></div>
+   507→   507→      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+   508→   508→        {trainings.map((t: any, i: number) => (
+   509→   509→          <Card key={i}><CardContent className="p-4">
+   510→   510→            <div className="flex items-start justify-between"><Badge variant="outline" className="text-xs">{t.date ? new Date(t.date).toLocaleDateString() : ''}</Badge><span className="text-xs text-muted-foreground">{t.location}</span></div>
+   511→   511→            <h3 className="font-semibold text-sm mt-2">{t.topic}</h3>
+   512→   512→            <p className="text-xs text-muted-foreground mt-1">Trainer: {t.trainerName}</p>
+   513→   513→            <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground"><Users className="w-3 h-3" />{t._count?.attendance || 0} attendees</div>
+   514→   514→          </CardContent></Card>
+   515→   515→        ))}
+   516→   516→      </div>
+   517→   517→    </div>
+   518→   518→  )
+   519→   519→
+   520→   520→  // ============ ROUTE TO VIEW ============
+   521→   521→  const renderView = () => {
+   522→   522→    switch (activeModule) {
+   523→   523→      case 'dashboard': return <DashboardView />
+   524→   524→      case 'profile': case 'farmers': return <FarmersView />
+   525→   525→      case 'vsla': return <VslaView />
+   526→   526→      case 'marketplace': return <MarketplaceView />
+   527→   527→      case 'payments': return <PaymentsView />
+   528→   528→      case 'loans': return <LoansView />
+   529→   529→      case 'agritrack': return <AgriTrackView />
+   530→   530→      case 'training': return <TrainingView />
+   531→   531→      case 'reports': return <ReportsView />
+   532→   532→      case 'purchases': return <PlaceholderView title="Purchases" description="Procurement and purchase order management. Record farmer purchases with 3-tier approval workflow." />
+   533→   533→      case 'sales': return <PlaceholderView title="Sales" description="Sales transaction management with receipts, customer categories, and product catalogs." />
+   534→   534→      case 'consignments': return <PlaceholderView title="Consignments" description="Produce consignment lifecycle tracking from dispatch to payment." />
+   535→   535→      case 'approvals': return <PlaceholderView title="Approvals" description="Multi-level approval workflows for purchases and loans." />
+   536→   536→      case 'surveys': return <PlaceholderView title="Surveys" description="Field inspection and survey tools with question builder and response collection." />
+   537→   537→      case 'communication': return <PlaceholderView title="Communication" description="Multi-channel messaging via SMS, email, and IVR." />
+   538→   538→      case 'trace': return <PlaceholderView title="Trace" description="Product traceability from farm to market." />
+   539→   539→      case 'settings': return <PlaceholderView title="Settings" description="Geographic hierarchy, user management, and system configuration." />
+   540→   540→      case 'users': return <PlaceholderView title="User Management" description="System users, roles, permissions, and audit trails." />
+   541→   541→      default: return <DashboardView />
+   542→   542→    }
+   543→   543→  }
+   544→   544→
+   545→   545→  if (loading) return <div className="flex items-center justify-center h-screen"><div className="text-center"><div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full mx-auto" /><p className="text-sm text-muted-foreground mt-3">Loading Agrobase V3...</p></div></div>
+   546→   546→
+   547→   547→  return (
+   548→   548→    <div className="min-h-screen flex bg-background">
+   549→   549→      {/* Mobile overlay */}
+   550→   550→      {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={toggleSidebar} />}
+   551→   551→      <Sidebar />
+   552→   552→      {/* Main content */}
+   553→   553→      <main className="flex-1 lg:ml-64">
+   554→   554→        {/* Top bar */}
+   555→   555→        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b flex items-center justify-between px-4 h-14">
+   556→   556→          <div className="flex items-center gap-3">
+   557→   557→            <button className="lg:hidden" onClick={toggleSidebar}><Menu className="w-5 h-5" /></button>
+   558→   558→            <div className="hidden sm:flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-1.5">
+   559→   559→              <Search className="w-3.5 h-3.5 text-muted-foreground" /><Input placeholder="Search..." className="border-0 bg-transparent text-sm h-7 w-48 focus-visible:ring-0" />
+   560→   560→            </div>
+   561→   561→          </div>
+   562→   562→          <div className="flex items-center gap-2">
+   563→   563→            <Button variant="ghost" size="icon" className="relative"><Bell className="w-4 h-4" /><span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full" /></Button>
+   564→   564→            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}</Button>
+   565→   565→            <div className="flex items-center gap-2 ml-2">
+   566→   566→              <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white">EM</div>
+   567→   567→              <span className="text-sm font-medium hidden sm:inline">Eric</span>
+   568→   568→            </div>
+   569→   569→          </div>
+   570→   570→        </header>
+   571→   571→        {/* Page content */}
+   572→   572→        <div className="p-4 md:p-6 max-w-7xl">
+   573→   573→          {renderView()}
+   574→   574→        </div>
+   575→   575→      </main>
+   576→   576→    </div>
+   577→   577→  )
+   578→   578→}

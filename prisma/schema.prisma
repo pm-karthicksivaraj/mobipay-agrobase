@@ -1,0 +1,781 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AGROBASE V3 — FULL MULTI-TENANT SCHEMA
+// MobiPay AgroSys Limited
+// ============================================
+
+// --- TENANT & ORG HIERARCHY ---
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // SUPER_ADMIN, COUNTRY, NGO, COOPERATIVE, AGRIBUSINESS, EXPORTER, MFI, BANK, INPUT_SUPPLIER, PROCESSING
+  country     String?  // Uganda, Ghana, Kenya
+  parentId    String?
+  parent      Tenant?  @relation("TenantHierarchy", fields: [parentId], references: [id])
+  children    Tenant[] @relation("TenantHierarchy")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  farmerGroups FarmerGroup[]
+  farmerProfiles FarmerProfile[]
+  vslaGroups  VslaGroup[]
+  companies   Company[]
+  paymentAccounts PaymentAccount[]
+  moduleEntitlements ModuleEntitlement[]
+  subscriptions     Subscription[]
+  loanProducts      LoanProduct[]
+  apiKeys     ApiKey[]
+}
+
+// --- USERS & AUTH ---
+
+model User {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  role          String   // SUPER_ADMIN, COUNTRY_ADMIN, TENANT_ADMIN, AGENT, EXTENSION_OFFICER, CBT, CASUAL, FARMER, VSLA_MEMBER
+  email         String?
+  phone         String   @unique
+  passwordHash  String?
+  firstName     String
+  lastName      String
+  avatarUrl     String?
+  isActive      Boolean  @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  agentAssignments   AgentAssignment[]
+  auditLogs          AuditLog[]
+  farmerProfiles     FarmerProfile[]
+}
+
+model AgentAssignment {
+  id        String   @id @default(cuid())
+  agentId   String
+  agent     User     @relation(fields: [agentId], references: [id])
+  groupId   String
+  groupType String   // FARMER_GROUP, VSLA
+  assignedAt DateTime @default(now())
+}
+
+// --- GEOGRAPHIC HIERARCHY ---
+
+model Region {
+  id        String     @id @default(cuid())
+  name      String
+  country   String
+  createdAt DateTime   @default(now())
+  subRegions SubRegion[]
+}
+
+model SubRegion {
+  id        String    @id @default(cuid())
+  name      String
+  regionId  String
+  region    Region    @relation(fields: [regionId], references: [id])
+  districts District[]
+}
+
+model District {
+  id          String       @id @default(cuid())
+  name        String
+  subRegionId String
+  subRegion   SubRegion    @relation(fields: [subRegionId], references: [id])
+  constituencies Constituency[]
+}
+
+model Constituency {
+  id          String       @id @default(cuid())
+  name        String
+  districtId  String
+  district    District     @relation(fields: [districtId], references: [id])
+  subCounties SubCounty[]
+}
+
+model SubCounty {
+  id            String    @id @default(cuid())
+  name          String
+  constituencyId String
+  constituency   Constituency @relation(fields: [constituencyId], references: [id])
+  parishes      Parish[]
+}
+
+model Parish {
+  id          String     @id @default(cuid())
+  name        String
+  subCountyId String
+  subCounty   SubCounty  @relation(fields: [subCountyId], references: [id])
+  villages    Village[]
+}
+
+model Village {
+  id        String   @id @default(cuid())
+  name      String
+  parishId  String
+  parish    Parish   @relation(fields: [parishId], references: [id])
+  farmers   FarmerProfile[]
+}
+
+// --- COOPERATIVES & FARMER GROUPS ---
+
+model Company {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  type        String?  // Cooperative, Agribusiness, etc.
+  contactPerson String?
+  phone       String?
+  email       String?
+  address     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  farmerGroups FarmerGroup[]
+}
+
+model FarmerGroup {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  companyId   String?
+  company     Company?  @relation(fields: [companyId], references: [id])
+  name        String
+  contactPerson String?
+  location    String?
+  isVsla      Boolean  @default(false)
+  vslaSettings Json?    // shareValue, loanRate, maxLoanAmount, fines, welfare
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  farmers    FarmerProfile[]
+  vslaGroups VslaGroup[]
+}
+
+// --- FARMER PROFILING ---
+
+model FarmerProfile {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id])
+  groupId         String?
+  group           FarmerGroup? @relation(fields: [groupId], references: [id])
+  farmerCode      String?  @unique
+  firstName       String
+  lastName        String
+  phone           String
+  gender          String?  // Male, Female, Other
+  dateOfBirth     DateTime?
+  education       String?  // Primary, Secondary, UG, PG, Other
+  maritalStatus   String?
+  nationalIdType  String?  // National ID, Driving License, Passport
+  nationalIdNo    String?
+  photoUrl        String?
+  isCertified     Boolean  @default(false)
+  certificationType String?
+  memberType      String   // General, Commercial
+  status          String   @default("ACTIVE") // ACTIVE, INACTIVE
+
+  // Location
+  villageId       String?
+  village         Village? @relation(fields: [villageId], references: [id])
+  gpsLatitude     Float?
+  gpsLongitude    Float?
+
+  // Family
+  familyMembers   Int?
+  childrenUnder18 Int?
+  schoolGoingChildren Int?
+  spouseName      String?
+
+  // Bank
+  bankName        String?
+  bankAccountNo   String?
+  bankBranch      String?
+
+  // Farm
+  farmSize        Float?   // hectares
+  farmOwnership   String?  // Owned, Rent, Lease
+  mainCrops       String?  // JSON array of crop names
+  livestockTypes  String?  // JSON array
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  children        ChildProfile[]
+  farms           FarmLand[]
+  creditScores    CreditScore[]
+  savings         VslaSaving[]
+  vslaLoans       VslaLoan[]
+  trainings       TrainingAttendance[]
+  purchases       Purchase[]
+  sales           Sale[]
+  vslaMemberships VslaMember[]
+}
+
+model ChildProfile {
+  id          String   @id @default(cuid())
+  farmerId    String
+  farmer      FarmerProfile @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  firstName   String
+  lastName    String
+  gender      String?
+  dateOfBirth DateTime?
+  schoolName  String?
+  schoolId    String?
+  createdAt   DateTime @default(now())
+}
+
+model FarmLand {
+  id          String   @id @default(cuid())
+  farmerId    String
+  farmer      FarmerProfile @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  name        String
+  sizeHectares Float?
+  latitude    Float?
+  longitude   Float?
+  landOwnership String?
+  waterSource String?
+  soilFertility String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cultivations Cultivation[]
+}
+
+model Cultivation {
+  id              String   @id @default(cuid())
+  farmId          String
+  farm            FarmLand @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  cropName        String
+  variety         String?
+  season          String?
+  sowingDate      DateTime?
+  estimatedYield  Float?
+  actualYield     Float?
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --- VSLA MANAGEMENT ---
+
+model VslaGroup {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  groupId         String?
+  group           FarmerGroup? @relation(fields: [groupId], references: [id])
+  name            String
+  shareValue      Float
+  loanRate        Float    // percentage
+  maxLoanAmount   Float
+  fines           Float    @default(0)
+  welfareAmount   Float    @default(0)
+  meetingFrequency String?  // Weekly, Bi-weekly, Monthly
+  isActive        Boolean  @default(true)
+  isClosed        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  members         VslaMember[]
+  savings         VslaSaving[]
+  loans           VslaLoan[]
+  meetings        VslaMeeting[]
+  transactions    VslaTransaction[]
+  welfarePayments WelfarePayment[]
+}
+
+model VslaMember {
+  id          String   @id @default(cuid())
+  vslaGroupId String
+  vslaGroup   VslaGroup @relation(fields: [vslaGroupId], references: [id])
+  farmerId    String
+  farmer      FarmerProfile @relation(fields: [farmerId], references: [id])
+  memberId    String   @unique // auto-generated member ID
+  isAdmin     Boolean  @default(false)
+  isKeyholder Boolean  @default(false)
+  sharesOwned Int      @default(0)
+  joinedAt    DateTime @default(now())
+}
+
+model VslaSaving {
+  id              String   @id @default(cuid())
+  vslaGroupId     String
+  vslaGroup       VslaGroup @relation(fields: [vslaGroupId], references: [id])
+  farmerId        String
+  farmer          FarmerProfile @relation(fields: [farmerId], references: [id])
+  memberId        String?
+  amount          Float
+  sharesBought    Int      @default(1)
+  savedOnBehalfOf String?  // member ID if saved for another
+  transactionRef  String?
+  status          String   @default("COMPLETED") // PENDING, COMPLETED, FAILED
+  createdAt       DateTime @default(now())
+}
+
+model VslaLoan {
+  id              String   @id @default(cuid())
+  vslaGroupId     String
+  vslaGroup       VslaGroup @relation(fields: [vslaGroupId], references: [id])
+  farmerId        String
+  farmer          FarmerProfile @relation(fields: [farmerId], references: [id])
+  memberId        String?
+  amount          Float
+  interestRate    Float
+  totalRepayable  Float
+  amountRepaid    Float    @default(0)
+  purpose         String?  // Savings, Welfare
+  status          String   @default("PENDING") // PENDING, APPROVED, DISBURSED, REPAID, REJECTED, OVERDUE
+  approvedByIds   String?  // JSON array of approver IDs
+  requestedAt     DateTime @default(now())
+  approvedAt      DateTime?
+  disbursedAt     DateTime?
+  dueDate         DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  repayments      VslaLoanRepayment[]
+}
+
+model VslaLoanRepayment {
+  id          String   @id @default(cuid())
+  loanId      String
+  loan        VslaLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  amount      Float
+  repaidOnBehalfOf String?
+  transactionRef String?
+  createdAt   DateTime @default(now())
+}
+
+model VslaMeeting {
+  id              String   @id @default(cuid())
+  vslaGroupId     String
+  vslaGroup       VslaGroup @relation(fields: [vslaGroupId], references: [id])
+  agenda          String?
+  meetingDate     DateTime
+  startTime       String?
+  endTime         String?
+  status          String   @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, CONCLUDED
+  createdById     String?
+  createdAt       DateTime @default(now())
+
+  attendance      VslaAttendance[]
+}
+
+model VslaAttendance {
+  id          String   @id @default(cuid())
+  meetingId   String
+  meeting     VslaMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  farmerId    String
+  markedBy    String?  // if marked on behalf
+  present     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model VslaTransaction {
+  id              String   @id @default(cuid())
+  vslaGroupId     String
+  vslaGroup       VslaGroup @relation(fields: [vslaGroupId], references: [id])
+  type            String   // SAVING, LOAN_DISBURSEMENT, LOAN_REPAYMENT, WELFARE, FINE, SHARE_REDEEM
+  amount          Float
+  description     String?
+  transactionRef  String?
+  status          String   @default("COMPLETED")
+  createdAt       DateTime @default(now())
+}
+
+model WelfarePayment {
+  id          String   @id @default(cuid())
+  vslaGroupId String
+  vslaGroup   VslaGroup @relation(fields: [vslaGroupId], references: [id])
+  farmerId    String?
+  amount      Float
+  reason      String?
+  createdAt   DateTime @default(now())
+}
+
+// --- LOAN MANAGEMENT (Institutional) ---
+
+model LoanProduct {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  name            String
+  interestRate    Float
+  maxAmount       Float
+  minAmount       Float
+  maxDuration     Int      // months
+  gracePeriod     Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  applications    LoanApplication[]
+}
+
+model LoanApplication {
+  id              String   @id @default(cuid())
+  loanProductId   String
+  loanProduct     LoanProduct @relation(fields: [loanProductId], references: [id])
+  farmerId        String?
+  applicantName   String
+  applicantPhone  String
+  amount          Float
+  purpose         String?
+  status          String   @default("PENDING") // PENDING, LEVEL1_APPROVED, LEVEL2_APPROVED, APPROVED, DISBURSED, REJECTED, COMPLETED, OVERDUE
+  level1ApprovedBy String?
+  level2ApprovedBy String?
+  level1ApprovedAt DateTime?
+  level2ApprovedAt DateTime?
+  disbursedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --- INPUT AGGREGATION ---
+
+model InputDealer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  location  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products   InputProduct[]
+  requests   InputRequest[]
+}
+
+model InputProduct {
+  id          String   @id @default(cuid())
+  dealerId    String
+  dealer      InputDealer @relation(fields: [dealerId], references: [id])
+  name        String
+  category    String?  // Seeds, Fertilizer, Pesticide, Equipment
+  variety     String?
+  unit        String?  // Kg, Bags, Litres
+  unitPrice   Float?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model InputRequest {
+  id          String   @id @default(cuid())
+  dealerId    String?
+  dealer      InputDealer? @relation(fields: [dealerId], references: [id])
+  farmerId    String?
+  farmerName  String
+  farmerPhone String
+  product     String
+  quantity    String
+  unitPrice   Float?
+  totalPrice  Float?
+  status      String   @default("PENDING") // PENDING, CONFIRMED, DELIVERED, CANCELLED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- MARKETPLACE ---
+
+model MarketProduct {
+  id          String   @id @default(cuid())
+  sellerId    String?  // farmer or group ID
+  sellerName  String
+  commodity   String   // Maize, Coffee, Rice, etc.
+  variety     String?
+  quantity    String
+  unitPrice   Float?
+  location    String?
+  status      String   @default("AVAILABLE") // AVAILABLE, MATCHED, SOLD
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  matches     MarketMatch[]
+}
+
+model MarketMatch {
+  id              String   @id @default(cuid())
+  productId       String?
+  product         MarketProduct? @relation(fields: [productId], references: [id])
+  buyerName       String
+  buyerPhone      String?
+  quantity        String
+  pricePerUnit    Float?
+  totalValue      Float?
+  status          String   @default("PENDING") // PENDING, CONFIRMED, DELIVERED, PAID, CANCELLED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --- PURCHASES & CONSIGNMENTS ---
+
+model Purchase {
+  id          String   @id @default(cuid())
+  groupId     String?
+  farmerId    String?
+  farmer      FarmerProfile? @relation(fields: [farmerId], references: [id])
+  commodity   String
+  variety     String?
+  quantity    String
+  unitPrice   Float?
+  totalAmount Float?
+  status      String   @default("PENDING") // PENDING, REVIEWED, APPROVED, PAID
+  initiatedBy String?
+  reviewedBy  String?
+  approvedBy  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Consignment {
+  id          String   @id @default(cuid())
+  product     String
+  quantity    String
+  source      String?
+  destination String?
+  status      String   @default("DRAFT") // DRAFT, DISPATCHED, CHECKED_IN, RECEIVED, APPROVED, PAID
+  totalValue  Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- PAYMENTS ---
+
+model PaymentAccount {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  accountName String
+  accountType String   @default("MERCHANT")
+  email       String?
+  address     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  payments    Payment[]
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  paymentAccountId String?
+  paymentAccount  PaymentAccount? @relation(fields: [paymentAccountId], references: [id])
+  type            String   // CASUAL, BULK_PURCHASE, BULK_DISBURSEMENT, MARKETPLACE, VSLA
+  recipientName   String
+  recipientPhone  String
+  amount          Float
+  description     String?
+  transactionRef  String?
+  status          String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --- TRAINING ---
+
+model Training {
+  id          String   @id @default(cuid())
+  topic       String
+  description String?
+  date        DateTime
+  location    String?
+  trainerName String?
+  createdAt   DateTime @default(now())
+
+  attendance  TrainingAttendance[]
+}
+
+model TrainingAttendance {
+  id          String   @id @default(cuid())
+  trainingId  String
+  training    Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  farmerId    String
+  farmer      FarmerProfile @relation(fields: [farmerId], references: [id])
+  attended    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// --- CREDIT SCORING ---
+
+model CreditScore {
+  id              String   @id @default(cuid())
+  farmerId        String
+  farmer          FarmerProfile @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  demographicsScore Float?
+  assetScore      Float?
+  cropScore       Float?
+  financialScore  Float?
+  totalScore      Float?
+  scoreDate       DateTime @default(now())
+}
+
+// --- SURVEYS ---
+
+model Survey {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+
+  questions   SurveyQuestion[]
+  responses   SurveyResponse[]
+}
+
+model SurveyQuestion {
+  id        String  @id @default(cuid())
+  surveyId  String
+  survey    Survey  @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  question  String
+  type      String  // TEXT, RADIO, CHECKBOX, NUMBER
+  options   String? // JSON array
+  sortOrder Int     @default(0)
+}
+
+model SurveyResponse {
+  id          String   @id @default(cuid())
+  surveyId    String
+  survey      Survey   @relation(fields: [surveyId], references: [id])
+  respondentId String?
+  answers     String   // JSON
+  createdAt   DateTime @default(now())
+}
+
+// --- COMMUNICATION ---
+
+model Message {
+  id          String   @id @default(cuid())
+  type        String   // SMS, EMAIL, IVR
+  recipient   String
+  content     String
+  status      String   @default("PENDING") // PENDING, SENT, DELIVERED, FAILED
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+}
+
+// --- MODULE ENTITLEMENT & BILLING ---
+
+model ModuleEntitlement {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  moduleCode  String   // VSLA, MARKETPLACE, TRAINING, TRACE, etc.
+  isEnabled   Boolean  @default(true)
+  config      String?  // JSON for module-specific settings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Subscription {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  plan        String   // BASIC, STANDARD, ENTERPRISE
+  amount      Float
+  billingCycle String  // MONTHLY, ANNUAL
+  status      String   @default("ACTIVE")
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- API KEYS ---
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  key         String   @unique
+  username    String?
+  purpose     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+// --- AUDIT LOG ---
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  action      String
+  entityType  String?
+  entityId    String?
+  details     String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+}
+
+// --- SALES ---
+
+model Sale {
+  id              String   @id @default(cuid())
+  farmerId        String?
+  farmer          FarmerProfile? @relation(fields: [farmerId], references: [id])
+  customerId      String?
+  customerName    String?
+  product         String
+  quantity        String
+  unitPrice       Float?
+  totalAmount     Float?
+  status          String   @default("COMPLETED")
+  createdAt       DateTime @default(now())
+}
+
+// --- COMMODITIES ---
+
+model Commodity {
+  id          String   @id @default(cuid())
+  name        String
+  category    String?  // Crop, Livestock, Forestry, Fishery
+  unit        String?  // Kg, Litres, Bags
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+// --- DELIVERIES ---
+
+model Delivery {
+  id          String   @id @default(cuid())
+  relatedId   String?
+  relatedType String?  // PURCHASE, CONSIGNMENT, INPUT_REQUEST
+  status      String   @default("PENDING") // PENDING, IN_TRANSIT, DELIVERED
+  driverName  String?
+  vehicleReg  String?
+  dispatchedAt DateTime?
+  deliveredAt DateTime?
+  createdAt   DateTime @default(now())
+}
+
+// --- FEEDBACK ---
+
+model Feedback {
+  id          String   @id @default(cuid())
+  farmerId    String?
+  category    String?
+  message     String
+  status      String   @default("NEW") // NEW, REVIEWED, RESOLVED
+  createdAt   DateTime @default(now())
+}

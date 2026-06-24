@@ -1,0 +1,536 @@
+     1→import { PrismaClient } from '@prisma/client'
+     2→
+     3→const db = new PrismaClient()
+     4→
+     5→const NAMES = [
+     6→  ['Mukasa','John'],['Nakamya','Grace'],['Okello','Samuel'],['Achieng','Mary'],['Tumusiime','Sarah'],
+     7→  ['Mugisha','Robert'],['Namazzi','Prossy'],['Kiyimba','James'],['Apio','Dorothy'],['Wasike','Peter'],
+     8→  ['Nabatanzi','Annet'],['Ssegawa','David'],['Akech','Susan'],['Twesigye','Emmanuel'],['Among','Jackline'],
+     9→  ['Mawanda','Joseph'],['Nalubega','Florence'],['Ochieng','Patrick'],['Kebirungi','Allen'],['Lubega','Mark'],
+    10→  ['Akello','Brenda'],['Ssewanyana','Ronald'],['Arua','Catherine'],['Babu','George'],['Nakigudde','Vivian'],
+    11→  ['Opedun','Francis'],['Tebande','Lydia'],['Kagga','Richard'],['Amodoi','Ruth'],['Ssempijja','Gerald'],
+    12→  ['Okumu','Daniel'],['Nabukenya','Constance'],['Odongo','Michael'],['Nalubwama','Jane'],['Waiswa','Diana'],
+    13→  ['Tumwebaze','Harrison'],['Aanyu','Margaret'],['Ochan','Charles'],['Nabasirye','Mercy'],['Aol','Phoebe'],
+    14→  ['Kintu','Edward'],['Nakamya','Agnes'],['Lakwena','Rebecca'],['Otim','Christopher'],['Nakamya','Janet'],
+    15→  ['Okot','Martin'],['Nalugo','Harriet'],['Omony','Tom'],['Nabwere','Agatha'],['Ssekiziyivu','Paul'],
+    16→]
+    17→
+    18→const FEMALE = new Set(['Grace','Mary','Sarah','Prossy','Dorothy','Annet','Susan','Jackline','Florence','Brenda','Catherine','Vivian','Lydia','Ruth','Allen','Constance','Jane','Diana','Janet','Harriet','Agnes','Margaret','Rebecca','Mercy','Phoebe','Adongo','Apolot','Akumu','Nalubega','Namazzi','Nakamya','Achieng','Nabatanzi','Akech','Among','Kebirungi','Aanyu','Nabukenya','Nalubwama','Nabasirye','Nakamya','Lakwena'])
+    19→const CROPS = ['Maize','Coffee','Rice','Beans','Sorghum','Cocoa','Tea','Sunflower','Cassava','Barley','Shea nuts']
+    20→const DISTRICTS = ['Kampala','Wakiso','Mukono','Jinja','Gulu','Lira','Mbale','Arua','Fort Portal','Mbarara']
+    21→const GROUP_NAMES = ['Kabonera Cooperative','Buwenge Farmers','Masindi Seeds Group','Nile Breweries Outgrowers','Equator Farmers']
+    22→const VSLA_NAMES = ['Kabonera VSLA','Buwenge Savings','Masindi VSLA','Kampala Central VSLA','Jinja Market Women VSLA']
+    23→
+    24→async function main() {
+    25→  console.log('Seeding Agrobase V3 database...')
+    26→
+    27→  // Wipe all data
+    28→  const modelNames = ['AuditLog','Feedback','Delivery','Sale','Commodity','SurveyResponse','SurveyQuestion','Survey','Message','ApiKey','Subscription','ModuleEntitlement','CreditScore','TrainingAttendance','Training','Payment','PaymentAccount','LoanApplication','LoanProduct','InputRequest','InputProduct','InputDealer','MarketMatch','MarketProduct','Consignment','Purchase','WelfarePayment','VslaTransaction','VslaAttendance','VslaMeeting','VslaLoanRepayment','VslaLoan','VslaMember','VslaSaving','VslaGroup','ChildProfile','Cultivation','FarmLand','FarmerProfile','AgentAssignment','User','Company','FarmerGroup','Village','Parish','SubCounty','Constituency','District','SubRegion','Region','Tenant']
+    29→  for (const t of modelNames) {
+    30→    try { await db.$executeRawUnsafe(`DELETE FROM "${t}"`) } catch(e) { /* skip */ }
+    31→  }
+    32→
+    33→  // Tenants
+    34→  const hq = await db.tenant.create({ data: { name: 'MobiPay HQ', type: 'SUPER_ADMIN', country: 'Uganda' }})
+    35→  const ug = await db.tenant.create({ data: { name: 'Uganda', type: 'COUNTRY', country: 'Uganda', parentId: hq.id }})
+    36→  const gh = await db.tenant.create({ data: { name: 'Ghana', type: 'COUNTRY', country: 'Ghana', parentId: hq.id }})
+    37→  const ke = await db.tenant.create({ data: { name: 'Kenya', type: 'COUNTRY', country: 'Kenya', parentId: hq.id }})
+    38→  const ngo1 = await db.tenant.create({ data: { name: 'R4iCSA', type: 'NGO', country: 'Uganda', parentId: ug.id }})
+    39→  const ngo2 = await db.tenant.create({ data: { name: 'Uthabiti', type: 'NGO', country: 'Uganda', parentId: ug.id }})
+    40→  const coop = await db.tenant.create({ data: { name: 'Kabonera Cooperative', type: 'COOPERATIVE', country: 'Uganda', parentId: ug.id }})
+    41→  const exporter = await db.tenant.create({ data: { name: 'Uganda Coffee Exports Ltd', type: 'EXPORTER', country: 'Uganda', parentId: ug.id }})
+    42→  const mfi = await db.tenant.create({ data: { name: 'Good Grade MFI', type: 'MFI', country: 'Uganda', parentId: ug.id }})
+    43→  console.log('  Tenants: 9 created')
+    44→
+    45→  // Users
+    46→  await db.user.create({ data: { tenantId: hq.id, role: 'SUPER_ADMIN', email: 'admin@mobipayagrosys.com', phone: '+256779355393', firstName: 'Eric', lastName: 'MobiPay' }})
+    47→  await db.user.create({ data: { tenantId: ug.id, role: 'COUNTRY_ADMIN', email: 'ugadmin@agrobase.com', phone: '+256772000001', firstName: 'Alice', lastName: 'Okello' }})
+    48→  await db.user.create({ data: { tenantId: coop.id, role: 'TENANT_ADMIN', email: 'coop@agrobase.com', phone: '+256772000002', firstName: 'Robert', lastName: 'Mugisha' }})
+    49→  await db.user.create({ data: { tenantId: mfi.id, role: 'TENANT_ADMIN', email: 'mfi@agrobase.com', phone: '+256772000003', firstName: 'Grace', lastName: 'Nakamya' }})
+    50→  console.log('  Users: 4 created')
+    51→
+    52→  // Geographic Hierarchy
+    53→  const central = await db.region.create({ data: { name: 'Central Region', country: 'Uganda' }})
+    54→  const northern = await db.region.create({ data: { name: 'Northern Region', country: 'Uganda' }})
+    55→  const eastern = await db.region.create({ data: { name: 'Eastern Region', country: 'Uganda' }})
+    56→  const western = await db.region.create({ data: { name: 'Western Region', country: 'Uganda' }})
+    57→  const buganda = await db.subRegion.create({ data: { name: 'Buganda', regionId: central.id }})
+    58→  const lango = await db.subRegion.create({ data: { name: 'Lango', regionId: northern.id }})
+    59→  const busoga = await db.subRegion.create({ data: { name: 'Busoga', regionId: eastern.id }})
+    60→  const teso = await db.subRegion.create({ data: { name: 'Teso', regionId: eastern.id }})
+    61→  const ankole = await db.subRegion.create({ data: { name: 'Ankole', regionId: western.id }})
+    62→  const kampala_d = await db.district.create({ data: { name: 'Kampala', subRegionId: buganda.id }})
+    63→  const wakiso_d = await db.district.create({ data: { name: 'Wakiso', subRegionId: buganda.id }})
+    64→  const mukono_d = await db.district.create({ data: { name: 'Mukono', subRegionId: buganda.id }})
+    65→  const jinja_d = await db.district.create({ data: { name: 'Jinja', subRegionId: busoga.id }})
+    66→  const gulu_d = await db.district.create({ data: { name: 'Gulu', subRegionId: lango.id }})
+    67→  const lira_d = await db.district.create({ data: { name: 'Lira', subRegionId: lango.id }})
+    68→  const mbale_d = await db.district.create({ data: { name: 'Mbale', subRegionId: teso.id }})
+    69→  const mbarara_d = await db.district.create({ data: { name: 'Mbarara', subRegionId: ankole.id }})
+    70→  const kampala_c = await db.constituency.create({ data: { name: 'Kampala Central', districtId: kampala_d.id }})
+    71→  const kawempe_c = await db.constituency.create({ data: { name: 'Kawempe', districtId: kampala_d.id }})
+    72→  const wakiso_c = await db.constituency.create({ data: { name: 'Wakiso', districtId: wakiso_d.id }})
+    73→  const kawempe_sc = await db.subCounty.create({ data: { name: 'Kawempe Division', constituencyId: kawempe_c.id }})
+    74→  const nakawa_sc = await db.subCounty.create({ data: { name: 'Nakawa Division', constituencyId: kampala_c.id }})
+    75→  const kawempe_p = await db.parish.create({ data: { name: 'Kawempe Parish', subCountyId: kawempe_sc.id }})
+    76→  const nakawa_p = await db.parish.create({ data: { name: 'Nakawa Parish', subCountyId: nakawa_sc.id }})
+    77→  const village1 = await db.village.create({ data: { name: 'Bwaise', parishId: kawempe_p.id }})
+    78→  const village2 = await db.village.create({ data: { name: 'Kalerwe', parishId: kawempe_p.id }})
+    79→  const village3 = await db.village.create({ data: { name: 'Bukoto', parishId: nakawa_p.id }})
+    80→  const village4 = await db.village.create({ data: { name: 'Ntinda', parishId: nakawa_p.id }})
+    81→  console.log('  Geo hierarchy created')
+    82→
+    83→  // Company & Groups
+    84→  const company = await db.company.create({ data: { tenantId: coop.id, name: 'Kabonera Farmers Cooperative', type: 'Cooperative', contactPerson: 'Robert Mugisha', phone: '+256772123456' }})
+    85→  const groups: any[] = []
+    86→  for (let i = 0; i < GROUP_NAMES.length; i++) {
+    87→    groups.push(await db.farmerGroup.create({
+    88→      data: {
+    89→        tenantId: i < 3 ? coop.id : (i < 4 ? ngo1.id : ngo2.id),
+    90→        companyId: i < 3 ? company.id : null,
+    91→        name: GROUP_NAMES[i],
+    92→        isVsla: true,
+    93→        vslaSettings: JSON.stringify({ shareValue: 1000, loanRate: 10, maxLoanAmount: 500000, fines: 500, welfareAmount: 2000 })
+    94→      }
+    95→    }))
+    96→  }
+    97→  console.log('  Farmer groups: 5 created')
+    98→
+    99→  // Farmers (50)
+   100→  const farmers: any[] = []
+   101→  const villages = [village1, village2, village3, village4]
+   102→  for (let i = 0; i < 50; i++) {
+   103→    const [ln, fn] = NAMES[i]
+   104→    farmers.push(await db.farmerProfile.create({
+   105→      data: {
+   106→        tenantId: i < 30 ? ug.id : (i < 40 ? coop.id : ngo1.id),
+   107→        groupId: groups[i % groups.length].id,
+   108→        firstName: fn, lastName: ln,
+   109→        phone: `+25677${1000000 + i * 13793}`,
+   110→        gender: FEMALE.has(fn) ? 'Female' : 'Male',
+   111→        dateOfBirth: new Date(1980 + (i % 25), (i % 12), 1 + (i % 28)),
+   112→        education: ['Primary','Secondary','UG','PG','Other'][i % 5],
+   113→        maritalStatus: ['Married','Un-Married','Widow','Widower','Divorced'][i % 5],
+   114→        villageId: villages[i % 4].id,
+   115→        gpsLatitude: -0.3 + i * 0.05,
+   116→        gpsLongitude: 32.5 + i * 0.1,
+   117→        familyMembers: 3 + i % 6,
+   118→        childrenUnder18: 1 + i % 4,
+   119→        schoolGoingChildren: i % 3,
+   120→        spouseName: i % 3 === 0 ? '' : NAMES[(i + 7) % NAMES.length][1] + ' ' + NAMES[(i + 7) % NAMES.length][0],
+   121→        bankName: i % 4 === 0 ? 'Stanbic Bank' : (i % 4 === 1 ? 'Centenary Bank' : (i % 4 === 2 ? 'Equity Bank' : 'Good Grade MFI')),
+   122→        farmSize: 0.5 + (i % 8) * 0.5,
+   123→        farmOwnership: ['Owned','Rent','Lease'][i % 3],
+   124→        mainCrops: JSON.stringify([CROPS[i % CROPS.length], CROPS[(i + 3) % CROPS.length]]),
+   125→        livestockTypes: i % 3 === 0 ? JSON.stringify(['Goats', 'Chicken']) : null,
+   126→        memberType: i % 10 === 0 ? 'Commercial' : 'General',
+   127→        status: i < 47 ? 'ACTIVE' : 'INACTIVE'
+   128→      }
+   129→    }))
+   130→  }
+   131→  console.log('  Farmers: 50 created')
+   132→
+   133→  // FarmLand & Cultivation
+   134→  for (let i = 0; i < 50; i++) {
+   135→    const farm = await db.farmLand.create({
+   136→      data: {
+   137→        farmerId: farmers[i].id,
+   138→        name: `Farm ${i + 1}`,
+   139→        sizeHectares: 0.3 + (i % 8) * 0.4,
+   140→        latitude: -0.3 + i * 0.05,
+   141→        longitude: 32.5 + i * 0.1,
+   142→        landOwnership: ['Owned','Rent','Lease'][i % 3],
+   143→        waterSource: ['Rain-fed','River','Well','Borehole'][i % 4],
+   144→        soilFertility: ['High','Medium','Low'][i % 3]
+   145→      }
+   146→    })
+   147→    const numCrops = 1 + (i % 2)
+   148→    for (let j = 0; j < numCrops; j++) {
+   149→      await db.cultivation.create({
+   150→        data: {
+   151→          farmId: farm.id,
+   152→          cropName: CROPS[(i + j) % CROPS.length],
+   153→          variety: ['Local','Improved','Hybrid'][j % 3],
+   154→          season: ['Season A 2026','Season B 2025'][j % 2],
+   155→          sowingDate: new Date(2026, 2 + j, 1),
+   156→          estimatedYield: 500 + (i % 10) * 200,
+   157→          actualYield: i % 5 === 0 ? null : 400 + (i % 10) * 180,
+   158→          status: ['ACTIVE','HARVESTED','ACTIVE'][i % 3]
+   159→        }
+   160→      })
+   161→    }
+   162→  }
+   163→  console.log('  Farms + cultivations created')
+   164→
+   165→  // VSLA Groups (5)
+   166→  const vslaGroups: any[] = []
+   167→  for (let i = 0; i < 5; i++) {
+   168→    const vg = await db.vslaGroup.create({
+   169→      data: {
+   170→        tenantId: ug.id, groupId: groups[i].id,
+   171→        name: VSLA_NAMES[i],
+   172→        shareValue: 1000, loanRate: 10, maxLoanAmount: 500000,
+   173→        fines: 500, welfareAmount: 2000,
+   174→        meetingFrequency: 'Weekly', isActive: true
+   175→      }
+   176→    })
+   177→    vslaGroups.push(vg)
+   178→    for (let j = 0; j < 10; j++) {
+   179→      await db.vslaMember.create({
+   180→        data: {
+   181→          vslaGroupId: vg.id,
+   182→          farmerId: farmers[(i * 8 + j) % farmers.length].id,
+   183→          memberId: `VSLA-${i + 1}-${String(j + 1).padStart(3, '0')}`,
+   184→          isAdmin: j === 0, isKeyholder: j < 3,
+   185→          sharesOwned: 2 + j
+   186→        }
+   187→      })
+   188→    }
+   189→    for (let j = 0; j < 15; j++) {
+   190→      await db.vslaSaving.create({
+   191→        data: {
+   192→          vslaGroupId: vg.id,
+   193→          farmerId: farmers[(i * 8 + j) % farmers.length].id,
+   194→          amount: 1000 * (1 + j % 4),
+   195→          sharesBought: 1 + j % 3,
+   196→          transactionRef: `TXN-${Date.now()}-${i}${j}`,
+   197→          status: 'COMPLETED'
+   198→        }
+   199→      })
+   200→    }
+   201→    for (let j = 0; j < 4; j++) {
+   202→      const amt = 50000 + j * 75000
+   203→      await db.vslaLoan.create({
+   204→        data: {
+   205→          vslaGroupId: vg.id,
+   206→          farmerId: farmers[(i * 8 + j + 3) % farmers.length].id,
+   207→          amount: amt, interestRate: 10,
+   208→          totalRepayable: amt * 1.1,
+   209→          amountRepaid: j === 3 ? amt * 1.1 : (j === 2 ? amt * 0.7 : amt * 0.2),
+   210→          status: j === 3 ? 'REPAID' : (j === 2 ? 'APPROVED' : 'DISBURSED'),
+   211→          requestedAt: new Date(2026, 3 + j, 1),
+   212→          dueDate: new Date(2026, 6 + j, 1)
+   213→        }
+   214→      })
+   215→    }
+   216→    for (let j = 0; j < 4; j++) {
+   217→      const meeting = await db.vslaMeeting.create({
+   218→        data: {
+   219→          vslaGroupId: vg.id,
+   220→          agenda: ['Weekly Savings Collection','Loan Approvals','Welfare Contributions','Share-out Planning'][j],
+   221→          meetingDate: new Date(2026, 5, 1 + j * 7),
+   222→          startTime: '14:00', endTime: '16:00',
+   223→          status: j < 3 ? 'CONCLUDED' : 'SCHEDULED'
+   224→        }
+   225→      })
+   226→      const numAttendees = 7 + (j % 4)
+   227→      for (let k = 0; k < numAttendees; k++) {
+   228→        await db.vslaAttendance.create({
+   229→          data: {
+   230→            meetingId: meeting.id,
+   231→            farmerId: farmers[(i * 8 + k) % farmers.length].id,
+   232→            present: k < 6 || j < 2
+   233→          }
+   234→        })
+   235→      }
+   236→    }
+   237→    for (let j = 0; j < 2; j++) {
+   238→      await db.welfarePayment.create({
+   239→        data: {
+   240→          vslaGroupId: vg.id,
+   241→          farmerId: farmers[(i * 8 + j + 5) % farmers.length].id,
+   242→          amount: 20000 + j * 10000,
+   243→          reason: j === 0 ? 'Bereavement support' : 'Medical emergency'
+   244→        }
+   245→      })
+   246→    }
+   247→  }
+   248→  console.log('  VSLA: 5 groups with full data created')
+   249→
+   250→  // Market Products (20)
+   251→  for (let i = 0; i < 20; i++) {
+   252→    const f = farmers[i % farmers.length]
+   253→    await db.marketProduct.create({
+   254→      data: {
+   255→        sellerId: f.id, sellerName: `${f.firstName} ${f.lastName}`,
+   256→        commodity: CROPS[i % CROPS.length], variety: ['Local','Improved','Hybrid'][i % 3],
+   257→        quantity: `${(i + 1) * 100} Kg`, unitPrice: 500 + (i % 10) * 200,
+   258→        location: DISTRICTS[i % DISTRICTS.length],
+   259→        status: i < 15 ? 'AVAILABLE' : (i < 18 ? 'MATCHED' : 'SOLD')
+   260→      }
+   261→    })
+   262→  }
+   263→  for (let i = 0; i < 5; i++) {
+   264→    await db.marketMatch.create({
+   265→      data: {
+   266→        buyerName: `Buyer ${i + 1}`, buyerPhone: `+25678${1000000 + i * 99999}`,
+   267→        quantity: `${(i + 1) * 50} Kg`, pricePerUnit: 600 + i * 100,
+   268→        totalValue: (600 + i * 100) * (i + 1) * 50,
+   269→        status: ['PENDING','CONFIRMED','DELIVERED','PAID','CANCELLED'][i]
+   270→      }
+   271→    })
+   272→  }
+   273→  console.log('  Marketplace: 20 products, 5 matches')
+   274→
+   275→  // Input Dealers & Products
+   276→  const dealers: any[] = []
+   277→  const dealerNames = ['Kabonera Cooperative Shop','Buwenge Farmers Supply','Masindi Seeds Ltd','Equator Seeds Ltd','Pearl Seeds Ltd','NASECO (1996) Ltd']
+   278→  for (let i = 0; i < 6; i++) {
+   279→    dealers.push(await db.inputDealer.create({ data: { name: dealerNames[i], phone: `+256773${100000 + i}`, location: DISTRICTS[i % DISTRICTS.length] } }))
+   280→  }
+   281→  const inputProducts = ['Maize Seed (Hybrid)','Beans NABE 16','DAP Fertilizer','Urea','Coffee Seedlings','Sorghum Seed','Sunflower Seed','Rice Seed (Nerica)','Cassava Cuttings','Cocoa Seedlings','Tea Cuttings','Pesticide (Diazinon)']
+   282→  for (let i = 0; i < inputProducts.length; i++) {
+   283→    await db.inputProduct.create({
+   284→      data: {
+   285→        dealerId: dealers[i % 6].id, name: inputProducts[i],
+   286→        category: ['Seeds','Seeds','Fertilizer','Fertilizer','Seedlings','Seeds','Seeds','Seeds','Seedlings','Seedlings','Seedlings','Pesticide'][i],
+   287→        unit: ['Kg','Kg','Kg','Kg','Bags','Kg','Kg','Kg','Bundle','Bags','Bundle','Litres'][i],
+   288→        unitPrice: 2000 + i * 500
+   289→      }
+   290→    })
+   291→  }
+   292→  for (let i = 0; i < 10; i++) {
+   293→    await db.inputRequest.create({
+   294→      data: {
+   295→        dealerId: dealers[i % 6].id,
+   296→        farmerName: `${farmers[i].firstName} ${farmers[i].lastName}`,
+   297→        farmerPhone: farmers[i].phone,
+   298→        product: inputProducts[i % inputProducts.length],
+   299→        quantity: `${(i + 1) * 5} Kg`,
+   300→        unitPrice: 2000 + (i % 6) * 500,
+   301→        totalPrice: ((i + 1) * 5) * (2000 + (i % 6) * 500),
+   302→        status: ['PENDING','CONFIRMED','DELIVERED','CANCELLED'][i % 4]
+   303→      }
+   304→    })
+   305→  }
+   306→  console.log('  Inputs: 6 dealers, 12 products, 10 requests')
+   307→
+   308→  // Payment Account & Payments
+   309→  const payAcct = await db.paymentAccount.create({ data: { tenantId: ug.id, accountName: 'MobiPay AgroSys Uganda', accountType: 'MERCHANT', email: 'finance@mobipayagrosys.com' }})
+   310→  for (let i = 0; i < 30; i++) {
+   311→    const f = farmers[i % farmers.length]
+   312→    await db.payment.create({
+   313→      data: {
+   314→        paymentAccountId: payAcct.id,
+   315→        type: ['CASUAL','BULK_PURCHASE','BULK_DISBURSEMENT','VSLA','MARKETPLACE'][i % 5],
+   316→        recipientName: `${f.firstName} ${f.lastName}`, recipientPhone: f.phone,
+   317→        amount: 10000 + i * 5000,
+   318→        description: ['Farm purchase','Bulk procurement','Salary disbursement','VSLA savings contribution','Market payment settlement'][i % 5],
+   319→        transactionRef: `PAY-${Date.now()}-${i}`,
+   320→        status: i < 25 ? 'COMPLETED' : (i < 28 ? 'PENDING' : 'FAILED')
+   321→      }
+   322→    })
+   323→  }
+   324→  console.log('  Payments: 30 created')
+   325→
+   326→  // Trainings (8)
+   327→  const trainings: any[] = []
+   328→  const trainingTopics = ['Good Agricultural Practices','Coffee Pruning Techniques','Post-Harvest Handling','VSLA Management & Records','Financial Literacy','Soil Conservation','Pest Management','Market Access & Value Addition']
+   329→  for (let i = 0; i < 8; i++) {
+   330→    const t = await db.training.create({
+   331→      data: {
+   332→        topic: trainingTopics[i],
+   333→        description: `Comprehensive training on ${trainingTopics[i].toLowerCase()} for farmer groups.`,
+   334→        date: new Date(2026, 3 + i % 6, 1 + i * 3),
+   335→        location: DISTRICTS[i % DISTRICTS.length],
+   336→        trainerName: `Dr. ${NAMES[i + 5][1]} ${NAMES[i + 5][0]}`
+   337→      }
+   338→    })
+   339→    trainings.push(t)
+   340→    const numAttendees = 8 + (i % 8)
+   341→    for (let j = 0; j < numAttendees; j++) {
+   342→      await db.trainingAttendance.create({
+   343→        data: { trainingId: t.id, farmerId: farmers[(i * 6 + j) % farmers.length].id, attended: j < numAttendees - 2 }
+   344→      })
+   345→    }
+   346→  }
+   347→  console.log('  Trainings: 8 created')
+   348→
+   349→  // Credit Scores (25)
+   350→  for (let i = 0; i < 25; i++) {
+   351→    const d = 40 + Math.random() * 50
+   352→    const a = 40 + Math.random() * 50
+   353→    const c = 40 + Math.random() * 50
+   354→    const f = 40 + Math.random() * 50
+   355→    await db.creditScore.create({
+   356→      data: {
+   357→        farmerId: farmers[i].id,
+   358→        demographicsScore: Math.round(d), assetScore: Math.round(a),
+   359→        cropScore: Math.round(c), financialScore: Math.round(f),
+   360→        totalScore: Math.round(d * 0.15 + a * 0.25 + c * 0.25 + f * 0.35)
+   361→      }
+   362→    })
+   363→  }
+   364→  console.log('  Credit scores: 25 created')
+   365→
+   366→  // Loan Products & Applications
+   367→  const lp1 = await db.loanProduct.create({ data: { tenantId: mfi.id, name: 'Agri-Input Loan', interestRate: 12, maxAmount: 2000000, minAmount: 100000, maxDuration: 12, gracePeriod: 3 }})
+   368→  const lp2 = await db.loanProduct.create({ data: { tenantId: mfi.id, name: 'Seasonal Crop Loan', interestRate: 15, maxAmount: 5000000, minAmount: 500000, maxDuration: 18, gracePeriod: 6 }})
+   369→  const lp3 = await db.loanProduct.create({ data: { tenantId: mfi.id, name: 'Emergency Welfare Loan', interestRate: 10, maxAmount: 500000, minAmount: 50000, maxDuration: 6, gracePeriod: 1 }})
+   370→  for (let i = 0; i < 12; i++) {
+   371→    const f = farmers[i % farmers.length]
+   372→    const product = [lp1, lp2, lp3][i % 3]
+   373→    await db.loanApplication.create({
+   374→      data: {
+   375→        loanProductId: product.id, farmerId: f.id,
+   376→        applicantName: `${f.firstName} ${f.lastName}`, applicantPhone: f.phone,
+   377→        amount: product.minAmount + (i % 5) * 200000,
+   378→        purpose: ['Purchase inputs','School fees','Medical expenses','Farm expansion','Livestock purchase'][i % 5],
+   379→        status: ['PENDING','LEVEL1_APPROVED','APPROVED','DISBURSED','REJECTED','COMPLETED'][i % 6],
+   380→        disbursedAt: i % 6 === 3 ? new Date(2026, 4, 1) : null,
+   381→      }
+   382→    })
+   383→  }
+   384→  console.log('  Loans: 3 products, 12 applications')
+   385→
+   386→  // Surveys (3)
+   387→  for (let i = 0; i < 3; i++) {
+   388→    const survey = await db.survey.create({
+   389→      data: {
+   390→        title: ['Farm Assessment Survey','VSLA Impact Survey','Market Access Survey'][i],
+   391→        description: `Annual ${['farm assessment','VSLA impact','market access'][i]} survey for M&E.`,
+   392→        status: 'ACTIVE'
+   393→      }
+   394→    })
+   395→    for (let j = 0; j < 5; j++) {
+   396→      await db.surveyQuestion.create({
+   397→        data: {
+   398→          surveyId: survey.id,
+   399→          question: [`How many hectares do you farm?`,`Has VSLA improved your savings?`,`Do you access market prices via mobile?`][i] + ` (Q${j+1})`,
+   400→          type: ['TEXT','RADIO','CHECKBOX','NUMBER','TEXT'][j],
+   401→          options: j === 1 ? JSON.stringify(['Yes','No','Partially']) : (j === 2 ? JSON.stringify(['SMS','USSD','App','Agent']) : null),
+   402→          sortOrder: j
+   403→        }
+   404→      })
+   405→    }
+   406→    for (let j = 0; j < 8; j++) {
+   407→      await db.surveyResponse.create({
+   408→        data: { surveyId: survey.id, respondentId: farmers[j].id, answers: JSON.stringify({ q1: '2.5 hectares', q2: 'Yes', q3: 'SMS' }) }
+   409→      })
+   410→    }
+   411→  }
+   412→  console.log('  Surveys: 3 created')
+   413→
+   414→  // Messages (15)
+   415→  for (let i = 0; i < 15; i++) {
+   416→    await db.message.create({
+   417→      data: {
+   418→        type: ['SMS','SMS','EMAIL','IVR'][i % 4],
+   419→        recipient: farmers[i % farmers.length].phone,
+   420→        content: ['Meeting reminder: VSLA savings tomorrow at 2pm','Your loan of UGX 150,000 has been disbursed','Training on GAP scheduled for next week','Please complete your farmer profile update'][i % 4],
+   421→        status: ['SENT','DELIVERED','PENDING','FAILED'][i % 4],
+   422→        sentAt: new Date(2026, 5, 1 + i)
+   423→      }
+   424→    })
+   425→  }
+   426→  console.log('  Messages: 15 created')
+   427→
+   428→  // Purchases (10)
+   429→  for (let i = 0; i < 10; i++) {
+   430→    const f = farmers[i % farmers.length]
+   431→    await db.purchase.create({
+   432→      data: {
+   433→        groupId: groups[i % 5].id, farmerId: f.id,
+   434→        commodity: CROPS[i % CROPS.length], variety: ['Local','Improved','Hybrid'][i % 3],
+   435→        quantity: `${(i + 1) * 50} Kg`, unitPrice: 400 + i * 100,
+   436→        totalAmount: ((i + 1) * 50) * (400 + i * 100),
+   437→        status: ['PENDING','REVIEWED','APPROVED','PAID'][i % 4],
+   438→        initiatedBy: 'Agent', reviewedBy: i % 4 >= 1 ? 'Robert Mugisha' : null,
+   439→        approvedBy: i % 4 >= 2 ? 'Eric MobiPay' : null,
+   440→      }
+   441→    })
+   442→  }
+   443→
+   444→  // Sales (8)
+   445→  for (let i = 0; i < 8; i++) {
+   446→    const f = farmers[i % farmers.length]
+   447→    await db.sale.create({
+   448→      data: {
+   449→        farmerId: f.id, customerName: `Customer ${i + 1}`,
+   450→        product: CROPS[i % CROPS.length], quantity: `${(i + 2) * 25} Kg`,
+   451→        unitPrice: 600 + i * 150, totalAmount: ((i + 2) * 25) * (600 + i * 150),
+   452→        status: i < 7 ? 'COMPLETED' : 'PENDING'
+   453→      }
+   454→    })
+   455→  }
+   456→
+   457→  // Consignments (6)
+   458→  for (let i = 0; i < 6; i++) {
+   459→    await db.consignment.create({
+   460→      data: {
+   461→        product: CROPS[i % CROPS.length], quantity: `${(i + 1) * 200} Kg`,
+   462→        source: DISTRICTS[i % DISTRICTS.length],
+   463→        destination: i % 2 === 0 ? 'Kampala Warehouse' : 'Jinja Processing Plant',
+   464→        status: ['DRAFT','DISPATCHED','CHECKED_IN','RECEIVED','APPROVED','PAID'][i],
+   465→        totalValue: ((i + 1) * 200) * (500 + i * 100),
+   466→      }
+   467→    })
+   468→  }
+   469→  console.log('  Purchases: 10, Sales: 8, Consignments: 6')
+   470→
+   471→  // Feedback (8)
+   472→  for (let i = 0; i < 8; i++) {
+   473→    await db.feedback.create({
+   474→      data: {
+   475→        farmerId: farmers[i % farmers.length].id,
+   476→        category: ['Bug Report','Feature Request','Complaint','General Feedback'][i % 4],
+   477→        message: ['The USSD menu is not responding','Need dark mode on mobile app','Payment delayed for 3 days','Great improvement in VSLA tracking','App crashes when uploading photos','Request for Swahili language support','Training calendar would be helpful','Loan calculator is very useful'][i],
+   478→        status: ['NEW','REVIEWED','RESOLVED','NEW','REVIEWED','NEW','RESOLVED','NEW'][i]
+   479→      }
+   480→    })
+   481→  }
+   482→
+   483→  // Deliveries (5)
+   484→  for (let i = 0; i < 5; i++) {
+   485→    await db.delivery.create({
+   486→      data: {
+   487→        relatedType: ['PURCHASE','CONSIGNMENT','INPUT_REQUEST'][i % 3],
+   488→        status: ['PENDING','IN_TRANSIT','DELIVERED','IN_TRANSIT','PENDING'][i],
+   489→        driverName: `Driver ${i + 1}`, vehicleReg: `UAB ${300 + i}A`,
+   490→        dispatchedAt: i < 4 ? new Date(2026, 5, 1 + i) : null,
+   491→        deliveredAt: i === 2 ? new Date(2026, 5, 4) : null,
+   492→      }
+   493→    })
+   494→  }
+   495→
+   496→  // Subscriptions & Entitlements
+   497→  for (const tenant of [coop, mfi, exporter, ngo1, ngo2]) {
+   498→    await db.subscription.create({
+   499→      data: { tenantId: tenant.id, plan: 'ENTERPRISE', amount: 500000, billingCycle: 'MONTHLY', status: 'ACTIVE', startDate: new Date(2026, 0, 1), endDate: new Date(2026, 11, 31) }
+   500→    })
+   501→    const modules = ['FARMER_PROFILING','VSLA','MARKETPLACE','PAYMENTS','LOANS','TRAINING','REPORTS','COMMUNICATION']
+   502→    for (const mod of modules) {
+   503→      await db.moduleEntitlement.create({ data: { tenantId: tenant.id, moduleCode: mod, isEnabled: true } })
+   504→    }
+   505→  }
+   506→
+   507→  // API Keys
+   508→  await db.apiKey.create({ data: { tenantId: mfi.id, key: 'ggmfi_live_sk_a1b2c3d4e5f6', username: 'gg-mfi-integration', purpose: 'Credit Score API integration with Good Grade MFI', isActive: true }})
+   509→  await db.apiKey.create({ data: { tenantId: exporter.id, key: 'uce_live_sk_x1y2z3w4v5u6', username: 'uce-marketplace', purpose: 'Marketplace buyer-seller matching API', isActive: true }})
+   510→
+   511→  console.log('')
+   512→  console.log('===========================================')
+   513→  console.log('  Agrobase V3 Seeded Successfully!')
+   514→  console.log('===========================================')
+   515→  console.log('  Tenants:         9')
+   516→  console.log('  Users:           4')
+   517→  console.log('  Farmers:         50')
+   518→  console.log('  VSLA Groups:     5 (50 members)')
+   519→  console.log('  VSLA Savings:    75')
+   520→  console.log('  VSLA Loans:      20')
+   521→  console.log('  VSLA Meetings:   20 (with attendance)')
+   522→  console.log('  Market Products: 20')
+   523→  console.log('  Payments:        30')
+   524→  console.log('  Trainings:       8')
+   525→  console.log('  Credit Scores:   25')
+   526→  console.log('  Loan Products:   3')
+   527→  console.log('  Loan Apps:       12')
+   528→  console.log('  Surveys:         3')
+   529→  console.log('  Purchases:       10')
+   530→  console.log('  Sales:           8')
+   531→  console.log('  Consignments:    6')
+   532→  console.log('  Feedback:        8')
+   533→  console.log('===========================================')
+   534→}
+   535→
+   536→main().catch(e => { console.error('Seed failed:', e); process.exit(1) }).finally(() => db.$disconnect())
