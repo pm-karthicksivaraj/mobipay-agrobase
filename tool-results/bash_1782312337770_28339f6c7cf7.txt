@@ -1,0 +1,4718 @@
+===== Agrobase--profiling.pdf =====
+Agrobase  Application - VSLA management 
+Agrobase Mobile Application 
+Overview:  The Farmer Proﬁling App is designed to collect and manage 
+comprehensive data on farmers, including biographical information, location details, 
+and farm-speciﬁc data. This digital tool enables efﬁcient capture and organization of 
+farmer proﬁles, supporting agricultural programs, outreach, and data-driven 
+decision-making. 
+Core Features: 
+●Farmer Biography Collection:  Captures detailed biographical information 
+about farmers. 
+●Location Data Collection:  Records geographical location details of farms. 
+●Farm Data Management:  Collects and manages data on farm characteristics, 
+practices, and assets. 
+●Data Storage and Retrieval: Securely stores farmer proﬁles for easy access and 
+analysis. 
+●Ofﬂine Data Capture:  Enables data collection in areas with limited 
+connectivity, with syncing capabilities. 
+Select Farmer Proﬁling 
+On the main screen, select 
+the ﬁrst option ‘Farmer 
+proﬁling’ 
+Add New Record 
+Select the pencil icon at the 
+bottom right to add new record 
+Consent
+check the farmer 
+consent box to proceed 
+Enter credentials 
+Then click Login Agrobase  Application - Farmer proﬁling Personal Information 
+Fill the next section with 
+member’s bio data 
+Family Information 
+Fill next session with member’s 
+family information 
+Bank Information 
+Fill Member’s bank and 
+Farm information 
+Location Data 
+Fill the dropdown form with 
+farmer’s location  data Agrobase  Application - Farmer proﬁling Farm GPS 
+Click the GPS icon till it 
+shows ‘success’ under the 
+icon and save member data 
+Upload Member Data 
+on the main menu, click the dots 
+above to show upload menu 
+Conﬁrm
+select ‘upload farmers’ 
+and conﬁrm 
+Farmer Photo 
+Click ‘take farmer photo’ and 
+select gallery or camera 
+suitable option Agrobase  Application - Farmer proﬁling Agrobase  Application - VSLA management 
+FAQs 
+1.Q: Does the App work ofﬂine? 
+A: Yes, the app functions ofﬂine. Data connection is required only for initial login and uploading proﬁled data. 
+2.Q: How do I obtain login credentials? 
+Credentials are sent via SMS after you've been proﬁled into the system. If you forget or lose your password, contact an 
+Administrator for password reset assistance. 
+3.Q: Some farmers I'm proﬁling prefer not to share certain data or photos. How do I handle this? 
+A: For text ﬁelds, enter "N/A" to indicate non-applicability. For numeric ﬁelds, use "0". If a photo is required but the farmer 
+is unwilling, you can capture an image of a plain background or a blank paper to proceed. 
+4.Q: I'm encountering an error when trying to log in (Inconsistent User Data Found…). What does it mean? 
+A: The error typically indicates you're not associated with a group. Contact an Administrator to ensure you're attached to 
+a relevant group, then retry login. 
+5. Q: Can I edit a farmer's proﬁle after it's been saved? 
+A: Yes, proﬁles can typically be edited. click on the proﬁle from the list to edit the data 
+
+
+===== Market-Match-USSD.pdf =====
+Farmer dials USSD code and get
+Market MatchAGROBASE –Market Match
+Powered by MobiPay AgroSys Limited
+Dial
+*284*56#
+www.mobipayagrosys.com | Email : info@mobipayagrosys.com | Tel : 0779355393 | Tel : 0754712188
+Welcome, select a 
+service
+1.Merchant Collectnn
+2.VSLA
+3.Input Aggregation
+4.Market Match
+Answer    Back
+Market Match proceduresPROCEDURES
+Select an option
+1.T o view Matches
+2.To insert 
+a new product
+Answer   Back
+pick
+4Select Commodity
+1.Maize
+2.Rice
+3.Cocoa
+4.Maize
+5.Simsim
+Answer   BackEnter Variety 
+that  you have in 
+stock
+________________
+Answer   Back
+pick
+2Thank you for 
+Recording 
+your Commodity 
+via Market and 
+Match!
+Answer   Ba
+ckEnter Quantity that 
+you have in stock
+________________
+Answer  BackAnswer  Back Answer BackThank you for 
+recording attendan
+ce!!
+Answer  Back
+Market Match Procedures ( Contd )PROCEDURES
+ Confirm Order 
+entry for2000 Kgs of 
+Maize
+1.Confirm
+2.Reject
+Answer   Back
+
+
+
+===== Purchase-Module-(2).pdf =====
+Agrobase Mobile Applications 
+Purchases Module 
+Overview:  The Merchant Purchase Module enables users to perform purchases via the 
+mobile application, facilitating efﬁcient transactions for farmers who sell their products. 
+This module requires a three-user workﬂow to ensure accuracy and security. 
+User Roles and Responsibilities 
+1. Initiator (Agent). The Initiator is responsible for initiating transactions by recording 
+farmer purchases in the system. 
+2. Reviewer. The Reviewer veriﬁes and reviews the initiated transactions for accuracy and 
+completeness, then forwards them for approval. 
+3. Approver.  The Approver reviews and approves the transactions. Once approved, the 
+system disburses mobile money payments to the farmers' phones. 
+Agrobase Mobile Applications 
+Initiating Transactions 
+The Initiator is responsible for recording farmer purchases in the system. To 
+initiate a transaction: 
+1. Log in to the mobile application with credentials shares by MobiPay team 
+2. Select the " Purchase" module. 
+3. Select Farmer Group you will purchase from 
+4. Select the Farmer to purchase from 
+5. Add as many commodities as required before going to the next farmer (if 
+needed) 
+6.Upload the newly recorded purchases 
+select Commodity 
+And ﬁll in the form 
+Accordingly 
+select Group 
+Then select Farmer 
+Save Purchases 
+Select pencil icon to add 
+Upload Purchases 
+click the upload 
+button to submit data Agrobase Mobile Applications 
+Reviewing Transactions 
+The Reviewer veriﬁes and reviews the initiated transactions for accuracy and 
+completeness. To review a transaction: 
+1. Log in to the mobile application. 
+2. Access the transaction queue. 
+3. Verify transaction details and forward for approval. 
+select Task to 
+Review 
+Select one by one 
+select Purchase 
+WorkFlow 
+To View pending tasks 
+Review Transaction 
+Conﬁrm Amount, Number 
+and pending Loan 
+Conﬁrm Review 
+Conﬁrm after review Agrobase Mobile Applications 
+Approving Transactions 
+The Approver reviews and approves the transactions. To approve a 
+transaction: 
+1. Log in to the mobile application. 
+2. Access the approval queue. 
+3. Review transaction details and approve. 
+select Task to 
+Approve 
+Select one by one 
+select Purchase 
+WorkFlow 
+To View pending tasks 
+Approve 
+Transaction 
+Conﬁrm Amount, Number 
+and pending Loan 
+Conﬁrm Approval 
+Conﬁrm after review 
+
+
+===== VSLA-Onboarding-Guide.pdf =====
+VSLA
+ 
+Onboarding
+ 
+Guide
+ 
+For
+ 
+System
+ 
+Administrators
+ 
+and
+ 
+Field
+ 
+Agents
+ 
+ 
+1.
+ 
+Introduction
+ 
+This
+ 
+document
+ 
+guides
+ 
+administrators
+ 
+and
+ 
+agents
+ 
+through
+ 
+the
+ 
+process
+ 
+of
+ 
+onboarding
+ 
+a
+ 
+new
+ 
+VSLA
+ 
+group
+ 
+into
+ 
+the
+ 
+system
+ 
+—
+ 
+from
+ 
+data
+ 
+collection,
+ 
+setup,
+ 
+configuration,
+ 
+and
+ 
+linking
+ 
+to
+ 
+the
+ 
+payment
+ 
+system,
+ 
+to
+ 
+enabling
+ 
+member
+ 
+profiling
+ 
+and
+ 
+transactions.
+ 
+ 
+2.
+ 
+Prerequisites
+ 
+Before
+ 
+onboarding
+ 
+a
+ 
+VSLA,
+ 
+ensure
+ 
+that:
+ 
+●
+ 
+The
+ 
+VSLA
+ 
+registration
+ 
+form
+ 
+is
+ 
+fully
+ 
+completed
+ 
+(group
+ 
+name,
+ 
+share
+ 
+value,
+ 
+loan
+ 
+rate,
+ 
+chairman,
+ 
+treasurer,
+ 
+secretary,
+ 
+keyholders,
+ 
+etc.).
+ 
+●
+ 
+The
+ 
+agent
+ 
+responsible
+ 
+for
+ 
+the
+ 
+group
+ 
+has
+ 
+been
+ 
+profiled
+ 
+in
+ 
+the
+ 
+system.
+ 
+●
+ 
+You
+ 
+have
+ 
+access
+ 
+credentials
+ 
+for
+ 
+both
+ 
+the
+ 
+VSLA
+ 
+Management
+ 
+System
+ 
+and
+ 
+the
+ 
+Payments
+ 
+System
+.
+ 
+ 
+3.
+ 
+Step-by-Step
+ 
+VSLA
+ 
+Onboarding
+ 
+Process
+ 
+Step
+ 
+1:
+ 
+Collect
+ 
+Group
+ 
+Information
+ 
+Begin
+ 
+by
+ 
+filling
+ 
+out
+ 
+the
+ 
+VSLA
+ 
+data
+ 
+form
+,
+ 
+capturing:
+ 
+●
+ 
+Group
+ 
+name
+ 
+●
+ 
+Share
+ 
+value
+ 
+ 
+●
+ 
+Loan
+ 
+rate
+ 
+ 
+●
+ 
+Loan
+ 
+amount
+ 
+ 
+●
+ 
+Grace
+ 
+period
+ 
+ 
+●
+ 
+Group
+ 
+leadership
+ 
+(Chairperson,
+ 
+Treasurer,
+ 
+Secretary,
+ 
+Keyholders)
+ 
+ 
+Ensure
+ 
+all
+ 
+fields
+ 
+are
+ 
+accurately
+ 
+filled
+ 
+before
+ 
+proceeding
+ 
+to
+ 
+system
+ 
+registration.
+ 
+ 
+Step
+ 
+2:
+ 
+Add
+ 
+Group
+ 
+to
+ 
+the
+ 
+System
+ 1.
+ 
+Log
+ 
+into
+ 
+the
+ 
+Agrobase
+ 
+System
+.
+ 
+ 
+2.
+ 
+On
+ 
+the
+ 
+left
+ 
+menu,
+ 
+select
+ 
+Farmer
+ 
+Groups
+ 
+under
+ 
+Profiles
+ 
+Menu.
+ 
+ 
+3.
+ 
+A
+ 
+list
+ 
+of
+ 
+all
+ 
+existing
+ 
+groups
+ 
+will
+ 
+be
+ 
+displayed.
+ 
+4.
+ 
+Search
+ 
+the
+ 
+group
+ 
+to
+ 
+check
+ 
+if
+ 
+it
+ 
+is
+ 
+already
+ 
+available,
+ 
+if
+ 
+not,
+ 
+add
+ 
+it
+ 
+anew
+ 
+ 
+5.
+ 
+To
+ 
+add
+ 
+a
+ 
+new
+ 
+group:
+ 
+ 
+a.
+ 
+Click
+ 
+the
+ 
+➕
+ 
+(plus)
+ 
+icon
+ 
+at
+ 
+the
+ 
+bottom
+ 
+right.
+ 
+ 
+b.
+ 
+Fill
+ 
+in
+ 
+the
+ 
+required
+ 
+fields:
+ 
+i.
+ 
+Select
+ 
+tthe
+ 
+cooperative
+ 
+the
+ 
+group
+ 
+belongs
+ 
+to
+ 
+(Compulsary)
+ 
+ii.
+ 
+Group
+ 
+Name
+ 
+iii.
+ 
+Contact
+ 
+Person
+ 
+iv.
+ 
+Location
+ 
+ 
+c.
+ 
+Click
+ 
+Save
+.
+ 
+ 
+Fig
+ 
+1:
+ 
+Fill
+ 
+the
+ 
+new
+ 
+Group
+ 
+Form
+ 
+ 
+6.
+ 
+The
+ 
+newly
+ 
+added
+ 
+group
+ 
+will
+ 
+appear
+ 
+in
+ 
+the
+ 
+list.
+ 
+ 
+7.
+ 
+Tick
+ 
+the
+ 
+VSLA
+ 
+checkbox
+ 
+and
+ 
+click
+ 
+Update
+ 
+to
+ 
+categorize
+ 
+it
+ 
+as
+ 
+a
+ 
+VSLA
+ 
+group.
+ 
+ 
+Fig
+ 
+2:
+ 
+select
+ 
+the
+ 
+VSLA
+ 
+box
+ 
+and
+ 
+‘assign
+ 
+Agent’
+ 
+to
+ 
+the
+ 
+group
+ 
+ 
+8.
+ 
+Under
+ 
+the
+ 
+group
+ 
+details,
+ 
+locate
+ 
+the
+ 
+Attach
+ 
+Agent
+ 
+section
+ 
+and
+ 
+select
+ 
+the
+ 
+appropriate
+ 
+agent
+ 
+from
+ 
+the
+ 
+dropdown
+ 
+list
+ 
+of
+ 
+pre-profiled
+ 
+agents.
+ 
+ 
+🟢
+ 
+Agents
+ 
+are
+ 
+responsible
+ 
+for
+ 
+profiling
+ 
+members
+ 
+into
+ 
+the
+ 
+group
+ 
+and
+ 
+providing
+ 
+ongoing
+ 
+field
+ 
+support.
+ 
+ 
+Step
+ 
+3:
+ 
+Configure
+ 
+VSLA
+ 
+Settings
+ 
+1.
+ 
+Go
+ 
+to
+ 
+VSLA
+ 
+Management
+ 
+→
+ 
+Settings
+.
+ 
+ 
+2.
+ 
+Search
+ 
+for
+ 
+the
+ 
+newly
+ 
+added
+ 
+group.
+ 
+ 
+3.
+ 
+Click
+ 
+the
+ 
+Configurations
+ 
+button
+ 
+next
+ 
+to
+ 
+the
+ 
+group
+ 
+name.
+ 
+ 
+Fig
+ 
+3:
+ 
+select
+ 
+the
+ 
+first
+ 
+purple
+ 
+icon
+ 
+to
+ 
+enter
+ 
+configurations
+ 
+ 
+4.
+ 
+Enter
+ 
+the
+ 
+group’s
+ 
+financial
+ 
+settings:
+ 
+○
+ 
+Share
+ 
+value
+ 
+price
+ 
+○
+ 
+Loan
+ 
+rate
+ 
+○
+ 
+Maximum
+ 
+loan
+ 
+amount
+ 
+○
+ 
+Fines
+ 
+○
+ 
+Welfare
+ 
+contributions
+ 
+ 
+5.
+ 
+Save
+ 
+the
+ 
+settings.
+ 
+ 
+Step
+ 
+4:
+ 
+Set
+ 
+Up
+ 
+Payment
+ 
+Account
+ 
+To
+ 
+enable
+ 
+digital
+ 
+transactions,
+ 
+create
+ 
+a
+ 
+payment
+ 
+account
+ 
+for
+ 
+the
+ 
+VSLA.
+ 
+In
+ 
+the
+ 
+Payments
+ 
+System:
+ 
+1.
+ 
+Log
+ 
+into
+ 
+the
+ 
+Payments
+ 
+System
+.
+ 
+ 
+2.
+ 
+On
+ 
+the
+ 
+left
+ 
+menu,
+ 
+select
+ 
+Accounts
+ 
+→
+ 
+Payment
+ 
+Accounts
+.
+ 
+ 
+3.
+ 
+Click
+ 
+the
+ 
+➕
+ 
+(plus)
+ 
+icon
+ 
+at
+ 
+the
+ 
+bottom
+ 
+right
+ 
+to
+ 
+add
+ 
+a
+ 
+new
+ 
+account.
+ 
+ 
+4.
+ 
+Fill
+ 
+in:
+ 
+ 
+○
+ 
+Account
+ 
+Name
+ 
+(VSLA
+ 
+Name)
+ 
+○
+ 
+Group
+ 
+Number
+ 
+○
+ 
+Email
+ 
+○
+ 
+Address
+ 
+Account
+ 
+Type
+ 
+→
+ 
+Select
+ 
+Merchant
+ 
+from
+ 
+the
+ 
+dropdown.
+ 
+ 
+5.
+ 
+Click
+ 
+Add
+.
+ 
+ 
+Fig
+ 
+4:
+ 
+fill
+ 
+thepayment
+ 
+account
+ 
+details
+ 
+6.
+ 
+The
+ 
+account
+ 
+will
+ 
+now
+ 
+appear
+ 
+in
+ 
+the
+ 
+list.
+ 
+ 
+7.
+ 
+Next
+ 
+to
+ 
+the
+ 
+group
+ 
+name,
+ 
+click
+ 
+the
+ 
+Tools
+ 
+button
+ 
+and
+ 
+select
+ 
+API
+ 
+Settings
+.
+ 
+ 
+8.
+ 
+On
+ 
+the
+ 
+API
+ 
+page:
+ 
+ 
+○
+ 
+Generate
+ 
+API
+ 
+Key
+ 
+→
+ 
+Save
+ 
+it.
+ 
+○
+ 
+Generate
+ 
+API
+ 
+Username
+ 
+→
+ 
+Save
+ 
+it.
+ 
+○
+ 
+Note
+ 
+the
+ 
+Account
+ 
+ID
+ 
+→
+ 
+Save
+ 
+it.
+ 
+ 
+Fig
+ 
+5:
+ 
+enter
+ 
+username,
+ 
+save
+ 
+it,
+ 
+generate
+ 
+API
+ 
+key
+ 
+and
+ 
+save
+ 
+ 
+These
+ 
+credentials
+ 
+will
+ 
+be
+ 
+used
+ 
+to
+ 
+link
+ 
+the
+ 
+payments
+ 
+account
+ 
+to
+ 
+the
+ 
+VSLA
+ 
+system.
+ 
+ 
+Step
+ 
+5:
+ 
+Link
+ 
+Payment
+ 
+Account
+ 
+to
+ 
+VSLA
+ 
+1.
+ 
+Return
+ 
+to
+ 
+the
+ 
+VSLA
+ 
+Management
+ 
+System
+.
+ 
+ 
+2.
+ 
+Navigate
+ 
+to
+ 
+VSLA
+ 
+Management
+ 
+→
+ 
+Settings
+.
+ 
+ 
+3.
+ 
+Search
+ 
+for
+ 
+the
+ 
+particular
+ 
+group.
+ 
+ 
+4.
+ 
+Click
+ 
+the
+ 
+Payments
+ 
+Account
+ 
+button
+ 
+next
+ 
+to
+ 
+the
+ 
+group
+ 
+name.
+ 
+ 
+Fig
+ 
+6
+ 
+:
+ 
+select
+ 
+the
+ 
+third
+ 
+icon
+ 
+(Orange
+ 
+icon)
+ 
+to
+ 
+open
+ 
+Payments
+ 
+account
+ 
+for
+ 
+a
+ 
+group
+ 
+ 
+5.
+ 
+In
+ 
+the
+ 
+form
+ 
+that
+ 
+appears,
+ 
+enter:
+ 
+ 
+○
+ 
+API
+ 
+Key
+ 
+○
+ 
+API
+ 
+Username
+ 
+○
+ 
+Account
+ 
+ID
+ 
+ 
+6.
+ 
+Click
+ 
+Save
+.
+ 
+ 
+Once
+ 
+saved,
+ 
+the
+ 
+group’s
+ 
+payment
+ 
+system
+ 
+will
+ 
+be
+ 
+successfully
+ 
+connected
+ 
+and
+ 
+ready
+ 
+for
+ 
+transactions.
+ 
+ 
+ 
+Step
+ 
+6:
+ 
+Add
+ 
+and
+ 
+Assign
+ 
+Agents
+ 
+1.
+ 
+In
+ 
+the
+ 
+VSLA
+ 
+System
+,
+ 
+go
+ 
+to
+ 
+Profile
+ 
+→
+ 
+Agents
+.
+ 
+ 
+2.
+ 
+Add
+ 
+new
+ 
+agents
+ 
+(credentials
+ 
+will
+ 
+automatically
+ 
+be
+ 
+sent
+ 
+via
+ 
+SMS).
+ 
+ 
+3.
+ 
+Attach
+ 
+each
+ 
+agent
+ 
+to
+ 
+their
+ 
+respective
+ 
+VSLA
+ 
+group(s)
+ 
+as
+ 
+explained
+ 
+in
+ 
+Step
+ 
+2.
+ 
+ 
+🟢
+ 
+Agents
+ 
+are
+ 
+responsible
+ 
+for
+ 
+profiling
+ 
+VSLA
+ 
+members
+ 
+through
+ 
+the
+ 
+mobile
+ 
+profiling
+ 
+app.
+ 
+ 
+Step
+ 
+7:
+ 
+Profile
+ 
+Members
+ 
+via
+ 
+the
+ 
+Mobile
+ 
+App
+ 
+1.
+ 
+Agents
+ 
+log
+ 
+into
+ 
+the
+ 
+Profiling
+ 
+App
+ 
+using
+ 
+their
+ 
+credentials.
+ 
+ 
+2.
+ 
+During
+ 
+member
+ 
+registration,
+ 
+they
+ 
+must
+ 
+select
+ 
+the
+ 
+specific
+ 
+VSLA
+ 
+group
+ 
+the
+ 
+member
+ 
+belongs
+ 
+to.
+ 
+ 
+3.
+ 
+Once
+ 
+profiling
+ 
+is
+ 
+complete,
+ 
+all
+ 
+members
+ 
+will
+ 
+appear
+ 
+under
+ 
+their
+ 
+respective
+ 
+groups
+ 
+in
+ 
+the
+ 
+system.
+ 
+ 
+ 
+Step
+ 
+8:
+ 
+Set
+ 
+up
+ 
+VSLA
+ 
+Admins
+ 
+/
+ 
+Keyholders
+ 
+After
+ 
+Profiling
+ 
+VSLA
+ 
+Members:
+ 
+●
+ 
+Log
+ 
+into
+ 
+the
+ 
+system
+ 
+and
+ 
+on
+ 
+the
+ 
+left
+ 
+hand
+ 
+menu,
+ 
+select
+ 
+VSLA
+ 
+Management
+ 
+then
+ 
+select
+ 
+Admin
+ 
+Members
+ 
+●
+ 
+This
+ 
+page
+ 
+will
+ 
+show
+ 
+a
+ 
+list
+ 
+of
+ 
+all
+ 
+pre
+ 
+entered
+ 
+admins,
+ 
+to
+ 
+add
+ 
+a
+ 
+new
+ 
+admin,
+ 
+ 
+○
+ 
+Click
+ 
+the
+ 
+➕
+ 
+(plus)
+ 
+icon
+ 
+at
+ 
+the
+ 
+bottom
+ 
+right.
+ 
+○
+ 
+From
+ 
+the
+ 
+list,
+ 
+select
+ 
+the
+ 
+members
+ 
+you
+ 
+want
+ 
+to
+ 
+add
+ 
+as
+ 
+admins/
+ 
+Keyholders
+ 
+ 
+Fig
+ 
+7:
+ 
+Green
+ 
+icon
+ 
+for
+ 
+Admins
+ 
+while
+ 
+Blue
+ 
+icon
+ 
+with
+ 
+a
+ 
+key
+ 
+for
+ 
+adding
+ 
+keyholders
+ 
+ 
+Step
+ 
+9:
+ 
+Start
+ 
+VSLA
+ 
+Activities
+ 
+After
+ 
+setup:
+ 
+●
+ 
+Members
+ 
+can
+ 
+begin
+ 
+savings,
+ 
+loan
+ 
+applications,
+ 
+repayments,
+ 
+fines,
+ 
+and
+ 
+meetings.
+ 
+ 
+●
+ 
+All
+ 
+transactions
+ 
+and
+ 
+group
+ 
+activities
+ 
+will
+ 
+be
+ 
+managed
+ 
+under
+ 
+VSLA
+ 
+Management
+ 
+in
+ 
+the
+ 
+system.
+ 
+ 
+ 
+4.
+ 
+Summary
+ 
+for
+ 
+onboarding
+ 
+process
+ 
+1.
+ 
+Collect
+ 
+Group
+ 
+Data
+ 
+ 
+→
+ 
+Fill
+ 
+out
+ 
+the
+ 
+VSLA
+ 
+registration
+ 
+form
+ 
+(group
+ 
+name,
+ 
+share
+ 
+value,
+ 
+loan
+ 
+rate,
+ 
+chairman,
+ 
+keyholders,
+ 
+etc.).
+ 
+2.
+ 
+Add
+ 
+Group
+ 
+to
+ 
+the
+ 
+System
+ 
+ 
+→
+ 
+Log
+ 
+into
+ 
+the
+ 
+VSLA
+ 
+Management
+ 
+System
+ 
+→
+ 
+Farmer
+ 
+Groups
+ 
+→
+ 
+click
+ 
+➕
+ 
+Add
+ 
+Group
+ 
+→
+ 
+fill
+ 
+group
+ 
+info
+ 
+→
+ 
+Save
+.
+ 
+3.
+ 
+Mark
+ 
+Group
+ 
+as
+ 
+VSLA
+ 
+ 
+→
+ 
+Tick
+ 
+VSLA
+ 
+checkbox
+ 
+→
+ 
+click
+ 
+Update
+.
+ 
+4.
+ 
+Attach
+ 
+Agent
+ 
+to
+ 
+Group
+ 
+ 
+→
+ 
+Select
+ 
+the
+ 
+agent
+ 
+from
+ 
+the
+ 
+dropdown
+ 
+under
+ 
+Attach
+ 
+Agent
+ 
+(agents
+ 
+are
+ 
+pre-profiled).
+ 
+5.
+ 
+Configure
+ 
+VSLA
+ 
+Settings
+ 
+ 
+→
+ 
+Go
+ 
+to
+ 
+VSLA
+ 
+Management
+ 
+→
+ 
+Settings
+ 
+→
+ 
+find
+ 
+group
+ 
+→
+ 
+click
+ 
+Configurations
+ 
+→
+ 
+set
+ 
+share
+ 
+value,
+ 
+loan
+ 
+rate,
+ 
+fines,
+ 
+welfare,
+ 
+etc.
+ 
+6.
+ 
+Create
+ 
+Payment
+ 
+Account
+ 
+(in
+ 
+Payments
+ 
+System)
+ 
+ 
+→
+ 
+Log
+ 
+into
+ 
+the
+ 
+Payments
+ 
+System
+ 
+→
+ 
+Accounts
+ 
+→
+ 
+Payment
+ 
+Accounts
+ 
+→
+ 
+click
+ 
+➕
+ 
+Add
+ 
+→
+ 
+enter
+ 
+details
+ 
+→
+ 
+Save
+.
+ 
+7.
+ 
+Generate
+ 
+API
+ 
+Credentials
+ 
+ 
+→
+ 
+Under
+ 
+Tools
+ 
+→
+ 
+API
+ 
+Settings
+,
+ 
+generate
+ 
+and
+ 
+save:
+ 
+○
+ 
+API
+ 
+Key
+ 
+○
+ 
+API
+ 
+Username
+ 
+○
+ 
+Account
+ 
+ID
+ 
+8.
+ 
+Link
+ 
+Paymen
+
+===== child-profiling-and-attendance.pdf =====
+Agrobase Mobile Applications 
+Child Proﬁling Module 
+This module enables users to create and manage proﬁles for 
+school-going children of registered farmers. To access this feature, 
+the farmer must have a valid proﬁle within the system. 
+Login 01 
+Login to the system with the credentials 
+shared by the admin Select ‘Farmer 
+Inspection’ 02 
+Select the Farmer Inspection Menu as 
+illustrated 
+select 
+Children 04 
+Select a Children 
+select 
+farmer 03 
+Select a farmer 
+select Edit 
+icon 05 
+Select pencil icon to add 
+select 
+school06 
+select school select 
+menu 08 
+ﬁll form 07 
+ﬁll the form 
+upload
+data09 
+upload data Agrobase Mobile Applications 
+Attendance Management 
+Module 
+The Attendance Recording Module is designed to track attendance 
+for proﬁled children. To use this feature, ensure the child has a valid 
+proﬁle in the system (see Child Proﬁling Module). The attendance 
+recording process is detailed below. 
+Login 01 
+Login to the system with the credentials 
+shared by the admin Select ‘Farmer 
+Inspection’ 02   
+Select the Farmer Inspection Menu as 
+illustrated 
+select 
+Attendance 04 
+Select Attendance 
+select Menu 03 
+Click the 3 dots at the top 
+right corner 
+select
+school 05 
+Select School 
+ﬁll form06 
+Fill form upload 
+data 08 
+attendance  
+history07 
+select option from the 
+menu upload data 
+
+
+===== eGwoko--FAQs.pdf =====
+eGwoko
+ 
+Frequently
+ 
+Asked
+ 
+Questions
+ 
+(FAQs)
+ 
+1.
+ 
+Login
+ 
+&
+ 
+Registration
+ 
+Issues
+ 
+Q1.
+ 
+When
+ 
+I
+ 
+dial
+ 
+the
+ 
+USSD
+ 
+or
+ 
+log
+ 
+in
+ 
+through
+ 
+the
+ 
+app,
+ 
+it
+ 
+says
+ 
+“Number
+ 
+not
+ 
+registered.”
+ 
+ 
+This
+ 
+means
+ 
+you
+ 
+are
+ 
+either
+ 
+not
+ 
+yet
+ 
+registered
+ 
+in
+ 
+the
+ 
+system
+ 
+or
+ 
+you
+ 
+were
+ 
+registered
+ 
+using
+ 
+a
+ 
+different
+ 
+phone
+ 
+number.
+ 
+ 
+Solution:
+ 
+Contact
+ 
+your
+ 
+group
+ 
+agent
+ 
+or
+ 
+support
+ 
+team
+ 
+to
+ 
+verify
+ 
+your
+ 
+registration
+ 
+details
+ 
+or
+ 
+update
+ 
+your
+ 
+phone
+ 
+number.
+ 
+ 
+Q2.
+ 
+I
+ 
+can’t
+ 
+log
+ 
+in
+ 
+via
+ 
+the
+ 
+app.
+ 
+  
+Possible
+ 
+causes
+ 
+include:
+ 
+●
+ 
+Wrong
+ 
+phone
+ 
+number
+ 
+or
+ 
+PIN
+ 
+●
+ 
+Your
+ 
+group
+ 
+has
+ 
+not
+ 
+been
+ 
+linked
+ 
+to
+ 
+a
+ 
+payments
+ 
+account
+ 
+●
+ 
+You
+ 
+have
+ 
+not
+ 
+been
+ 
+profiled
+ 
+as
+ 
+a
+ 
+member
+ 
+ 
+Solution:
+ 
+Verify
+ 
+your
+ 
+login
+ 
+credentials
+ 
+and
+ 
+confirm
+ 
+that
+ 
+your
+ 
+agent
+ 
+has
+ 
+profiled
+ 
+you
+ 
+correctly
+ 
+and
+ 
+linked
+ 
+your
+ 
+group
+ 
+to
+ 
+an
+ 
+active
+ 
+payments
+ 
+account.
+ 
+ 
+Q3.
+ 
+I
+ 
+forgot
+ 
+my
+ 
+PIN
+ 
+or
+ 
+password.
+ 
+  
+Contact
+ 
+your
+ 
+group
+ 
+agent
+ 
+or
+ 
+support
+ 
+team
+ 
+to
+ 
+reset
+ 
+your
+ 
+PIN.
+ 
+A
+ 
+temporary
+ 
+one
+ 
+will
+ 
+be
+ 
+sent
+ 
+to
+ 
+your
+ 
+registered
+ 
+phone
+ 
+number.
+ 
+ 
+Q4.
+ 
+The
+ 
+USSD/app
+ 
+keeps
+ 
+saying
+ 
+“session
+ 
+expired”
+ 
+or
+ 
+“network
+ 
+error.”
+ 
+  
+This
+ 
+can
+ 
+be
+ 
+caused
+ 
+by:
+ 
+●
+ 
+Poor
+ 
+mobile
+ 
+network
+ 
+connection
+ 
+●
+ 
+Long
+ 
+inactivity
+ 
+during
+ 
+the
+ 
+session
+ 
+ 
+Solution:
+ 
+Try
+ 
+again
+ 
+in
+ 
+an
+ 
+area
+ 
+with
+ 
+better
+ 
+network
+ 
+signal
+ 
+and
+ 
+complete
+ 
+the
+ 
+process
+ 
+within
+ 
+a
+ 
+single
+ 
+session.
+ 
+ 
+ 
+2.
+ 
+Savings
+ 
+&
+ 
+Transactions
+ 
+Q5.
+ 
+When
+ 
+I
+ 
+try
+ 
+to
+ 
+save,
+ 
+it
+ 
+shows
+ 
+“0.00”
+ 
+as
+ 
+the
+ 
+price
+ 
+of
+ 
+a
+ 
+share.
+ 
+  
+This
+ 
+means
+ 
+your
+ 
+group’s
+ 
+share
+ 
+price
+ 
+has
+ 
+not
+ 
+been
+ 
+configured.
+ 
+ 
+Solution:
+ 
+Ask
+ 
+your
+ 
+group
+ 
+chairperson
+ 
+or
+ 
+agent
+ 
+to
+ 
+ensure
+ 
+the
+ 
+“Share
+ 
+Capital
+ 
+Price
+ 
+per
+ 
+Share”
+ 
+is
+ 
+entered
+ 
+in
+ 
+the
+ 
+system
+ 
+under
+ 
+VSLA
+ 
+Settings.
+ 
+ Q6.
+ 
+I
+ 
+successfully
+ 
+made
+ 
+a
+ 
+deposit,
+ 
+but
+ 
+the
+ 
+status
+ 
+still
+ 
+shows
+ 
+as
+ 
+“Failed”
+ 
+or
+ 
+“Pending.”
+ 
+  
+Sometimes
+ 
+payments
+ 
+delay
+ 
+in
+ 
+updating
+ 
+automatically.
+ 
+ 
+Solution:
+ 
+The
+ 
+system
+ 
+performs
+ 
+automatic
+ 
+reconciliation
+ 
+every
+ 
+3
+ 
+days
+,
+ 
+which
+ 
+will
+ 
+correct
+ 
+your
+ 
+transaction
+ 
+status.
+ 
+If
+ 
+it
+ 
+remains
+ 
+unchanged
+ 
+after
+ 
+that,
+ 
+contact
+ 
+support
+ 
+for
+ 
+manual
+ 
+reconciliation.
+ 
+ 
+Q7.
+ 
+I
+ 
+want
+ 
+to
+ 
+save,
+ 
+but
+ 
+I
+ 
+don’t
+ 
+have
+ 
+a
+ 
+registered
+ 
+phone
+ 
+number.
+ 
+  
+Another
+ 
+member
+ 
+can
+ 
+help
+ 
+you
+ 
+save
+ 
+using
+ 
+your
+ 
+auto-generated
+ 
+Member
+ 
+ID.
+ 
+ 
+Solution:
+ 
+Share
+ 
+your
+ 
+Member
+ 
+ID
+ 
+with
+ 
+them,
+ 
+and
+ 
+they
+ 
+can
+ 
+complete
+ 
+the
+ 
+saving
+ 
+on
+ 
+your
+ 
+behalf.
+ 
+ 
+Q8.
+ 
+I
+ 
+tried
+ 
+to
+ 
+make
+ 
+a
+ 
+payment,
+ 
+but
+ 
+I
+ 
+get
+ 
+a
+ 
+“network
+ 
+error”
+ 
+after
+ 
+confirming
+ 
+the
+ 
+last
+ 
+step.
+ 
+  
+If
+ 
+it’s
+ 
+not
+ 
+a
+ 
+genuine
+ 
+network
+ 
+problem,
+ 
+this
+ 
+usually
+ 
+means
+ 
+your
+ 
+group
+ 
+hasn’t
+ 
+been
+ 
+linked
+ 
+to
+ 
+a
+ 
+payments
+ 
+account
+ 
+in
+ 
+the
+ 
+Payments
+ 
+System.
+ 
+ 
+Solution:
+ 
+Ask
+ 
+your
+ 
+agent
+ 
+or
+ 
+admin
+ 
+to
+ 
+confirm
+ 
+that
+ 
+your
+ 
+group
+ 
+is
+ 
+properly
+ 
+linked.
+ 
+ 
+Q9.
+ 
+The
+ 
+app
+ 
+shows
+ 
+a
+ 
+different
+ 
+group
+ 
+name
+ 
+when
+ 
+I
+ 
+try
+ 
+to
+ 
+save.
+ 
+  
+You
+ 
+may
+ 
+have
+ 
+been
+ 
+profiled
+ 
+under
+ 
+the
+ 
+wrong
+ 
+group.
+ 
+ 
+Solution:
+ 
+Contact
+ 
+your
+ 
+agent
+ 
+to
+ 
+reassign
+ 
+you
+ 
+to
+ 
+the
+ 
+correct
+ 
+group.
+ 
+ 
+Q10.
+ 
+I
+ 
+want
+ 
+to
+ 
+withdraw
+ 
+my
+ 
+savings
+ 
+or
+ 
+transfer
+ 
+them
+ 
+to
+ 
+another
+ 
+member.
+ 
+  
+Currently,
+ 
+this
+ 
+process
+ 
+is
+ 
+manual.
+ 
+ 
+Solution:
+ 
+Contact
+ 
+support
+ 
+with
+ 
+both
+ 
+the
+ 
+buyer’s
+ 
+and
+ 
+seller’s
+ 
+details,
+ 
+and
+ 
+the
+ 
+team
+ 
+will
+ 
+process
+ 
+the
+ 
+transfer.
+ 
+ 
+3.
+ 
+Loans
+ 
+&
+ 
+Approvals
+ 
+Q11.
+ 
+I
+ 
+requested
+ 
+for
+ 
+a
+ 
+loan,
+ 
+and
+ 
+it
+ 
+has
+ 
+been
+ 
+approved
+ 
+by
+ 
+admins,
+ 
+but
+ 
+I
+ 
+haven’t
+ 
+received
+ 
+the
+ 
+money.
+ 
+  
+Check
+ 
+the
+ 
+number
+ 
+of
+ 
+keyholders/approvers
+ 
+in
+ 
+your
+ 
+group.
+ 
+All
+ 
+must
+ 
+approve
+ 
+the
+ 
+loan
+ 
+before
+ 
+disbursement.
+ 
+ 
+Solution:
+ 
+Ensure
+ 
+that
+ 
+all
+ 
+required
+ 
+keyholders
+ 
+(usually
+ 
+3)
+ 
+have
+ 
+approved.
+ 
+If
+ 
+any
+ 
+reject,
+ 
+the
+ 
+loan
+ 
+will
+ 
+not
+ 
+be
+ 
+disbursed.
+ 
+ 
+Q12.
+ 
+All
+ 
+keyholders
+ 
+have
+ 
+approved
+ 
+my
+ 
+loan,
+ 
+but
+ 
+I
+ 
+still
+ 
+haven’t
+ 
+received
+ 
+the
+ 
+funds.
+ 
+  
+Sometimes,
+ 
+automatic
+ 
+disbursement
+ 
+fails.
+ 
+ 
+Solution:
+ 
+Contact
+ 
+your
+ 
+agent
+ 
+to
+ 
+escalate
+ 
+to
+ 
+the
+ 
+support
+ 
+team
+ 
+for
+ 
+manual
+ 
+disbursement.
+  
+4.
+ 
+Group-Level
+ 
+Issues
+ 
+Q13.
+ 
+Our
+ 
+group
+ 
+wants
+ 
+to
+ 
+do
+ 
+a
+ 
+share-out.
+ 
+  
+Notify
+ 
+the
+ 
+support
+ 
+team
+ 
+before
+ 
+share-out.
+ 
+ 
+Solution:
+ 
+The
+ 
+team
+ 
+will
+ 
+process
+ 
+disbursement
+ 
+of
+ 
+available
+ 
+balances
+ 
+and
+ 
+close
+ 
+the
+ 
+group
+ 
+cycle
+ 
+safely.
+ 
+ 
+Q14.
+ 
+Our
+ 
+group
+ 
+transactions
+ 
+are
+ 
+not
+ 
+showing
+ 
+in
+ 
+reports.
+ 
+  
+This
+ 
+can
+ 
+occur
+ 
+if
+ 
+the
+ 
+group’s
+ 
+VSLA
+ 
+configuration
+ 
+wasn’t
+ 
+saved
+ 
+properly.
+ 
+ 
+Solution:
+ 
+Ensure
+ 
+that
+ 
+the
+ 
+VSLA
+ 
+checkbox
+ 
+was
+ 
+selected
+ 
+and
+ 
+updated
+ 
+when
+ 
+the
+ 
+group
+ 
+was
+ 
+created.
+ 
+ 
+5.
+ 
+Agent
+ 
+&
+ 
+Profiling
+ 
+Issues
+ 
+Q15.
+ 
+I
+ 
+can’t
+ 
+find
+ 
+my
+ 
+group
+ 
+or
+ 
+members
+ 
+in
+ 
+the
+ 
+app.
+ 
+  
+The
+ 
+group
+ 
+or
+ 
+members
+ 
+may
+ 
+not
+ 
+have
+ 
+been
+ 
+properly
+ 
+profiled.
+ 
+ 
+Solution:
+ 
+Ask
+ 
+the
+ 
+agent
+ 
+to
+ 
+sync
+ 
+or
+ 
+re-profile
+ 
+the
+ 
+members,
+ 
+ensuring
+ 
+the
+ 
+correct
+ 
+group
+ 
+is
+ 
+selected.
+ 
+ 
+Q16.
+ 
+I’m
+ 
+an
+ 
+agent
+ 
+and
+ 
+can’t
+ 
+log
+ 
+into
+ 
+the
+ 
+profiling
+ 
+app.
+ 
+  
+Ensure
+ 
+you
+ 
+have
+ 
+received
+ 
+your
+ 
+login
+ 
+credentials
+ 
+via
+ 
+SMS
+ 
+and
+ 
+that
+ 
+your
+ 
+profile
+ 
+is
+ 
+active
+ 
+in
+ 
+the
+ 
+system.
+ 
+If
+ 
+not,
+ 
+contact
+ 
+the
+ 
+admin
+ 
+for
+ 
+reactivation.
+ 
+ 
+Q17.
+ 
+I
+ 
+entered
+ 
+data
+ 
+in
+ 
+the
+ 
+profiling
+ 
+app
+ 
+but
+ 
+it’s
+ 
+not
+ 
+showing
+ 
+in
+ 
+the
+ 
+web
+ 
+system.
+ 
+  
+This
+ 
+could
+ 
+be
+ 
+due
+ 
+to
+ 
+lack
+ 
+of
+ 
+internet
+ 
+connectivity
+ 
+during
+ 
+submission.
+ 
+ 
+Solution:
+ 
+Reconnect
+ 
+to
+ 
+the
+ 
+internet
+ 
+and
+ 
+tap
+ 
+“Sync”
+ 
+on
+ 
+the
+ 
+app
+ 
+to
+ 
+resend
+ 
+pending
+ 
+records.
+ 
+ 
+6.
+ 
+Payment
+ 
+System
+ 
+Issues
+ 
+Q18.
+ 
+Payments
+ 
+are
+ 
+not
+ 
+reflecting
+ 
+in
+ 
+the
+ 
+VSLA
+ 
+system.
+ 
+  
+Verify
+ 
+that
+ 
+your
+ 
+payments
+ 
+account
+ 
+API
+ 
+details
+ 
+(Key,
+ 
+Username,
+ 
+Account
+ 
+ID)
+ 
+are
+ 
+entered
+ 
+correctly
+ 
+in
+ 
+the
+ 
+system
+ 
+under
+ 
+Settings
+ 
+→
+ 
+Payment
+ 
+Account.
+ 
+ Q19.
+ 
+Some
+ 
+transactions
+ 
+show
+ 
+duplicated
+ 
+or
+ 
+missing
+ 
+entries.
+ 
+  
+This
+ 
+can
+ 
+occur
+ 
+if
+ 
+the
+ 
+payment
+ 
+system
+ 
+times
+ 
+out.
+ 
+ 
+Solution:
+ 
+Wait
+ 
+for
+ 
+reconciliation
+ 
+or
+ 
+contact
+ 
+support
+ 
+to
+ 
+trigger
+ 
+a
+ 
+manual
+ 
+sync.
+ 
+ 
+Q20.
+ 
+I
+ 
+can’t
+ 
+generate
+ 
+an
+ 
+API
+ 
+key
+ 
+or
+ 
+username.
+ 
+  
+Make
+ 
+sure
+ 
+you
+ 
+have
+ 
+admin
+ 
+rights
+ 
+in
+ 
+the
+ 
+Payments
+ 
+System.
+ 
+Only
+ 
+authorized
+ 
+users
+ 
+can
+ 
+generate
+ 
+API
+ 
+credentials.
+ 
+ 
+ 
+
+
+===== eGwoko-App-Manual.pdf =====
+eGwoko  Application - VSLA management 
+eGwoko Mobile Application 
+Overview:  eGwoko  is a digital solution for Village Savings and Loan Associations 
+(VSLAs) that simpliﬁes ﬁnancial management with a user-friendly mobile 
+interface. It provides real-time access, transparency, and convenience, 
+eliminating manual record-keeping and cash-based challenges. 
+Advantages of using eGwoko 
+●Convenience  and accessibility  anytime, anywhere 
+● Real-time updates  for accurate  records 
+●Transparency  and accountability  with traceable transactions 
+●Reduced cash handling and risk of theft 
+●Cost efﬁcienc y with data-based operations 
+●Seamless integration with payments systems 
+● Ofﬂine proﬁling for continued operations in low-network areas. 
+eGwoko  Application - VSLA management 
+🔑
+ Login 
+Steps:
+1. Open the app and log in using the phone number and password you 
+registered with. 
+💡
+ Tip: To access the app, ensure you've been added to a group and that your 
+group settings are up-to-date. You can only log in once these requirements are 
+met. 
+🔑
+ Forgot Password 
+Steps:
+1. To reset your password, click 'Forgot Password' and follow the prompts to 
+verify your phone number. A new password will be generated, allowing you to 
+regain access to your account 
+eGwoko  Application - VSLA management 
+       Savings Module 
+Overview: 
+Displays the overall savings status of the VSLA group — including total member 
+contributions, cumulative value, and active loans. 
+Core Features: 
+● View total group savings and total loan portfolio. 
+● Check group-level transactions and reports. 
+● Accessible to group leaders, agents, or authorized admins. 
+Beneﬁts:
+● Promotes transparency and accountability among members. 
+● Helps groups monitor liquidity and plan share-outs. 
+● A member can save on behalf of another member 
+Select Deposit Money 
+on the main screen, scroll 
+and select ‘Deposit Money’ 
+Fill Form 
+Select ‘Myself ’ or ‘Someone Else’ 
+then Select share amount and 
+continue 
+Conﬁrm Saving 
+enter momo PIN when 
+prompted 
+Enter credentials 
+Then click Login eGwoko  Application - Saving/ buying shares Member Savings 
+The list shows total savings 
+for each VSLA member 
+View 
+Transactions Select ‘view all’ at the bottom of 
+the main screen to view recent 
+transaction 
+Recent Transactions 
+Option shows list of 
+previous transactions 
+View Member 
+Savings Select this option to 
+view member savings eGwoko  Application - Viewing Savings eGwoko  Application - VSLA management 
+Loan Management 
+Overview: This module enables users to manage loan activities efﬁciently. Key 
+functionalities include: 
+● Viewing existing loans 
+● Applying for loans for oneself or another member 
+● Approving loans (Administrator privilege) 
+● Making loan repayments for oneself or another member using their Member ID 
+Core Features: 
+●Loan Application: Apply for loans personally or on behalf of another member. 
+●Loan Viewing: View loans associated with the group. 
+●Loan Repayment:  Repay loans for oneself or another member. 
+●Loan Approval: Approve loan applications for members (Admin only). 
+Beneﬁts:
+●Simpliﬁed Loan Scheduling: Easily manage loan schedules. 
+●Convenient Repayments:  Make loan repayments via mobile money (MoMo). 
+●Flexibility:  Apply for loans and make repayments for oneself or other members. 
+select ‘Loans’ option 
+on the main screen, scroll 
+and select ‘Loans’ 
+Fill Form 
+Enter desired loan amount not 
+exceeding limit and apply 
+Conﬁrmation 
+A prompt will conﬁrm 
+loan application 
+enter credentials 
+Then click Login eGwoko  Application - Applying for a loan select ‘Pending Loan 
+Approvals’ option 
+on the main screen, scroll and 
+select ‘Pending loan Approvals’ 
+Select Option 
+Select ‘Deny’ or ‘Approve’ 
+depending on choice 
+Conﬁrmation 
+A prompt will conﬁrm 
+loan approval/rejection 
+enter credentials 
+Then click Login eGwoko  Application - Approving a Loan request (Admin only) select ‘Manage Member 
+Loans’ option 
+on the main screen, scroll and 
+select ‘Manage Member Loans’ 
+Group Loan Summary 
+To view more details, click the 
+arrow circled above 
+Member data 
+The drop down displays 
+member loas 
+enter credentials 
+Then click Login eGwoko  Application - Viewing Active Loans (Admin only) select ‘Loans’ option 
+on the main screen, scroll 
+and select ‘Loans’ 
+Select ‘Repay Loan’ 
+Select the ‘Repay Loan’ option 
+to make a loan repayment 
+Enter Amount 
+Enter repay amount from 
+schedule and proceed 
+enter credentials 
+Then click Login eGwoko  Application - Loan Repayment eGwoko  Application - VSLA management 
+       Meeting Management 
+The Meeting Management Module is designed to facilitate scheduling and attendance 
+tracking of group meetings. Administrators can schedule meetings, and members can 
+conﬁrm attendance for themselves or other members. A key dependency is that loan 
+requests are only enabled when a meeting is not currently in progress, ensuring 
+alignment with group processes. 
+Core Features: 
+● Meeting Scheduling: Schedule meetings (Administrator privilege only). 
+● Attendance Conﬁrmation: Members can conﬁrm attendance for themselves or 
+another member. 
+● Meeting Status Tracking: Tracks meeting status (e.g., upcoming, in-progress, 
+concluded) to govern loan request eligibility. 
+Beneﬁts: 
+● Digital Records: Meetings are digitally recorded, ensuring accurate and accessible 
+attendance tracking. 
+● Improved Governance: Loan requests are gated by meeting status, promoting orderly 
+group operations. 
+● Transparency: Digital attendance records enhance transparency and accountabilit 
+select ‘Manage’ option 
+on the main screen, scroll and 
+select ‘Manage’  in Meetings 
+Select ‘Create Meeting’ 
+Select the ‘Create Meeting’ option 
+to schedule new meeting 
+Fill Form 
+Fill form with meeting 
+data and proceed 
+enter credentials 
+Then click Login eGwoko  Application - Scheduling a Meeting (Admins only) select ‘Manage’ option 
+on the main screen, scroll and 
+select ‘Manage’  in Meetings 
+Select ‘Take Attendance’ 
+Select the ‘Take Attendance’ 
+option to take attendance 
+Take Attendance 
+Select Present members 
+to proceed 
+enter credentials 
+Then click Login eGwoko  Application - Conﬁrming Attendance 
+
+
+===== egwoko-USSD-manual.pdf =====
+Manage all member savings, Loans, 
+contributions and withdrawals
+Record and  Manage Member attendance , 
+member Loans and view reportsAGROBASE - VSLA
+Powered by MobiPay AgroSys Limited
+Dial
+*284*56#
+www.mobipayagrosys.com | Email : info@mobipayagrosys.com | Tel : 0779355393 | Tel : 0754712188
+Answer  Back Answer Back
+Viewing MenuPROCEDURES
+pick
+1
+Select a Service
+1.Merchant 
+Collection
+2.VSLA
+3.Input Aggregation
+4.Market Match
+Answer  BackWelcome to e -Gwoko
+Please enter 4 digit 
+pin or 00 to request 
+for a new pin
+Answer  Back
+Enter Pin 
+or enter 
+00 to get 
+new pinChoose a service
+1.Loans
+2.Pay
+3.Meetings
+4.Statement
+5.Sign out
+Answer  BackChoose a service
+1.Savings
+2.Welfare
+3.Fine
+4.Loan
+Answer  BackAnswer  Back Answer Back
+pick
+1
+Making a Saving for yourself (Through Share Purchase)PROCEDURES
+pick
+2
+Select to pay from the 
+options
+1.Fine
+2.Loans
+3.Savings
+4.Welfare
+Answer  BackSelect Savings Option
+1.Save for myself
+2.Save for another
+Answer  BackChoose a service
+1.Loans
+2.Pay
+3.Meetings
+4.Statement
+5.Sign out
+Answer  Back
+pick
+3Enter Savings Amount
+1.1000
+2.2000
+3.3000
+4.4000
+5.5000
+Answer  BackConfirm 
+Transaction and 
+enter mobile 
+money PIN 
+when promptedAnswer  Back Answer Back
+pick
+2
+Making a Saving for another member (Through Share Purchase)PROCEDURES
+pick
+2
+Select to pay from the 
+options
+1.Fine
+2.Loans
+3.Savings
+4.Welfare
+Answer  BackSelect Savings Option
+1.Save for myself
+2.Save for another
+Answer  BackChoose a service
+1.Loans
+2.Pay
+3.Meetings
+4.Statement
+5.Sign out
+Answer  Back
+pick
+3Enter Member ID
+_______________
+Answer  BackSelect Amount, 
+Confirm 
+Transaction and 
+enter mobile 
+money PIN 
+when promptedAnswer  Back Answer Back
+Making a Saving for another member (Through Share Purchase)PROCEDURES
+pick
+any
+Confirm Saving of 
+amount: 1000 to 
+group: Mobipay  VSLA
+1.Yes
+2.No
+Answer  BackPlease Wait while we 
+are processing your 
+request for 
+authorization
+Answer  Back
+pick
+1Enter Member ID
+_______________
+Answer  BackEnter Savings Amount
+1.1000
+2.2000
+3.3000
+4.4000
+5.5000
+Answer  BackAnswer  Back Answer Back
+pick
+1
+Paying for WelfarePROCEDURES
+pick
+2
+Select to pay from the 
+options
+1.Fine
+2.Loans
+3.Savings
+4.Welfare
+Answer  BackSelect Savings Option
+1.Save for myself
+2.Save for another
+Answer  BackChoose a service
+1.Loans
+2.Pay
+3.Meetings
+4.Statement
+5.Sign out
+Answer  Back
+pick
+4Confirm Welfare of 
+amount: 1600 to 
+group: MobiPay  VSLA
+1.Yes
+2.No
+Answer  BackConfirm 
+Transaction and 
+enter mobile 
+money PIN 
+when promptedAnswer  Back Answer Back
+pick
+1
+Applying for a LoanPROCEDURES
+pick
+1
+Select to pay from the 
+options
+1.Fine
+2.Loans
+3.Savings
+4.Welfare
+Answer  BackChoose from loan options
+1. Apply for a loan
+2. Total loan
+3. Total Balance
+4. Total interest
+5. Total paid
+6. Loan status
+7. Loan Approval
+Answer  BackChoose a service
+1.Loans
+2.Pay
+3.Meetings
+4.Statement
+5.Sign out
+Answer  Back
+pick
+2Welcome to loan 
+requests
+1.Request loan for 
+myself
+2.Request loan for 
+another
+Answer  Back
+pick
+1Answer  Back Answer Back
+pick
+1
+Applying for a Loan (Continued)PROCEDURES
+pick
+1
+Enter amount eg 500 
+not exceeding 12000
+_______________
+Answer  BackConfirm loan request 
+of amount: 2000 with 
+interest of 3% from 
+group: MobiPay  VSLA
+1.Yes
+2.No
+Answer  BackLoan request form
+1.Savings
+2.Welfare
+Answer  Back
+pick
+2Loan Successfully 
+requested.
+Wait for approval
+Answer  BackAnswer  Back Answer Back
+pick
+7
+Approving a Loan (Approvers Only)PROCEDURES
+pick
+1
+Select to pay from the 
+options
+1.Fine
+2.Loans
+3.Savings
+4.Welfare
+Answer  BackChoose from loan options
+1. Apply for a loan
+2. Total loan
+3. Total Balance
+4. Total interest
+5. Total paid
+6. Loan status
+7. Loan Approval
+Answer  BackChoose a service
+1.Loans
+2.Pay
+3.Meetings
+4.Statement
+5.Sign out
+Answer  Back
+pick
+2Select Loan By 
+Number/id for 
+approval
+567. VSLA member 1
+587. VSLA member 2
+598. VSLA member 3
+Answer  BackEnter target 
+loan  ID,  and 
+approve / deny 
+the loan.Answer  Back Answer Back
+pick
+1
+Repaying a Running LoanPROCEDURES
+pick
+2
+Select to pay from the 
+options
+1.Fine
+2.Loans
+3.Savings
+4.Welfare
+Answer  BackWelcome to your loan
+1.Repay for myself
+2.Repay for another
+Answer  BackChoose a service
+1.Loans
+2.Pay
+3.Meetings
+4.Statement
+5.Sign out
+Answer  Back
+pick
+2Your upcoming 
+payments:
+7300, 7300, 7300
+Enter amount e.g 
+7300
+Answer  BackEnter Amount , 
+T o be paid from 
+the schedule 
+shown on 
+screen and 
+ConfirmAnswer  Back Answer Back
+Setting a Meeting (Admins/ Approvers Only)PROCEDURES
+pick
+3
+Meetings:
+1.Attend
+2.Schedule
+3.Record 
+Attendance
+Answer  BackEnter meeting 
+agenda
+______________
+Answer  BackChoose a service
+1.Loans
+2.Pay
+3.Meetings
+4.Statement
+5.Sign out
+Answer  Back
+pick
+2Enter meeting start 
+time e.g (11:00 AM)
+________________
+Answer  BackAnswer  Back Answer Back
+Setting a Meeting (Admins/ Approvers Only) ContinuedPROCEDURES
+Enter meeting date 
+e.g (2025 -10-16)
+_______________
+Answer  BackConfirm scheduling 
+meeting
+1. Yes
+2. No
+Answer  BackEnter meeting end 
+time e.g (11:45 PM)
+________________
+Answer  BackMeeting has been 
+scheduled
+Answer  BackAnswer  Back Answer Back
+Attending a meetingPROCEDURES
+pick
+3
+Meetings:
+1.Attend
+2.Schedule
+3.Record 
+Attendance
+Answer  BackChoose meeting 
+from the list by ID
+1345. Weekly saving 
+(Begins 1:00pm 
+ends 1:30pm on 
+2025 -10-16)
+Answer  BackChoose a service
+1.Loans
+2.Pay
+3.Meetings
+4.Statement
+5.Sign out
+Answer  Back
+pick
+1Confirm Attendance 
+for weekly savings 
+meeting
+1.Yes
+2.No
+Answer  BackAnswer  Back Answer Back
+Recording attendance for another memberPROCEDURES
+pick
+3
+Meetings:
+1.Attend
+2.Schedule
+3.Record 
+Attendance
+Answer  BackChoose meeting 
+from the list by ID
+1345. Weekly saving 
+(Begins 1:00pm 
+ends 1:30pm on 
+2025 -10-16)
+Answer  BackChoose a service
+1.Loans
+2.Pay
+3.Meetings
+4.Statement
+5.Sign out
+Answer  Back
+pick
+3Enter member's ID to 
+confirm attendance
+________________
+Answer  BackConfirm the 
+attendance  to 
+confirm a 
+members 
+attendance
+
+
+===== input-Aggregation-USSD.pdf =====
+Cancel Requests
+Request for Agronomy 
+InformationRequest for Input
+View RequestsI N P U T  A G G REGATI ON
+P o w e r e d  b y  M o b i P a y  A g r o S y s  L t d
+I N P U T  A G G REGATI ON P RO C EDU RES
+Requesting for Input
+*284*56#Welcome to Mobipay 
+Services
+Please select a service:
+1. E-voucher
+2. Agplus
+3. DCE –Duba
+4. Input AggregationWelcome to Input 
+Aggregation
+1. Request Input
+2. View Your RequestsSelect Agro -dealer
+94. Kabonera 
+Cooperative input shop
+95. Buwenge Farmers 
+96. Masindi seeds
+97. Equator seeds
+98. Pearl seeds
+99. NASECO (1996) Ltd
+Answer                 Back Answer                 Back Answer                 Back Answer                 Back
+pick
+4pick
+1pick
+96
+I N P U T  A G G REGATI ON P RO C EDU RES
+Requesting for Input
+Select Input 
+1. Sorghum
+2. Maize
+3. Beans (NABE 16)Enter Quantity:Please Confirm Order of 
+5Kg of Sorghum at UGX 
+2000 from Masindi 
+Seeds
+1. Confirm
+2. CancelYou have successfully 
+Placed a request for 
+5Kg Sorghum at UGX 
+2000 from Masindi 
+Seeds
+Answer                 Back Answer                 Back Answer                 Back Answer                 Back
+pick
+1pick
+5pick
+1
+I N P U T  A G G REGATI ON P RO C EDU RES
+View your Requests
+*284*56#Welcome to Mobipay 
+Services
+Please select a service:
+1. E-voucher
+2. Agplus
+3. DCE –Duba
+4. Input AggregationWelcome to Input 
+Aggregation
+1. Request Input
+2. View Your RequestsYour requests 
+1. 5KG of Sorghum 
+from Masindi seeds 
+at UGX 2000
+2. 2KG of DAP from 
+Home Harvest at 
+UGX 6000
+Answer                 Back Answer                 Back Answer                 Back Answer                 Back
+pick
+4pick
+2
