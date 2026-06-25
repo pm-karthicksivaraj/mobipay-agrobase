@@ -1,14 +1,18 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { getTenantContext, buildTenantFilter } from '@/lib/tenant'
 
 export async function GET(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = {
+      ...buildTenantFilter(ctx, 'tenantId'),
+    }
     if (type) where.type = type
 
     const [data, total] = await Promise.all([
@@ -33,10 +37,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const body = await request.json()
     const company = await db.company.create({
       data: {
-        tenantId: body.tenantId,
+        tenantId: ctx.tenantId,
         name: body.name,
         type: body.type || null,
         contactPerson: body.contactPerson || null,

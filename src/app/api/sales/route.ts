@@ -1,8 +1,10 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { getTenantContext } from '@/lib/tenant'
 
 export async function GET(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category') || ''
     const product = searchParams.get('product') || ''
@@ -12,6 +14,15 @@ export async function GET(request: Request) {
     const where: Record<string, unknown> = {}
     if (category) where.product = category
     if (product) where.product = product
+
+    // Filter through farmer tenantId
+    if (!ctx.isSuperAdmin) {
+      const validFarmerIds = await db.farmerProfile.findMany({
+        where: { tenantId: { in: ctx.tenantScope } },
+        select: { id: true },
+      })
+      where.farmerId = { in: validFarmerIds.map(f => f.id) }
+    }
 
     const [data, total] = await Promise.all([
       db.sale.findMany({
@@ -32,6 +43,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const body = await request.json()
     const sale = await db.sale.create({
       data: {

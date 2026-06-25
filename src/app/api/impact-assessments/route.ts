@@ -1,8 +1,10 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { getTenantContext } from '@/lib/tenant'
 
 export async function GET(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category') || ''
     const farmerId = searchParams.get('farmerId') || ''
@@ -11,7 +13,20 @@ export async function GET(request: Request) {
 
     const where: Record<string, unknown> = {}
     if (category) where.category = category
-    if (farmerId) where.farmerId = farmerId
+
+    // Filter through farmer tenantId
+    if (!ctx.isSuperAdmin) {
+      const validFarmerIds = await db.farmerProfile.findMany({
+        where: { tenantId: { in: ctx.tenantScope } },
+        select: { id: true },
+      })
+      const idList = validFarmerIds.map(f => f.id)
+      where.farmerId = farmerId
+        ? { in: idList.filter(id => id === farmerId) }
+        : { in: idList }
+    } else if (farmerId) {
+      where.farmerId = farmerId
+    }
 
     const [data, total] = await Promise.all([
       db.impactAssessment.findMany({
@@ -32,6 +47,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const body = await request.json()
     const assessment = await db.impactAssessment.create({
       data: {
@@ -41,7 +57,7 @@ export async function POST(request: Request) {
         response: typeof body.response === 'string' ? body.response : JSON.stringify(body.response),
         score: body.score ?? null,
         notes: body.notes || null,
-        conductedBy: body.conductedBy || null,
+        conductedBy: ctx.userId,
       },
       include: { farmer: true },
     })

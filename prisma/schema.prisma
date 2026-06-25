@@ -36,6 +36,19 @@ model Tenant {
   subscriptions     Subscription[]
   loanProducts      LoanProduct[]
   apiKeys     ApiKey[]
+  accounts         Account[]
+  journalEntries   JournalEntry[]
+  produceIntakes   ProduceIntake[]
+  cooperativePayments CooperativePayment[]
+  invoices         Invoice[]
+  usageRecords     UsageRecord[]
+  paymentTransactions PaymentTransaction[]
+  trainings        Training[]
+  surveys          Survey[]
+  consignments     Consignment[]
+  deliveries       Delivery[]
+  messages         Message[]
+  feedback         Feedback[]
 }
 
 // --- USERS & AUTH ---
@@ -234,6 +247,8 @@ model FarmerProfile {
   cbamReports     CbamReport[]      @relation("FarmerCbam")
   rainforestCerts RainforestCertification[] @relation("FarmerRainforest")
   globalGapCerts  GlobalGapCertification[] @relation("FarmerGlobalGap")
+  produceIntakes        ProduceIntake[]        @relation("FarmerIntake")
+  cooperativePayments   CooperativePayment[]    @relation("FarmerCoopPayment")
 }
 
 model ChildProfile {
@@ -557,6 +572,8 @@ model Purchase {
 
 model Consignment {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   product     String
   quantity    String
   source      String?
@@ -597,12 +614,16 @@ model Payment {
   status          String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  transactions          PaymentTransaction[]   @relation("PaymentTransactions")
 }
 
 // --- TRAINING ---
 
 model Training {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   topic       String
   description String?
   date        DateTime
@@ -641,6 +662,8 @@ model CreditScore {
 
 model Survey {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   title       String
   description String?
   status      String   @default("ACTIVE")
@@ -673,6 +696,8 @@ model SurveyResponse {
 
 model Message {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   type        String   // SMS, EMAIL, IVR
   recipient   String
   content     String
@@ -788,6 +813,8 @@ model Commodity {
 
 model Delivery {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   relatedId   String?
   relatedType String?  // PURCHASE, CONSIGNMENT, INPUT_REQUEST
   status      String   @default("PENDING") // PENDING, IN_TRANSIT, DELIVERED
@@ -802,6 +829,8 @@ model Delivery {
 
 model Feedback {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   farmerId    String?
   category    String?
   message     String
@@ -999,4 +1028,197 @@ model SmsBroadcast {
   sentAt      DateTime?
   createdBy   String?
   createdAt   DateTime @default(now())
+}
+
+// --- COOPERATIVE ERP: DOUBLE-ENTRY ACCOUNTING ---
+
+model Account {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  code          String   // e.g., "1001", "2001"
+  name          String   // e.g., "Cash", "Accounts Payable"
+  type          String   // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+  normalBalance String   @default("DEBIT") // DEBIT or CREDIT
+  parentId      String?
+  parent        Account? @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children      Account[] @relation("AccountHierarchy")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  journalLines JournalLine[]
+}
+
+model JournalEntry {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  date        DateTime @default(now())
+  description String
+  reference   String?  // e.g., "INTAKE-2024-001", "PAY-2024-001"
+  status      String   @default("DRAFT") // DRAFT, POSTED, REVERSED
+  createdBy   String?
+  postedBy    String?
+  postedAt    DateTime?
+  reversedBy  String?
+  reversedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lines JournalLine[]
+}
+
+model JournalLine {
+  id            String       @id @default(cuid())
+  journalEntryId String
+  journalEntry  JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  accountId     String
+  account       Account      @relation(fields: [accountId], references: [id])
+  entryType     String       // DEBIT or CREDIT
+  amount        Float
+  description   String?
+}
+
+// --- COOPERATIVE ERP: PRODUCE INTAKE ---
+
+model ProduceIntake {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  cooperativeId   String?
+  farmerId        String?
+  farmer          FarmerProfile? @relation("FarmerIntake", fields: [farmerId], references: [id])
+  commodity       String
+  variety         String?
+  quantityKg      Float
+  moistureContent Float?
+  grade           String?  // A, B, C, Premium, Standard
+  pricePerKg      Float
+  totalAmount     Float
+  intakeDate      DateTime @default(now())
+  status          String   @default("DRAFT") // DRAFT, WEIGHED, GRADED, ACCEPTED, REJECTED, STORED
+  receivedBy      String?
+  warehouse       String?
+  qualityNotes    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  payments        CooperativePayment[]
+}
+
+// --- COOPERATIVE ERP: FARMER PAYMENTS ---
+
+model CooperativePayment {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  cooperativeId   String?
+  intakeId        String?
+  intake          ProduceIntake? @relation(fields: [intakeId], references: [id])
+  farmerId        String?
+  farmer          FarmerProfile? @relation("FarmerCoopPayment", fields: [farmerId], references: [id])
+  phase           String   // FIRST, FINAL
+  grossAmount     Float
+  deductions      String?  // JSON array of {type, amount, description}
+  netAmount       Float
+  paymentMethod   String?  // MOBILE_MONEY, BANK, CASH
+  status          String   @default("PENDING") // PENDING, PROCESSING, PAID, FAILED
+  paidAt          DateTime?
+  transactionRef  String?
+  paidBy          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --- BILLING: INVOICES ---
+
+model Invoice {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  invoiceNumber String   @unique
+  subscriptionId String?
+  plan          String   // FREE, BASIC, STANDARD, ENTERPRISE, CUSTOM
+  billingCycle  String   // MONTHLY, QUARTERLY, ANNUAL
+  items         String   // JSON array of {description, amount, quantity, total}
+  subtotal      Float
+  tax           Float    @default(0)
+  taxRate       Float    @default(0)
+  total         Float
+  currency      String   @default("USD")
+  status        String   @default("DRAFT") // DRAFT, PENDING, PAID, OVERDUE, CANCELLED, PARTIALLY_PAID
+  dueDate       DateTime
+  paidAt        DateTime?
+  paidAmount    Float    @default(0)
+  reminderCount Int      @default(0)
+  lastReminderAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// --- BILLING: USAGE TRACKING ---
+
+model UsageRecord {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  eventType   String   // FARMER_CREATED, USER_CREATED, API_CALL, SMS_SENT, etc.
+  count       Int      @default(1)
+  period      String   // "2026-06" (YYYY-MM format)
+  recordedAt  DateTime @default(now())
+}
+
+// --- PAYMENT TRANSACTIONS (Enhanced) ---
+
+model PaymentTransaction {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  paymentId         String?
+  payment           Payment? @relation("PaymentTransactions", fields: [paymentId], references: [id])
+  provider          String   // MPAY, AINTEL, MTN_MOMO, MPESA, BANK_TRANSFER, MANUAL
+  providerTxnRef    String?  // Provider's transaction reference
+  type              String   // COLLECTION, DISBURSEMENT
+  amount            Float
+  currency          String   // UGX, GHS, KES, USD
+  recipientPhone    String
+  recipientName     String
+  status            String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED, REFUNDED
+  failureReason     String?
+  initiatedBy       String?
+  completedAt       DateTime?
+  callbackReceived  Boolean  @default(false)
+  callbackBody      String?  // Raw callback JSON
+  metadata          String?  // JSON for additional data
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// --- V1 MIGRATION TRACKING ---
+
+model MigrationLog {
+  id              String   @id @default(cuid())
+  tableName       String   // V1 table name
+  totalRecords    Int
+  migratedRecords Int
+  failedRecords   Int
+  skippedRecords  Int
+  status          String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, FAILED, PARTIAL
+  startedAt       DateTime?
+  completedAt     DateTime?
+  errorLog        String?  // JSON array of errors
+  executedBy      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model IdMapping {
+  id          String   @id @default(cuid())
+  tableName   String   // V1 table name
+  v1Id        String   // Original V1 ID
+  v3Id        String   // New V3 ID
+  createdAt   DateTime @default(now())
+
+  @@unique([tableName, v1Id])
 }

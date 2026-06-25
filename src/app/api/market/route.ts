@@ -1,27 +1,36 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
+// Cross-tenant marketplace — no tenant isolation applied
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const tab = searchParams.get('tab') || 'products'
+  try {
+    const { searchParams } = new URL(request.url)
+    const tab = searchParams.get('tab') || 'products'
 
-  if (tab === 'products') {
-    const products = await db.marketProduct.findMany({ orderBy: { createdAt: 'desc' }, take: 50 })
-    return NextResponse.json(products)
+    if (tab === 'products') {
+      const products = await db.marketProduct.findMany({ orderBy: { createdAt: 'desc' }, take: 50 })
+      return NextResponse.json(products)
+    }
+    if (tab === 'matches') {
+      const matches = await db.marketMatch.findMany({ include: { product: true }, orderBy: { createdAt: 'desc' }, take: 50 })
+      return NextResponse.json(matches)
+    }
+    return NextResponse.json([])
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch market data' }, { status: 500 })
   }
-  if (tab === 'matches') {
-    const matches = await db.marketMatch.findMany({ include: { product: true }, orderBy: { createdAt: 'desc' }, take: 50 })
-    return NextResponse.json(matches)
-  }
-  return NextResponse.json([])
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  const tab = body.tab
-  if (tab === 'products') {
-    const product = await db.marketProduct.create({ data: { sellerId: body.sellerId, sellerName: body.sellerName, commodity: body.commodity, variety: body.variety, quantity: body.quantity, unitPrice: body.unitPrice, location: body.location } })
-    return NextResponse.json(product, { status: 201 })
+  try {
+    const body = await request.json()
+    const tab = body.tab
+    if (tab === 'products') {
+      const product = await db.marketProduct.create({ data: { sellerId: body.sellerId, sellerName: body.sellerName, commodity: body.commodity, variety: body.variety, quantity: body.quantity, unitPrice: body.unitPrice, location: body.location } })
+      return NextResponse.json(product, { status: 201 })
+    }
+    return NextResponse.json({ error: 'Invalid tab' }, { status: 400 })
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to create market listing' }, { status: 500 })
   }
-  return NextResponse.json({ error: 'Invalid tab' }, { status: 400 })
 }

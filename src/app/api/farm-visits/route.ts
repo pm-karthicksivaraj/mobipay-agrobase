@@ -1,8 +1,10 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { getTenantContext } from '@/lib/tenant'
 
 export async function GET(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const { searchParams } = new URL(request.url)
     const farmerId = searchParams.get('farmerId') || ''
     const status = searchParams.get('status') || ''
@@ -10,8 +12,21 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '20')
 
     const where: Record<string, unknown> = {}
-    if (farmerId) where.farmerId = farmerId
     if (status) where.status = status
+
+    // Filter through farmer tenantId
+    if (!ctx.isSuperAdmin) {
+      const validFarmerIds = await db.farmerProfile.findMany({
+        where: { tenantId: { in: ctx.tenantScope } },
+        select: { id: true },
+      })
+      const idList = validFarmerIds.map(f => f.id)
+      where.farmerId = farmerId
+        ? { in: idList.filter(id => id === farmerId) }
+        : { in: idList }
+    } else if (farmerId) {
+      where.farmerId = farmerId
+    }
 
     const [data, total] = await Promise.all([
       db.farmVisit.findMany({
@@ -32,11 +47,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const body = await request.json()
     const farmVisit = await db.farmVisit.create({
       data: {
         farmerId: body.farmerId || null,
-        extensionOfficerId: body.extensionOfficerId || null,
+        extensionOfficerId: ctx.userId,
         visitDate: body.visitDate ? new Date(body.visitDate) : new Date(),
         topic: body.topic,
         observations: body.observations || null,

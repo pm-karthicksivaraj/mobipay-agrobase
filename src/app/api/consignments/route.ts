@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
+// TODO: Add tenantId to this model for full multi-tenant isolation
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)

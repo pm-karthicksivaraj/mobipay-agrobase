@@ -1,8 +1,10 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { getTenantContext } from '@/lib/tenant'
 
 export async function GET(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || ''
     const commodity = searchParams.get('commodity') || ''
@@ -12,6 +14,15 @@ export async function GET(request: Request) {
     const where: Record<string, unknown> = {}
     if (status) where.status = status
     if (commodity) where.commodity = commodity
+
+    // Filter through farmer tenantId
+    if (!ctx.isSuperAdmin) {
+      const validFarmerIds = await db.farmerProfile.findMany({
+        where: { tenantId: { in: ctx.tenantScope } },
+        select: { id: true },
+      })
+      where.farmerId = { in: validFarmerIds.map(f => f.id) }
+    }
 
     const [data, total] = await Promise.all([
       db.purchase.findMany({
@@ -32,6 +43,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const body = await request.json()
     const purchase = await db.purchase.create({
       data: {
@@ -43,7 +55,7 @@ export async function POST(request: Request) {
         unitPrice: body.unitPrice ?? null,
         totalAmount: body.totalAmount ?? null,
         status: body.status || 'PENDING',
-        initiatedBy: body.initiatedBy || null,
+        initiatedBy: ctx.userId,
         reviewedBy: body.reviewedBy || null,
         approvedBy: body.approvedBy || null,
       },
