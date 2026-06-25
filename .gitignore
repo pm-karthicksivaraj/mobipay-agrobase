@@ -65,3 +65,6 @@ bun.lock
 # Generated reports
 scripts/*.pdf
 scripts/gap_analysis_cover.html
+
+# Docker
+docker-compose.override.yml

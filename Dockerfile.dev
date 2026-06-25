@@ -1,0 +1,27 @@
+# ============================================
+# Agrobase V3 — Development Dockerfile
+# Mounts source for hot-reload, uses SQLite
+# ============================================
+
+FROM node:20-alpine
+WORKDIR /app
+
+RUN apk add --no-cache libc6-compat
+
+COPY package.json bun.lockb* package-lock.json* ./
+RUN \
+  if [ -f bun.lockb ]; then bun install; \
+  elif [ -f package-lock.json ]; then npm install; \
+  else npm install; \
+  fi
+
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+COPY . .
+
+RUN mkdir -p db
+
+EXPOSE 3000
+ENV PORT=3000
+CMD ["npm", "run", "dev"]

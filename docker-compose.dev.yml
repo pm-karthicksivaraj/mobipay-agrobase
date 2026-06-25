@@ -1,0 +1,24 @@
+# ============================================
+# Agrobase V3 — Docker Override for Development
+# Uses SQLite for dev, no Redis, no Caddy
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ============================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: agrobase-app-dev
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: file:/app/db/dev.db
+      NEXTAUTH_SECRET: agrobase-v3-dev-secret
+      NEXTAUTH_URL: http://localhost:3000
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      - ./public:/app/public
+    command: sh -c "npx prisma db push && npx prisma generate && npm run dev"
+    ports:
+      - "3000:3000"

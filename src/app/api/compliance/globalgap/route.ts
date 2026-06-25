@@ -1,8 +1,11 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { getTenantContext, buildTenantFilter } from '@/lib/tenant'
 
 export async function GET(request: Request) {
   try {
+    const ctx = await getTenantContext(request)
+    const tf = buildTenantFilter(ctx, 'tenantId') as any
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || ''
     const page = parseInt(searchParams.get('page') || '1')
@@ -13,13 +16,13 @@ export async function GET(request: Request) {
 
     const [data, total] = await Promise.all([
       db.globalGapCertification.findMany({
-        where,
+        where: { ...tf, ...where },
         skip: (page - 1) * limit,
         take: limit,
         include: { farmer: true },
         orderBy: { createdAt: 'desc' },
       }),
-      db.globalGapCertification.count({ where }),
+      db.globalGapCertification.count({ where: { ...tf, ...where } }),
     ])
 
     return NextResponse.json({ data, total, page, totalPages: Math.ceil(total / limit) })
@@ -30,10 +33,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const ctx = await getTenantContext(request)
+    const tf = buildTenantFilter(ctx, 'tenantId') as any
     const body = await request.json()
     const cert = await db.globalGapCertification.create({
       data: {
         farmerId: body.farmerId || null,
+        tenantId: ctx.tenantId,
         ggnNumber: body.ggnNumber,
         scope: body.scope,
         version: body.version || null,

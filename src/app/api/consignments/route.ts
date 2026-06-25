@@ -1,15 +1,17 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { getTenantContext, buildTenantFilter } from '@/lib/tenant'
 
-// TODO: Add tenantId to this model for full multi-tenant isolation
 export async function GET(request: Request) {
   try {
+    const ctx = await getTenantContext(request)
+    const tf = buildTenantFilter(ctx, 'tenantId') as any
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { ...tf }
     if (status) where.status = status
 
     const [data, total] = await Promise.all([
@@ -31,8 +33,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+    const ctx = await getTenantContext(request)
     const consignment = await db.consignment.create({
       data: {
+        tenantId: ctx.tenantId,
         product: body.product,
         quantity: body.quantity,
         source: body.source || null,
