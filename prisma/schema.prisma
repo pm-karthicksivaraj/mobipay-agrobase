@@ -59,6 +59,24 @@ model Tenant {
   traceEvents          TraceEvent[]
   farmPassports        FarmPassport[]
   costOfCultivations   CostOfCultivation[]
+  notificationTemplates  NotificationTemplate[] @relation("TenantNotifications")
+  notifications         Notification[]       @relation("TenantNotifRecords")
+  webhookEndpoints     WebhookEndpoint[]     @relation("TenantWebhooks")
+  warehouses           Warehouse[]           @relation("TenantWarehouses")
+  stockItems           StockItem[]           @relation("TenantStockItems")
+  stockMovements       StockMovement[]       @relation("TenantStockMovements")
+  gradeDefinitions     GradeDefinition[]     @relation("TenantGradeDefs")
+  qualityInspections   QualityInspection[]   @relation("TenantQualityInspections")
+  contracts            Contract[]            @relation("TenantContracts")
+  vehicles             Vehicle[]             @relation("TenantVehicles")
+  shipments            Shipment[]            @relation("TenantShipments")
+  partners             Partner[]             @relation("TenantPartners")
+  commissionRules      CommissionRule[]      @relation("TenantCommissionRules")
+  commissionSettlements CommissionSettlement[] @relation("TenantCommissionSettlements")
+  bulkOperations       BulkOperation[]       @relation("TenantBulkOps")
+  dashboardWidgets     DashboardWidget[]     @relation("TenantDashWidgets")
+  reportTemplates      ReportTemplate[]      @relation("TenantReportTemplates")
+  scheduledReports     ScheduledReport[]     @relation("TenantScheduledReports")
 }
 
 // --- USERS & AUTH ---
@@ -82,6 +100,9 @@ model User {
   agentAssignments   AgentAssignment[]
   auditLogs          AuditLog[]
   farmerProfiles     FarmerProfile[]
+  notifications      Notification[] @relation("UserNotifications")
+  managedWarehouse   Warehouse?       @relation("WarehouseManager")
+  qualityInspections QualityInspection[] @relation("QualityInspector")
 }
 
 model AgentAssignment {
@@ -1470,4 +1491,466 @@ model EudrAuditLog {
   performedBy       String?
   performedAt       DateTime @default(now())
   details           String?
+}
+
+// ============================================
+// PHASE 4 — ECOSYSTEM LAYER
+// ============================================
+
+// --- NOTIFICATION ENGINE ---
+
+model NotificationTemplate {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?  @relation("TenantNotifications", fields: [tenantId], references: [id])
+  name        String
+  code        String   @unique
+  channel     String
+  subject     String?
+  body        String
+  variables   String   @default("[]")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  notifications Notification[]
+}
+
+model Notification {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantNotifRecords", fields: [tenantId], references: [id])
+  templateId      String?
+  template        NotificationTemplate? @relation(fields: [templateId], references: [id])
+  userId          String?
+  user            User?    @relation("UserNotifications", fields: [userId], references: [id])
+  recipientPhone  String?
+  recipientEmail  String?
+  channel         String
+  category        String
+  subject         String?
+  body            String
+  data            String?
+  status          String   @default("PENDING")
+  providerMessageId String?
+  error           String?
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deliveries NotificationDelivery[]
+}
+
+model NotificationDelivery {
+  id              String   @id @default(cuid())
+  notificationId  String
+  notification    Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  channel         String
+  provider        String
+  attempt         Int      @default(1)
+  status          String   @default("PENDING")
+  responseCode    String?
+  responseMessage String?
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  createdAt       DateTime @default(now())
+}
+
+// --- WEBHOOK SYSTEM ---
+
+model WebhookEndpoint {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation("TenantWebhooks", fields: [tenantId], references: [id])
+  name        String
+  url         String
+  secret      String
+  events      String
+  isActive    Boolean  @default(true)
+  lastPingAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deliveries WebhookDelivery[]
+}
+
+model WebhookDelivery {
+  id            String   @id @default(cuid())
+  endpointId    String
+  endpoint      WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event         String
+  payload       String
+  signature     String?
+  status        String   @default("PENDING")
+  statusCode    Int?
+  responseBody  String?
+  attempt       Int      @default(1)
+  maxAttempts   Int      @default(3)
+  nextRetryAt   DateTime?
+  sentAt        DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// --- INVENTORY / WAREHOUSE ---
+
+model Warehouse {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation("TenantWarehouses", fields: [tenantId], references: [id])
+  name        String
+  code        String   @unique
+  address     String?
+  country     String
+  region      String?
+  district    String?
+  capacity    Float?
+  managerId   String?  @unique
+  manager     User?    @relation("WarehouseManager", fields: [managerId], references: [id])
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  stockItems  StockItem[]
+  movements   StockMovement[]
+  inspections QualityInspection[] @relation("WarehouseInspections")
+}
+
+model StockItem {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation("TenantStockItems", fields: [tenantId], references: [id])
+  warehouseId   String
+  warehouse     Warehouse @relation(fields: [warehouseId], references: [id])
+  commodity     String
+  variety       String?
+  grade         String?
+  batchCode     String?
+  quantity      Float    @default(0)
+  unit          String   @default("KG")
+  unitPrice     Float?
+  minLevel      Float    @default(0)
+  maxLevel      Float?
+  location      String?
+  expiryDate    DateTime?
+  status        String   @default("AVAILABLE")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  movements StockMovement[]
+  inspections QualityInspection[]
+}
+
+model StockMovement {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation("TenantStockMovements", fields: [tenantId], references: [id])
+  warehouseId   String
+  warehouse     Warehouse @relation(fields: [warehouseId], references: [id])
+  stockItemId   String
+  stockItem     StockItem @relation(fields: [stockItemId], references: [id])
+  type          String
+  quantity      Float
+  unitPrice     Float?
+  referenceId   String?
+  referenceType String?
+  fromWarehouseId String?
+  toWarehouseId   String?
+  notes         String?
+  performedBy   String?
+  createdAt     DateTime @default(now())
+}
+
+// --- QUALITY MANAGEMENT ---
+
+model GradeDefinition {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation("TenantGradeDefs", fields: [tenantId], references: [id])
+  commodity   String
+  grade       String
+  description String?
+  criteria    String
+  pricePremium Float?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  inspections QualityInspection[]
+}
+
+model QualityInspection {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation("TenantQualityInspections", fields: [tenantId], references: [id])
+  warehouseId   String?
+  warehouse     Warehouse? @relation("WarehouseInspections", fields: [warehouseId], references: [id])
+  stockItemId   String?
+  stockItem     StockItem? @relation(fields: [stockItemId], references: [id])
+  gradeDefId    String?
+  gradeDef      GradeDefinition? @relation(fields: [gradeDefId], references: [id])
+  batchCode     String?
+  commodity     String
+  sampleWeight  Float
+  parameters    String
+  overallScore  Float?
+  grade         String?
+  passed        Boolean?
+  inspectorId   String?
+  inspector     User?    @relation("QualityInspector", fields: [inspectorId], references: [id])
+  notes         String?
+  status        String   @default("DRAFT")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// --- CONTRACT MANAGEMENT ---
+
+model Contract {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation("TenantContracts", fields: [tenantId], references: [id])
+  contractCode  String   @unique
+  type          String
+  status        String   @default("DRAFT")
+  buyerId       String?
+  buyerName     String?
+  sellerId      String?
+  sellerName    String?
+  commodity     String
+  variety       String?
+  grade         String?
+  quantity      Float
+  unitPrice     Float
+  currency      String   @default("UGX")
+  totalValue    Float
+  startDate     DateTime
+  endDate       DateTime
+  deliveryTerms String?
+  paymentTerms  String?
+  qualitySpecs  String?
+  penalties     String?
+  notes         String?
+  signedAt      DateTime?
+  signedBy      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  items      ContractItem[]
+  milestones ContractMilestone[]
+  shipments  Shipment[]
+}
+
+model ContractItem {
+  id          String   @id @default(cuid())
+  contractId  String
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  commodity   String
+  variety     String?
+  grade       String?
+  quantity    Float
+  unitPrice   Float
+  delivered   Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ContractMilestone {
+  id          String   @id @default(cuid())
+  contractId  String
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  name        String
+  dueDate     DateTime
+  quantity    Float?
+  amount      Float?
+  status      String   @default("PENDING")
+  completedAt DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- LOGISTICS ---
+
+model Vehicle {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation("TenantVehicles", fields: [tenantId], references: [id])
+  plateNumber String   @unique
+  type        String
+  capacity    Float
+  driverName  String?
+  driverPhone String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  shipments   Shipment[]
+}
+
+model Shipment {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation("TenantShipments", fields: [tenantId], references: [id])
+  shipmentCode  String   @unique
+  vehicleId     String?
+  vehicle       Vehicle? @relation(fields: [vehicleId], references: [id])
+  contractId    String?
+  contract      Contract? @relation(fields: [contractId], references: [id])
+  originId      String?
+  destinationId String?
+  status        String   @default("PLANNED")
+  departureTime DateTime?
+  arrivalTime   DateTime?
+  driverName    String?
+  driverPhone   String?
+  totalWeight   Float?
+  route         String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  items ShipmentItem[]
+}
+
+model ShipmentItem {
+  id          String   @id @default(cuid())
+  shipmentId  String
+  shipment    Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  commodity   String
+  grade       String?
+  quantity    Float
+  batchCode   String?
+  createdAt   DateTime @default(now())
+}
+
+// --- PARTNER MANAGEMENT ---
+
+model Partner {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation("TenantPartners", fields: [tenantId], references: [id])
+  name          String
+  type          String
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  address       String?
+  country       String?
+  commissionRate Float?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  commissions    CommissionRule[]
+  settlements    CommissionSettlement[]
+}
+
+model CommissionRule {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation("TenantCommissionRules", fields: [tenantId], references: [id])
+  partnerId     String
+  partner       Partner @relation(fields: [partnerId], references: [id])
+  name          String
+  type          String
+  basis         String
+  rate          Float
+  minAmount     Float?
+  maxAmount     Float?
+  conditions    String?
+  isActive      Boolean  @default(true)
+  effectiveFrom DateTime @default(now())
+  effectiveTo   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  settlements   CommissionSettlement[]
+}
+
+model CommissionSettlement {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation("TenantCommissionSettlements", fields: [tenantId], references: [id])
+  partnerId     String
+  partner       Partner @relation(fields: [partnerId], references: [id])
+  ruleId        String?
+  rule          CommissionRule? @relation(fields: [ruleId], references: [id])
+  period        String
+  referenceId   String?
+  amount        Float
+  currency      String   @default("UGX")
+  status        String   @default("PENDING")
+  paidAt        DateTime?
+  paidVia       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// --- BULK OPERATIONS ---
+
+model BulkOperation {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation("TenantBulkOps", fields: [tenantId], references: [id])
+  type          String
+  status        String   @default("PENDING")
+  fileName      String
+  fileSize      Int?
+  totalRows     Int      @default(0)
+  processedRows Int      @default(0)
+  successRows   Int      @default(0)
+  failedRows    Int      @default(0)
+  errorSummary  String?
+  configFile   String?
+  resultFileUrl String?
+  performedBy   String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// --- ANALYTICS & DASHBOARDS ---
+
+model DashboardWidget {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?  @relation("TenantDashWidgets", fields: [tenantId], references: [id])
+  name        String
+  type        String
+  dataSource  String
+  config      String
+  position    Int      @default(0)
+  size        String   @default("MEDIUM")
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ReportTemplate {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?  @relation("TenantReportTemplates", fields: [tenantId], references: [id])
+  name        String
+  code        String   @unique
+  description String?
+  type        String
+  format      String   @default("PDF")
+  sections    String
+  parameters  String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  schedules ScheduledReport[]
+}
+
+model ScheduledReport {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation("TenantScheduledReports", fields: [tenantId], references: [id])
+  templateId    String
+  template      ReportTemplate @relation(fields: [templateId], references: [id])
+  name          String
+  schedule      String
+  cronExpression String?
+  recipients    String
+  parameters    String?
+  lastRunAt     DateTime?
+  nextRunAt     DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
