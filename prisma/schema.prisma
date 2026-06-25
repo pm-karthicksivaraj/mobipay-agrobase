@@ -77,6 +77,8 @@ model Tenant {
   dashboardWidgets     DashboardWidget[]     @relation("TenantDashWidgets")
   reportTemplates      ReportTemplate[]      @relation("TenantReportTemplates")
   scheduledReports     ScheduledReport[]     @relation("TenantScheduledReports")
+  translations         Translation[]         @relation("TenantTranslations")
+  brandingConfigs      BrandingConfig[]      @relation("TenantBranding")
 }
 
 // --- USERS & AUTH ---
@@ -103,6 +105,7 @@ model User {
   notifications      Notification[] @relation("UserNotifications")
   managedWarehouse   Warehouse?       @relation("WarehouseManager")
   qualityInspections QualityInspection[] @relation("QualityInspector")
+  apiKeys            ApiKey[]            @relation("UserApiKeys")
 }
 
 model AgentAssignment {
@@ -769,13 +772,36 @@ model Subscription {
 // --- API KEYS ---
 
 model ApiKey {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  name            String
+  key             String   @unique
+  keyPrefix       String                          // First 8 chars for display
+  userId          String?
+  user            User?    @relation("UserApiKeys", fields: [userId], references: [id])
+  scopes          String   @default("read")        // JSON array of scopes e.g. ["farmers:read","purchases:read"]
+  rateLimitRpm    Int      @default(60)             // Requests per minute
+  rateLimitRpd    Int      @default(10000)          // Requests per day
+  expiresAt       DateTime?
+  lastUsedAt      DateTime?
+  totalRequests   Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  usageLogs       ApiKeyUsageLog[]
+}
+
+model ApiKeyUsageLog {
   id          String   @id @default(cuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  key         String   @unique
-  username    String?
-  purpose     String?
-  isActive    Boolean  @default(true)
+  apiKeyId    String
+  apiKey      ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  method      String
+  path        String
+  statusCode  Int
+  responseMs  Int
+  ipAddress   String?
+  userAgent   String?
   createdAt   DateTime @default(now())
 }
 
@@ -1950,6 +1976,51 @@ model ScheduledReport {
   parameters    String?
   lastRunAt     DateTime?
   nextRunAt     DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ============================================
+// PHASE 4B — DEVELOPER PLATFORM & ECOSYSTEM
+// ============================================
+
+// --- i18n / TRANSLATIONS ---
+
+model Translation {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?  @relation("TenantTranslations", fields: [tenantId], references: [id])
+  locale      String                       // en, sw, lg, ach, luo, fr, etc.
+  namespace   String   @default("common")  // common, farmers, marketplace, reports, etc.
+  key         String                       // e.g. "welcome.title", "error.not_found"
+  value       String                       // Translated text
+  isSystem    Boolean  @default(false)     // System-level translations (not editable by tenant)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, locale, namespace, key])
+}
+
+// --- WHITE-LABEL / BRANDING ---
+
+model BrandingConfig {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  tenant        Tenant   @relation("TenantBranding", fields: [tenantId], references: [id])
+  primaryColor  String   @default("#16a34a")
+  secondaryColor String  @default("#facc15")
+  accentColor   String   @default("#0ea5e9")
+  logoUrl       String?
+  faviconUrl    String?
+  appName       String?                      // Override "Agrobase V3"
+  tagline       String?
+  locale        String   @default("en")     // Default locale for this tenant
+  dateFormat    String   @default("DD/MM/YYYY")
+  currencyFormat String  @default("symbol") // symbol, code, none
+  timezone      String   @default("Africa/Kampala")
+  customCSS     String?                      // Custom CSS overrides
+  loginImageUrl String?                      // Custom login page background
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
