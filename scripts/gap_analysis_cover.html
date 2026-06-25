@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 794px;
+    height: 1123px;
+    background: #191817;
+    overflow: hidden;
+  }
+  .cover {
+    position: relative;
+    width: 794px;
+    height: 1123px;
+    background: #191817;
+    color: #f7f7f6;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+  }
+  /* Decorative geometric elements */
+  .deco-line {
+    position: absolute;
+    top: 0;
+    left: 48px;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent 0%, #8a7128 30%, #8a7128 70%, transparent 100%);
+    opacity: 0.4;
+  }
+  .deco-line-2 {
+    position: absolute;
+    top: 0;
+    left: 52px;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent 10%, #564d34 50%, transparent 90%);
+    opacity: 0.25;
+  }
+  .deco-circle {
+    position: absolute;
+    top: 120px;
+    right: 80px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 1px solid rgba(138, 113, 40, 0.15);
+  }
+  .deco-circle-2 {
+    position: absolute;
+    top: 160px;
+    right: 120px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 1px solid rgba(138, 113, 40, 0.1);
+  }
+  .deco-block {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 280px;
+    height: 350px;
+    background: linear-gradient(135deg, rgba(138, 113, 40, 0.08) 0%, rgba(86, 77, 52, 0.15) 100%);
+    clip-path: polygon(30% 0, 100% 0, 100% 100%, 0% 100%);
+  }
+  /* Content layout */
+  .content {
+    position: relative;
+    z-index: 2;
+    padding: 100px 80px 80px 110px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #8a7128;
+    margin-bottom: 24px;
+  }
+  .title {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #f7f7f6;
+    max-width: 420px;
+    margin-bottom: 20px;
+  }
+  .subtitle {
+    font-size: 15px;
+    font-weight: 300;
+    line-height: 1.6;
+    color: #c5bca1;
+    max-width: 380px;
+    margin-bottom: 40px;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 32px;
+    margin-top: auto;
+    padding-top: 40px;
+    border-top: 1px solid rgba(197, 188, 161, 0.2);
+  }
+  .meta-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #87857d;
+    margin-bottom: 4px;
+  }
+  .meta-value {
+    font-size: 13px;
+    font-weight: 400;
+    color: #e9e8e4;
+  }
+  .brand {
+    position: absolute;
+    bottom: 28px;
+    right: 64px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #8a7128;
+  }
+  @media screen {
+    html, body { transform-origin: top left; }
+  }
+</style>
+</head>
+<body>
+<div class="cover">
+  <div class="deco-line"></div>
+  <div class="deco-line-2"></div>
+  <div class="deco-circle"></div>
+  <div class="deco-circle-2"></div>
+  <div class="deco-block"></div>
+  <div class="content">
+    <div class="tag">Strategic Architecture Review</div>
+    <h1 class="title">Agrobase V3<br>Platform Gap Analysis</h1>
+    <p class="subtitle">A comprehensive audit of business model, revenue architecture, technology stack, application features, and ecosystem readiness across Uganda, Ghana, and Kenya.</p>
+    <div class="meta-grid">
+      <div>
+        <div class="meta-label">Prepared For</div>
+        <div class="meta-value">MobiPay AgroSys Limited</div>
+      </div>
+      <div>
+        <div class="meta-label">Document Type</div>
+        <div class="meta-value">Strategic Gap Analysis</div>
+      </div>
+      <div>
+        <div class="meta-label">Platform</div>
+        <div class="meta-value">Agrobase V3 (Next.js 16)</div>
+      </div>
+      <div>
+        <div class="meta-label">Markets</div>
+        <div class="meta-value">Uganda, Ghana, Kenya</div>
+      </div>
+      <div>
+        <div class="meta-label">Date</div>
+        <div class="meta-value">June 2026</div>
+      </div>
+      <div>
+        <div class="meta-label">Classification</div>
+        <div class="meta-value">Confidential</div>
+      </div>
+    </div>
+  </div>
+  <div class="brand">Agrobase</div>
+</div>
+</body>
+</html>

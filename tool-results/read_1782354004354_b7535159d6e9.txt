@@ -1,0 +1,980 @@
+     1→     1→generator client {
+     2→     2→  provider = "prisma-client-js"
+     3→     3→}
+     4→     4→
+     5→     5→datasource db {
+     6→     6→  provider = "sqlite"
+     7→     7→  url      = env("DATABASE_URL")
+     8→     8→}
+     9→     9→
+    10→    10→// ============================================
+    11→    11→// AGROBASE V3 — FULL MULTI-TENANT SCHEMA
+    12→    12→// MobiPay AgroSys Limited
+    13→    13→// ============================================
+    14→    14→
+    15→    15→// --- TENANT & ORG HIERARCHY ---
+    16→    16→
+    17→    17→model Tenant {
+    18→    18→  id          String   @id @default(cuid())
+    19→    19→  name        String
+    20→    20→  type        String   // SUPER_ADMIN, COUNTRY, NGO, COOPERATIVE, AGRIBUSINESS, EXPORTER, MFI, BANK, INPUT_SUPPLIER, PROCESSING
+    21→    21→  country     String?  // Uganda, Ghana, Kenya
+    22→    22→  parentId    String?
+    23→    23→  parent      Tenant?  @relation("TenantHierarchy", fields: [parentId], references: [id])
+    24→    24→  children    Tenant[] @relation("TenantHierarchy")
+    25→    25→  isActive    Boolean  @default(true)
+    26→    26→  createdAt   DateTime @default(now())
+    27→    27→  updatedAt   DateTime @updatedAt
+    28→    28→
+    29→    29→  users       User[]
+    30→    30→  farmerGroups FarmerGroup[]
+    31→    31→  farmerProfiles FarmerProfile[]
+    32→    32→  vslaGroups  VslaGroup[]
+    33→    33→  companies   Company[]
+    34→    34→  paymentAccounts PaymentAccount[]
+    35→    35→  moduleEntitlements ModuleEntitlement[]
+    36→    36→  subscriptions     Subscription[]
+    37→    37→  loanProducts      LoanProduct[]
+    38→    38→  apiKeys     ApiKey[]
+    39→    39→}
+    40→    40→
+    41→    41→// --- USERS & AUTH ---
+    42→    42→
+    43→    43→model User {
+    44→    44→  id            String   @id @default(cuid())
+    45→    45→  tenantId      String
+    46→    46→  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+    47→    47→  role          String   // SUPER_ADMIN, COUNTRY_ADMIN, TENANT_ADMIN, AGENT, EXTENSION_OFFICER, CBT, CASUAL, FARMER, VSLA_MEMBER
+    48→    48→  email         String?
+    49→    49→  phone         String   @unique
+    50→    50→  passwordHash  String?
+    51→    51→  firstName     String
+    52→    52→  lastName      String
+    53→    53→  avatarUrl     String?
+    54→    54→  isActive      Boolean  @default(true)
+    55→    55→  lastLogin     DateTime?
+    56→    56→  createdAt     DateTime @default(now())
+    57→    57→  updatedAt     DateTime @updatedAt
+    58→    58→
+    59→    59→  agentAssignments   AgentAssignment[]
+    60→    60→  auditLogs          AuditLog[]
+    61→    61→  farmerProfiles     FarmerProfile[]
+    62→    62→}
+    63→    63→
+    64→    64→model AgentAssignment {
+    65→    65→  id        String   @id @default(cuid())
+    66→    66→  agentId   String
+    67→    67→  agent     User     @relation(fields: [agentId], references: [id])
+    68→    68→  groupId   String
+    69→    69→  groupType String   // FARMER_GROUP, VSLA
+    70→    70→  assignedAt DateTime @default(now())
+    71→    71→}
+    72→    72→
+    73→    73→// --- GEOGRAPHIC HIERARCHY ---
+    74→    74→
+    75→    75→model Region {
+    76→    76→  id        String     @id @default(cuid())
+    77→    77→  name      String
+    78→    78→  country   String
+    79→    79→  createdAt DateTime   @default(now())
+    80→    80→  subRegions SubRegion[]
+    81→    81→}
+    82→    82→
+    83→    83→model SubRegion {
+    84→    84→  id        String    @id @default(cuid())
+    85→    85→  name      String
+    86→    86→  regionId  String
+    87→    87→  region    Region    @relation(fields: [regionId], references: [id])
+    88→    88→  districts District[]
+    89→    89→}
+    90→    90→
+    91→    91→model District {
+    92→    92→  id          String       @id @default(cuid())
+    93→    93→  name        String
+    94→    94→  subRegionId String
+    95→    95→  subRegion   SubRegion    @relation(fields: [subRegionId], references: [id])
+    96→    96→  constituencies Constituency[]
+    97→    97→}
+    98→    98→
+    99→    99→model Constituency {
+   100→   100→  id          String       @id @default(cuid())
+   101→   101→  name        String
+   102→   102→  districtId  String
+   103→   103→  district    District     @relation(fields: [districtId], references: [id])
+   104→   104→  subCounties SubCounty[]
+   105→   105→}
+   106→   106→
+   107→   107→model SubCounty {
+   108→   108→  id            String    @id @default(cuid())
+   109→   109→  name          String
+   110→   110→  constituencyId String
+   111→   111→  constituency   Constituency @relation(fields: [constituencyId], references: [id])
+   112→   112→  parishes      Parish[]
+   113→   113→}
+   114→   114→
+   115→   115→model Parish {
+   116→   116→  id          String     @id @default(cuid())
+   117→   117→  name        String
+   118→   118→  subCountyId String
+   119→   119→  subCounty   SubCounty  @relation(fields: [subCountyId], references: [id])
+   120→   120→  villages    Village[]
+   121→   121→}
+   122→   122→
+   123→   123→model Village {
+   124→   124→  id        String   @id @default(cuid())
+   125→   125→  name      String
+   126→   126→  parishId  String
+   127→   127→  parish    Parish   @relation(fields: [parishId], references: [id])
+   128→   128→  farmers   FarmerProfile[]
+   129→   129→}
+   130→   130→
+   131→   131→// --- COOPERATIVES & FARMER GROUPS ---
+   132→   132→
+   133→   133→model Company {
+   134→   134→  id          String   @id @default(cuid())
+   135→   135→  tenantId    String
+   136→   136→  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+   137→   137→  name        String
+   138→   138→  type        String?  // Cooperative, Agribusiness, etc.
+   139→   139→  contactPerson String?
+   140→   140→  phone       String?
+   141→   141→  email       String?
+   142→   142→  address     String?
+   143→   143→  isActive    Boolean  @default(true)
+   144→   144→  createdAt   DateTime @default(now())
+   145→   145→  updatedAt   DateTime @updatedAt
+   146→   146→
+   147→   147→  farmerGroups FarmerGroup[]
+   148→   148→}
+   149→   149→
+   150→   150→model FarmerGroup {
+   151→   151→  id          String   @id @default(cuid())
+   152→   152→  tenantId    String
+   153→   153→  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+   154→   154→  companyId   String?
+   155→   155→  company     Company?  @relation(fields: [companyId], references: [id])
+   156→   156→  name        String
+   157→   157→  contactPerson String?
+   158→   158→  location    String?
+   159→   159→  isVsla      Boolean  @default(false)
+   160→   160→  vslaSettings Json?    // shareValue, loanRate, maxLoanAmount, fines, welfare
+   161→   161→  isActive    Boolean  @default(true)
+   162→   162→  createdAt   DateTime @default(now())
+   163→   163→  updatedAt   DateTime @updatedAt
+   164→   164→
+   165→   165→  farmers    FarmerProfile[]
+   166→   166→  vslaGroups VslaGroup[]
+   167→   167→}
+   168→   168→
+   169→   169→// --- FARMER PROFILING ---
+   170→   170→
+   171→   171→model FarmerProfile {
+   172→   172→  id              String   @id @default(cuid())
+   173→   173→  tenantId        String
+   174→   174→  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+   175→   175→  userId          String?
+   176→   176→  user            User?    @relation(fields: [userId], references: [id])
+   177→   177→  groupId         String?
+   178→   178→  group           FarmerGroup? @relation(fields: [groupId], references: [id])
+   179→   179→  farmerCode      String?  @unique
+   180→   180→  firstName       String
+   181→   181→  lastName        String
+   182→   182→  phone           String
+   183→   183→  gender          String?  // Male, Female, Other
+   184→   184→  dateOfBirth     DateTime?
+   185→   185→  education       String?  // Primary, Secondary, UG, PG, Other
+   186→   186→  maritalStatus   String?
+   187→   187→  nationalIdType  String?  // National ID, Driving License, Passport
+   188→   188→  nationalIdNo    String?
+   189→   189→  photoUrl        String?
+   190→   190→  isCertified     Boolean  @default(false)
+   191→   191→  certificationType String?
+   192→   192→  memberType      String   // General, Commercial
+   193→   193→  status          String   @default("ACTIVE") // ACTIVE, INACTIVE
+   194→   194→
+   195→   195→  // Location
+   196→   196→  villageId       String?
+   197→   197→  village         Village? @relation(fields: [villageId], references: [id])
+   198→   198→  gpsLatitude     Float?
+   199→   199→  gpsLongitude    Float?
+   200→   200→
+   201→   201→  // Family
+   202→   202→  familyMembers   Int?
+   203→   203→  childrenUnder18 Int?
+   204→   204→  schoolGoingChildren Int?
+   205→   205→  spouseName      String?
+   206→   206→
+   207→   207→  // Bank
+   208→   208→  bankName        String?
+   209→   209→  bankAccountNo   String?
+   210→   210→  bankBranch      String?
+   211→   211→
+   212→   212→  // Farm
+   213→   213→  farmSize        Float?   // hectares
+   214→   214→  farmOwnership   String?  // Owned, Rent, Lease
+   215→   215→  mainCrops       String?  // JSON array of crop names
+   216→   216→  livestockTypes  String?  // JSON array
+   217→   217→
+   218→   218→  createdAt       DateTime @default(now())
+   219→   219→  updatedAt       DateTime @updatedAt
+   220→   220→
+   221→   221→  // Relations
+   222→   222→  children        ChildProfile[]
+   223→   223→  farms           FarmLand[]
+   224→   224→  creditScores    CreditScore[]
+   225→   225→  savings         VslaSaving[]
+   226→   226→  vslaLoans       VslaLoan[]
+   227→   227→  trainings       TrainingAttendance[]
+   228→   228→  purchases       Purchase[]
+   229→   229→  sales           Sale[]
+   230→   230→  vslaMemberships VslaMember[]
+   231→   231→  farmVisits      FarmVisit[]      @relation("FarmerVisits")
+   232→   232→  impactAssessments ImpactAssessment[] @relation("FarmerImpact")
+   233→   233→  eudrCompliances EudrCompliance[]  @relation("FarmerEudr")
+   234→   234→  cbamReports     CbamReport[]      @relation("FarmerCbam")
+   235→   235→  rainforestCerts RainforestCertification[] @relation("FarmerRainforest")
+   236→   236→  globalGapCerts  GlobalGapCertification[] @relation("FarmerGlobalGap")
+   237→   237→}
+   238→   238→
+   239→   239→model ChildProfile {
+   240→   240→  id          String   @id @default(cuid())
+   241→   241→  farmerId    String
+   242→   242→  farmer      FarmerProfile @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+   243→   243→  firstName   String
+   244→   244→  lastName    String
+   245→   245→  gender      String?
+   246→   246→  dateOfBirth DateTime?
+   247→   247→  schoolName  String?
+   248→   248→  schoolId    String?
+   249→   249→  createdAt   DateTime @default(now())
+   250→   250→}
+   251→   251→
+   252→   252→model FarmLand {
+   253→   253→  id          String   @id @default(cuid())
+   254→   254→  farmerId    String
+   255→   255→  farmer      FarmerProfile @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+   256→   256→  name        String
+   257→   257→  sizeHectares Float?
+   258→   258→  latitude    Float?
+   259→   259→  longitude   Float?
+   260→   260→  landOwnership String?
+   261→   261→  waterSource String?
+   262→   262→  soilFertility String?
+   263→   263→  isActive    Boolean  @default(true)
+   264→   264→  createdAt   DateTime @default(now())
+   265→   265→  updatedAt   DateTime @updatedAt
+   266→   266→
+   267→   267→  cultivations Cultivation[]
+   268→   268→  polygonPoints FarmPolygon[]
+   269→   269→}
+   270→   270→
+   271→   271→model Cultivation {
+   272→   272→  id              String   @id @default(cuid())
+   273→   273→  farmId          String
+   274→   274→  farm            FarmLand @relation(fields: [farmId], references: [id], onDelete: Cascade)
+   275→   275→  cropName        String
+   276→   276→  variety         String?
+   277→   277→  season          String?
+   278→   278→  sowingDate      DateTime?
+   279→   279→  estimatedYield  Float?
+   280→   280→  actualYield     Float?
+   281→   281→  status          String   @default("ACTIVE")
+   282→   282→  createdAt       DateTime @default(now())
+   283→   283→  updatedAt       DateTime @updatedAt
+   284→   284→}
+   285→   285→
+   286→   286→// --- VSLA MANAGEMENT ---
+   287→   287→
+   288→   288→model VslaGroup {
+   289→   289→  id              String   @id @default(cuid())
+   290→   290→  tenantId        String
+   291→   291→  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+   292→   292→  groupId         String?
+   293→   293→  group           FarmerGroup? @relation(fields: [groupId], references: [id])
+   294→   294→  name            String
+   295→   295→  shareValue      Float
+   296→   296→  loanRate        Float    // percentage
+   297→   297→  maxLoanAmount   Float
+   298→   298→  fines           Float    @default(0)
+   299→   299→  welfareAmount   Float    @default(0)
+   300→   300→  meetingFrequency String?  // Weekly, Bi-weekly, Monthly
+   301→   301→  isActive        Boolean  @default(true)
+   302→   302→  isClosed        Boolean  @default(false)
+   303→   303→  createdAt       DateTime @default(now())
+   304→   304→  updatedAt       DateTime @updatedAt
+   305→   305→
+   306→   306→  members         VslaMember[]
+   307→   307→  savings         VslaSaving[]
+   308→   308→  loans           VslaLoan[]
+   309→   309→  meetings        VslaMeeting[]
+   310→   310→  transactions    VslaTransaction[]
+   311→   311→  welfarePayments WelfarePayment[]
+   312→   312→}
+   313→   313→
+   314→   314→model VslaMember {
+   315→   315→  id          String   @id @default(cuid())
+   316→   316→  vslaGroupId String
+   317→   317→  vslaGroup   VslaGroup @relation(fields: [vslaGroupId], references: [id])
+   318→   318→  farmerId    String
+   319→   319→  farmer      FarmerProfile @relation(fields: [farmerId], references: [id])
+   320→   320→  memberId    String   @unique // auto-generated member ID
+   321→   321→  isAdmin     Boolean  @default(false)
+   322→   322→  isKeyholder Boolean  @default(false)
+   323→   323→  sharesOwned Int      @default(0)
+   324→   324→  joinedAt    DateTime @default(now())
+   325→   325→}
+   326→   326→
+   327→   327→model VslaSaving {
+   328→   328→  id              String   @id @default(cuid())
+   329→   329→  vslaGroupId     String
+   330→   330→  vslaGroup       VslaGroup @relation(fields: [vslaGroupId], references: [id])
+   331→   331→  farmerId        String
+   332→   332→  farmer          FarmerProfile @relation(fields: [farmerId], references: [id])
+   333→   333→  memberId        String?
+   334→   334→  amount          Float
+   335→   335→  sharesBought    Int      @default(1)
+   336→   336→  savedOnBehalfOf String?  // member ID if saved for another
+   337→   337→  transactionRef  String?
+   338→   338→  status          String   @default("COMPLETED") // PENDING, COMPLETED, FAILED
+   339→   339→  createdAt       DateTime @default(now())
+   340→   340→}
+   341→   341→
+   342→   342→model VslaLoan {
+   343→   343→  id              String   @id @default(cuid())
+   344→   344→  vslaGroupId     String
+   345→   345→  vslaGroup       VslaGroup @relation(fields: [vslaGroupId], references: [id])
+   346→   346→  farmerId        String
+   347→   347→  farmer          FarmerProfile @relation(fields: [farmerId], references: [id])
+   348→   348→  memberId        String?
+   349→   349→  amount          Float
+   350→   350→  interestRate    Float
+   351→   351→  totalRepayable  Float
+   352→   352→  amountRepaid    Float    @default(0)
+   353→   353→  purpose         String?  // Savings, Welfare
+   354→   354→  status          String   @default("PENDING") // PENDING, APPROVED, DISBURSED, REPAID, REJECTED, OVERDUE
+   355→   355→  approvedByIds   String?  // JSON array of approver IDs
+   356→   356→  requestedAt     DateTime @default(now())
+   357→   357→  approvedAt      DateTime?
+   358→   358→  disbursedAt     DateTime?
+   359→   359→  dueDate         DateTime?
+   360→   360→  createdAt       DateTime @default(now())
+   361→   361→  updatedAt       DateTime @updatedAt
+   362→   362→
+   363→   363→  repayments      VslaLoanRepayment[]
+   364→   364→}
+   365→   365→
+   366→   366→model VslaLoanRepayment {
+   367→   367→  id          String   @id @default(cuid())
+   368→   368→  loanId      String
+   369→   369→  loan        VslaLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+   370→   370→  amount      Float
+   371→   371→  repaidOnBehalfOf String?
+   372→   372→  transactionRef String?
+   373→   373→  createdAt   DateTime @default(now())
+   374→   374→}
+   375→   375→
+   376→   376→model VslaMeeting {
+   377→   377→  id              String   @id @default(cuid())
+   378→   378→  vslaGroupId     String
+   379→   379→  vslaGroup       VslaGroup @relation(fields: [vslaGroupId], references: [id])
+   380→   380→  agenda          String?
+   381→   381→  meetingDate     DateTime
+   382→   382→  startTime       String?
+   383→   383→  endTime         String?
+   384→   384→  status          String   @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, CONCLUDED
+   385→   385→  createdById     String?
+   386→   386→  createdAt       DateTime @default(now())
+   387→   387→
+   388→   388→  attendance      VslaAttendance[]
+   389→   389→}
+   390→   390→
+   391→   391→model VslaAttendance {
+   392→   392→  id          String   @id @default(cuid())
+   393→   393→  meetingId   String
+   394→   394→  meeting     VslaMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+   395→   395→  farmerId    String
+   396→   396→  markedBy    String?  // if marked on behalf
+   397→   397→  present     Boolean  @default(false)
+   398→   398→  createdAt   DateTime @default(now())
+   399→   399→}
+   400→   400→
+   401→   401→model VslaTransaction {
+   402→   402→  id              String   @id @default(cuid())
+   403→   403→  vslaGroupId     String
+   404→   404→  vslaGroup       VslaGroup @relation(fields: [vslaGroupId], references: [id])
+   405→   405→  type            String   // SAVING, LOAN_DISBURSEMENT, LOAN_REPAYMENT, WELFARE, FINE, SHARE_REDEEM
+   406→   406→  amount          Float
+   407→   407→  description     String?
+   408→   408→  transactionRef  String?
+   409→   409→  status          String   @default("COMPLETED")
+   410→   410→  createdAt       DateTime @default(now())
+   411→   411→}
+   412→   412→
+   413→   413→model WelfarePayment {
+   414→   414→  id          String   @id @default(cuid())
+   415→   415→  vslaGroupId String
+   416→   416→  vslaGroup   VslaGroup @relation(fields: [vslaGroupId], references: [id])
+   417→   417→  farmerId    String?
+   418→   418→  amount      Float
+   419→   419→  reason      String?
+   420→   420→  createdAt   DateTime @default(now())
+   421→   421→}
+   422→   422→
+   423→   423→// --- LOAN MANAGEMENT (Institutional) ---
+   424→   424→
+   425→   425→model LoanProduct {
+   426→   426→  id              String   @id @default(cuid())
+   427→   427→  tenantId        String
+   428→   428→  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+   429→   429→  name            String
+   430→   430→  interestRate    Float
+   431→   431→  maxAmount       Float
+   432→   432→  minAmount       Float
+   433→   433→  maxDuration     Int      // months
+   434→   434→  gracePeriod     Int      @default(0)
+   435→   435→  isActive        Boolean  @default(true)
+   436→   436→  createdAt       DateTime @default(now())
+   437→   437→  updatedAt       DateTime @updatedAt
+   438→   438→
+   439→   439→  applications    LoanApplication[]
+   440→   440→}
+   441→   441→
+   442→   442→model LoanApplication {
+   443→   443→  id              String   @id @default(cuid())
+   444→   444→  loanProductId   String
+   445→   445→  loanProduct     LoanProduct @relation(fields: [loanProductId], references: [id])
+   446→   446→  farmerId        String?
+   447→   447→  applicantName   String
+   448→   448→  applicantPhone  String
+   449→   449→  amount          Float
+   450→   450→  purpose         String?
+   451→   451→  status          String   @default("PENDING") // PENDING, LEVEL1_APPROVED, LEVEL2_APPROVED, APPROVED, DISBURSED, REJECTED, COMPLETED, OVERDUE
+   452→   452→  level1ApprovedBy String?
+   453→   453→  level2ApprovedBy String?
+   454→   454→  level1ApprovedAt DateTime?
+   455→   455→  level2ApprovedAt DateTime?
+   456→   456→  disbursedAt     DateTime?
+   457→   457→  createdAt       DateTime @default(now())
+   458→   458→  updatedAt       DateTime @updatedAt
+   459→   459→}
+   460→   460→
+   461→   461→// --- INPUT AGGREGATION ---
+   462→   462→
+   463→   463→model InputDealer {
+   464→   464→  id        String   @id @default(cuid())
+   465→   465→  name      String
+   466→   466→  phone     String?
+   467→   467→  location  String?
+   468→   468→  isActive  Boolean  @default(true)
+   469→   469→  createdAt DateTime @default(now())
+   470→   470→  updatedAt DateTime @updatedAt
+   471→   471→
+   472→   472→  products   InputProduct[]
+   473→   473→  requests   InputRequest[]
+   474→   474→}
+   475→   475→
+   476→   476→model InputProduct {
+   477→   477→  id          String   @id @default(cuid())
+   478→   478→  dealerId    String
+   479→   479→  dealer      InputDealer @relation(fields: [dealerId], references: [id])
+   480→   480→  name        String
+   481→   481→  category    String?  // Seeds, Fertilizer, Pesticide, Equipment
+   482→   482→  variety     String?
+   483→   483→  unit        String?  // Kg, Bags, Litres
+   484→   484→  unitPrice   Float?
+   485→   485→  isActive    Boolean  @default(true)
+   486→   486→  createdAt   DateTime @default(now())
+   487→   487→  updatedAt   DateTime @updatedAt
+   488→   488→}
+   489→   489→
+   490→   490→model InputRequest {
+   491→   491→  id          String   @id @default(cuid())
+   492→   492→  dealerId    String?
+   493→   493→  dealer      InputDealer? @relation(fields: [dealerId], references: [id])
+   494→   494→  farmerId    String?
+   495→   495→  farmerName  String
+   496→   496→  farmerPhone String
+   497→   497→  product     String
+   498→   498→  quantity    String
+   499→   499→  unitPrice   Float?
+   500→   500→  totalPrice  Float?
+   501→   501→  status      String   @default("PENDING") // PENDING, CONFIRMED, DELIVERED, CANCELLED
+   502→   502→  createdAt   DateTime @default(now())
+   503→   503→  updatedAt   DateTime @updatedAt
+   504→   504→}
+   505→   505→
+   506→   506→// --- MARKETPLACE ---
+   507→   507→
+   508→   508→model MarketProduct {
+   509→   509→  id          String   @id @default(cuid())
+   510→   510→  sellerId    String?  // farmer or group ID
+   511→   511→  sellerName  String
+   512→   512→  commodity   String   // Maize, Coffee, Rice, etc.
+   513→   513→  variety     String?
+   514→   514→  quantity    String
+   515→   515→  unitPrice   Float?
+   516→   516→  location    String?
+   517→   517→  status      String   @default("AVAILABLE") // AVAILABLE, MATCHED, SOLD
+   518→   518→  createdAt   DateTime @default(now())
+   519→   519→  updatedAt   DateTime @updatedAt
+   520→   520→
+   521→   521→  matches     MarketMatch[]
+   522→   522→}
+   523→   523→
+   524→   524→model MarketMatch {
+   525→   525→  id              String   @id @default(cuid())
+   526→   526→  productId       String?
+   527→   527→  product         MarketProduct? @relation(fields: [productId], references: [id])
+   528→   528→  buyerName       String
+   529→   529→  buyerPhone      String?
+   530→   530→  quantity        String
+   531→   531→  pricePerUnit    Float?
+   532→   532→  totalValue      Float?
+   533→   533→  status          String   @default("PENDING") // PENDING, CONFIRMED, DELIVERED, PAID, CANCELLED
+   534→   534→  createdAt       DateTime @default(now())
+   535→   535→  updatedAt       DateTime @updatedAt
+   536→   536→}
+   537→   537→
+   538→   538→// --- PURCHASES & CONSIGNMENTS ---
+   539→   539→
+   540→   540→model Purchase {
+   541→   541→  id          String   @id @default(cuid())
+   542→   542→  groupId     String?
+   543→   543→  farmerId    String?
+   544→   544→  farmer      FarmerProfile? @relation(fields: [farmerId], references: [id])
+   545→   545→  commodity   String
+   546→   546→  variety     String?
+   547→   547→  quantity    String
+   548→   548→  unitPrice   Float?
+   549→   549→  totalAmount Float?
+   550→   550→  status      String   @default("PENDING") // PENDING, REVIEWED, APPROVED, PAID
+   551→   551→  initiatedBy String?
+   552→   552→  reviewedBy  String?
+   553→   553→  approvedBy  String?
+   554→   554→  createdAt   DateTime @default(now())
+   555→   555→  updatedAt   DateTime @updatedAt
+   556→   556→}
+   557→   557→
+   558→   558→model Consignment {
+   559→   559→  id          String   @id @default(cuid())
+   560→   560→  product     String
+   561→   561→  quantity    String
+   562→   562→  source      String?
+   563→   563→  destination String?
+   564→   564→  status      String   @default("DRAFT") // DRAFT, DISPATCHED, CHECKED_IN, RECEIVED, APPROVED, PAID
+   565→   565→  totalValue  Float?
+   566→   566→  createdAt   DateTime @default(now())
+   567→   567→  updatedAt   DateTime @updatedAt
+   568→   568→}
+   569→   569→
+   570→   570→// --- PAYMENTS ---
+   571→   571→
+   572→   572→model PaymentAccount {
+   573→   573→  id          String   @id @default(cuid())
+   574→   574→  tenantId    String
+   575→   575→  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+   576→   576→  accountName String
+   577→   577→  accountType String   @default("MERCHANT")
+   578→   578→  email       String?
+   579→   579→  address     String?
+   580→   580→  isActive    Boolean  @default(true)
+   581→   581→  createdAt   DateTime @default(now())
+   582→   582→  updatedAt   DateTime @updatedAt
+   583→   583→
+   584→   584→  payments    Payment[]
+   585→   585→}
+   586→   586→
+   587→   587→model Payment {
+   588→   588→  id              String   @id @default(cuid())
+   589→   589→  paymentAccountId String?
+   590→   590→  paymentAccount  PaymentAccount? @relation(fields: [paymentAccountId], references: [id])
+   591→   591→  type            String   // CASUAL, BULK_PURCHASE, BULK_DISBURSEMENT, MARKETPLACE, VSLA
+   592→   592→  recipientName   String
+   593→   593→  recipientPhone  String
+   594→   594→  amount          Float
+   595→   595→  description     String?
+   596→   596→  transactionRef  String?
+   597→   597→  status          String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+   598→   598→  createdAt       DateTime @default(now())
+   599→   599→  updatedAt       DateTime @updatedAt
+   600→   600→}
+   601→   601→
+   602→   602→// --- TRAINING ---
+   603→   603→
+   604→   604→model Training {
+   605→   605→  id          String   @id @default(cuid())
+   606→   606→  topic       String
+   607→   607→  description String?
+   608→   608→  date        DateTime
+   609→   609→  location    String?
+   610→   610→  trainerName String?
+   611→   611→  createdAt   DateTime @default(now())
+   612→   612→
+   613→   613→  attendance  TrainingAttendance[]
+   614→   614→}
+   615→   615→
+   616→   616→model TrainingAttendance {
+   617→   617→  id          String   @id @default(cuid())
+   618→   618→  trainingId  String
+   619→   619→  training    Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+   620→   620→  farmerId    String
+   621→   621→  farmer      FarmerProfile @relation(fields: [farmerId], references: [id])
+   622→   622→  attended    Boolean  @default(false)
+   623→   623→  createdAt   DateTime @default(now())
+   624→   624→}
+   625→   625→
+   626→   626→// --- CREDIT SCORING ---
+   627→   627→
+   628→   628→model CreditScore {
+   629→   629→  id              String   @id @default(cuid())
+   630→   630→  farmerId        String
+   631→   631→  farmer          FarmerProfile @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+   632→   632→  demographicsScore Float?
+   633→   633→  assetScore      Float?
+   634→   634→  cropScore       Float?
+   635→   635→  financialScore  Float?
+   636→   636→  totalScore      Float?
+   637→   637→  scoreDate       DateTime @default(now())
+   638→   638→}
+   639→   639→
+   640→   640→// --- SURVEYS ---
+   641→   641→
+   642→   642→model Survey {
+   643→   643→  id          String   @id @default(cuid())
+   644→   644→  title       String
+   645→   645→  description String?
+   646→   646→  status      String   @default("ACTIVE")
+   647→   647→  createdAt   DateTime @default(now())
+   648→   648→
+   649→   649→  questions   SurveyQuestion[]
+   650→   650→  responses   SurveyResponse[]
+   651→   651→}
+   652→   652→
+   653→   653→model SurveyQuestion {
+   654→   654→  id        String  @id @default(cuid())
+   655→   655→  surveyId  String
+   656→   656→  survey    Survey  @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+   657→   657→  question  String
+   658→   658→  type      String  // TEXT, RADIO, CHECKBOX, NUMBER
+   659→   659→  options   String? // JSON array
+   660→   660→  sortOrder Int     @default(0)
+   661→   661→}
+   662→   662→
+   663→   663→model SurveyResponse {
+   664→   664→  id          String   @id @default(cuid())
+   665→   665→  surveyId    String
+   666→   666→  survey      Survey   @relation(fields: [surveyId], references: [id])
+   667→   667→  respondentId String?
+   668→   668→  answers     String   // JSON
+   669→   669→  createdAt   DateTime @default(now())
+   670→   670→}
+   671→   671→
+   672→   672→// --- COMMUNICATION ---
+   673→   673→
+   674→   674→model Message {
+   675→   675→  id          String   @id @default(cuid())
+   676→   676→  type        String   // SMS, EMAIL, IVR
+   677→   677→  recipient   String
+   678→   678→  content     String
+   679→   679→  status      String   @default("PENDING") // PENDING, SENT, DELIVERED, FAILED
+   680→   680→  sentAt      DateTime?
+   681→   681→  createdAt   DateTime @default(now())
+   682→   682→}
+   683→   683→
+   684→   684→// --- MODULE ENTITLEMENT & BILLING ---
+   685→   685→
+   686→   686→model ModuleEntitlement {
+   687→   687→  id          String   @id @default(cuid())
+   688→   688→  tenantId    String
+   689→   689→  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+   690→   690→  moduleCode  String   // VSLA, MARKETPLACE, TRAINING, TRACE, etc.
+   691→   691→  isEnabled   Boolean  @default(true)
+   692→   692→  config      String?  // JSON for module-specific settings
+   693→   693→  createdAt   DateTime @default(now())
+   694→   694→  updatedAt   DateTime @updatedAt
+   695→   695→}
+   696→   696→
+   697→   697→model Subscription {
+   698→   698→  id          String   @id @default(cuid())
+   699→   699→  tenantId    String
+   700→   700→  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+   701→   701→  plan        String   // BASIC, STANDARD, ENTERPRISE
+   702→   702→  amount      Float
+   703→   703→  billingCycle String  // MONTHLY, ANNUAL
+   704→   704→  status      String   @default("ACTIVE")
+   705→   705→  startDate   DateTime @default(now())
+   706→   706→  endDate     DateTime?
+   707→   707→  createdAt   DateTime @default(now())
+   708→   708→  updatedAt   DateTime @updatedAt
+   709→   709→}
+   710→   710→
+   711→   711→// --- API KEYS ---
+   712→   712→
+   713→   713→model ApiKey {
+   714→   714→  id          String   @id @default(cuid())
+   715→   715→  tenantId    String
+   716→   716→  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+   717→   717→  key         String   @unique
+   718→   718→  username    String?
+   719→   719→  purpose     String?
+   720→   720→  isActive    Boolean  @default(true)
+   721→   721→  createdAt   DateTime @default(now())
+   722→   722→}
+   723→   723→
+   724→   724→// --- AUDIT LOG ---
+   725→   725→
+   726→   726→model AuditLog {
+   727→   727→  id          String   @id @default(cuid())
+   728→   728→  userId      String
+   729→   729→  user        User     @relation(fields: [userId], references: [id])
+   730→   730→  action      String
+   731→   731→  entityType  String?
+   732→   732→  entityId    String?
+   733→   733→  details     String?
+   734→   734→  ipAddress   String?
+   735→   735→  createdAt   DateTime @default(now())
+   736→   736→}
+   737→   737→
+   738→   738→// --- SALES ---
+   739→   739→
+   740→   740→model Sale {
+   741→   741→  id              String   @id @default(cuid())
+   742→   742→  farmerId        String?
+   743→   743→  farmer          FarmerProfile? @relation(fields: [farmerId], references: [id])
+   744→   744→  customerId      String?
+   745→   745→  customerName    String?
+   746→   746→  product         String
+   747→   747→  quantity        String
+   748→   748→  unitPrice       Float?
+   749→   749→  totalAmount     Float?
+   750→   750→  status          String   @default("COMPLETED")
+   751→   751→  createdAt       DateTime @default(now())
+   752→   752→}
+   753→   753→
+   754→   754→// --- COMMODITIES ---
+   755→   755→
+   756→   756→model Commodity {
+   757→   757→  id          String   @id @default(cuid())
+   758→   758→  name        String
+   759→   759→  category    String?  // Crop, Livestock, Forestry, Fishery
+   760→   760→  unit        String?  // Kg, Litres, Bags
+   761→   761→  isActive    Boolean  @default(true)
+   762→   762→  createdAt   DateTime @default(now())
+   763→   763→}
+   764→   764→
+   765→   765→// --- DELIVERIES ---
+   766→   766→
+   767→   767→model Delivery {
+   768→   768→  id          String   @id @default(cuid())
+   769→   769→  relatedId   String?
+   770→   770→  relatedType String?  // PURCHASE, CONSIGNMENT, INPUT_REQUEST
+   771→   771→  status      String   @default("PENDING") // PENDING, IN_TRANSIT, DELIVERED
+   772→   772→  driverName  String?
+   773→   773→  vehicleReg  String?
+   774→   774→  dispatchedAt DateTime?
+   775→   775→  deliveredAt DateTime?
+   776→   776→  createdAt   DateTime @default(now())
+   777→   777→}
+   778→   778→
+   779→   779→// --- FEEDBACK ---
+   780→   780→
+   781→   781→model Feedback {
+   782→   782→  id          String   @id @default(cuid())
+   783→   783→  farmerId    String?
+   784→   784→  category    String?
+   785→   785→  message     String
+   786→   786→  status      String   @default("NEW") // NEW, REVIEWED, RESOLVED
+   787→   787→  resolvedBy  String?
+   788→   788→  resolvedAt  DateTime?
+   789→   789→  createdAt   DateTime @default(now())
+   790→   790→}
+   791→   791→
+   792→   792→// --- FARM VISITS (Individual Training - EKIBBO requirement) ---
+   793→   793→
+   794→   794→model FarmVisit {
+   795→   795→  id            String   @id @default(cuid())
+   796→   796→  farmerId      String?
+   797→   797→  farmer        FarmerProfile? @relation("FarmerVisits", fields: [farmerId], references: [id])
+   798→   798→  extensionOfficerId String?
+   799→   799→  visitDate     DateTime
+   800→   800→  topic         String
+   801→   801→  observations  String?
+   802→   802→  recommendations String?
+   803→   803→  followUpDate  DateTime?
+   804→   804→  status        String   @default("COMPLETED") // SCHEDULED, COMPLETED, CANCELLED
+   805→   805→  createdAt     DateTime @default(now())
+   806→   806→}
+   807→   807→
+   808→   808→// --- IMPACT ASSESSMENT (EKIBBO requirement) ---
+   809→   809→
+   810→   810→model ImpactAssessment {
+   811→   811→  id              String   @id @default(cuid())
+   812→   812→  farmerId        String?
+   813→   813→  farmer          FarmerProfile? @relation("FarmerImpact", fields: [farmerId], references: [id])
+   814→   814→  assessmentDate  DateTime @default(now())
+   815→   815→  category        String   // Income, Yield, QualityOfLife, TrainingImpact, MarketAccess
+   816→   816→  response        String   // JSON - answers to assessment questions
+   817→   817→  score           Float?
+   818→   818→  notes           String?
+   819→   819→  conductedBy     String?
+   820→   820→  createdAt       DateTime @default(now())
+   821→   821→}
+   822→   822→
+   823→   823→// --- FILE ATTACHMENTS (EKIBBO requirement - proof before payment) ---
+   824→   824→
+   825→   825→model FileAttachment {
+   826→   826→  id            String   @id @default(cuid())
+   827→   827→  relatedId     String?  // polymorphic - can be payment, purchase, training, etc.
+   828→   828→  relatedType   String?  // PAYMENT, PURCHASE, TRAINING, FARM_VISIT, CONSENT_FORM
+   829→   829→  fileName      String
+   830→   830→  fileType      String?  // image/png, application/pdf, etc.
+   831→   831→  fileSize      Int?
+   832→   832→  fileUrl       String?
+   833→   833→  uploadedBy    String?
+   834→   834→  description   String?
+   835→   835→  createdAt     DateTime @default(now())
+   836→   836→}
+   837→   837→
+   838→   838→// --- FARM POLYGON / GPS POINTS (EKIBBO - 5+ GPS points per farm) ---
+   839→   839→
+   840→   840→model FarmPolygon {
+   841→   841→  id        String   @id @default(cuid())
+   842→   842→  farmId    String
+   843→   843→  farm      FarmLand @relation(fields: [farmId], references: [id], onDelete: Cascade)
+   844→   844→  pointOrder Int
+   845→   845→  latitude  Float
+   846→   846→  longitude Float
+   847→   847→  altitude  Float?
+   848→   848→  createdAt DateTime @default(now())
+   849→   849→}
+   850→   850→
+   851→   851→// --- COMPLIANCE: EUDR (EU Deforestation Regulation) ---
+   852→   852→
+   853→   853→model EudrCompliance {
+   854→   854→  id              String   @id @default(cuid())
+   855→   855→  farmerId        String?
+   856→   856→  farmer          FarmerProfile? @relation("FarmerEudr", fields: [farmerId], references: [id])
+   857→   857→  plotId          String   @unique
+   858→   858→  plotName        String
+   859→   859→  geolocation     String   // GeoJSON polygon
+   860→   860→  areaHectares    Float
+   861→   861→  commodities     String   // JSON array of commodities
+   862→   862→  deforestationFree Boolean @default(false)
+   863→   863→  deforestationDate DateTime?
+   864→   864→  legalDocuments  String?  // JSON array of document references
+   865→   865→  riskAssessment  String?  // LOW, MEDIUM, HIGH
+   866→   866→  dueDiligenceRef String?
+   867→   867→  status          String   @default("PENDING") // PENDING, VERIFIED, REJECTED, EXPIRED
+   868→   868→  verifiedBy      String?
+   869→   869→  verifiedAt      DateTime?
+   870→   870→  expiryDate      DateTime?
+   871→   871→  createdAt       DateTime @default(now())
+   872→   872→  updatedAt       DateTime @updatedAt
+   873→   873→}
+   874→   874→
+   875→   875→// --- COMPLIANCE: CBAM (Carbon Border Adjustment Mechanism) ---
+   876→   876→
+   877→   877→model CbamReport {
+   878→   878→  id              String   @id @default(cuid())
+   879→   879→  farmerId        String?
+   880→   880→  farmer          FarmerProfile? @relation("FarmerCbam", fields: [farmerId], references: [id])
+   881→   881→  reportingPeriod String   // e.g. "2026-Q1"
+   882→   882→  commodity       String
+   883→   883→  quantityTonnes  Float
+   884→   884→  embeddedEmissions Float  // tCO2e per tonne
+   885→   885→  totalEmissions  Float    // total tCO2e
+   886→   886→  certificationType String? // Organic, Conventional, etc.
+   887→   887→  carbonCredits   Float?
+   888→   888→  status          String   @default("DRAFT") // DRAFT, SUBMITTED, VERIFIED, REJECTED
+   889→   889→  submittedBy     String?
+   890→   890→  submittedAt     DateTime?
+   891→   891→  verifiedBy      String?
+   892→   892→  verifiedAt      DateTime?
+   893→   893→  createdAt       DateTime @default(now())
+   894→   894→  updatedAt       DateTime @updatedAt
+   895→   895→}
+   896→   896→
+   897→   897→// --- COMPLIANCE: RAINFOREST ALLIANCE ---
+   898→   898→
+   899→   899→model RainforestCertification {
+   900→   900→  id              String   @id @default(cuid())
+   901→   901→  farmerId        String?
+   902→   902→  farmer          FarmerProfile? @relation("FarmerRainforest", fields: [farmerId], references: [id])
+   903→   903→  certificateNo   String   @unique
+   904→   904→  certificationLevel String // RA Standard, RA Climate, RA/UTZ
+   905→   905→  issueDate       DateTime
+   906→   906→  expiryDate      DateTime
+   907→   907→  auditDate       DateTime?
+   908→   908→  auditorName     String?
+   909→   909→  auditScore      Float?
+   910→   910→  criticalFindings Int @default(0)
+   911→   911→  majorFindings   Int @default(0)
+   912→   912→  minorFindings   Int @default(0)
+   913→   913→  status          String   @default("ACTIVE") // ACTIVE, SUSPENDED, REVOKED, EXPIRED
+   914→   914→  nextAuditDate   DateTime?
+   915→   915→  createdAt       DateTime @default(now())
+   916→   916→  updatedAt       DateTime @updatedAt
+   917→   917→}
+   918→   918→
+   919→   919→// --- COMPLIANCE: GLOBALG.A.P. ---
+   920→   920→
+   921→   921→model GlobalGapCertification {
+   922→   922→  id              String   @id @default(cuid())
+   923→   923→  farmerId        String?
+   924→   924→  farmer          FarmerProfile? @relation("FarmerGlobalGap", fields: [farmerId], references: [id])
+   925→   925→  ggnNumber       String   @unique
+   926→   926→  scope           String   // Crops, Flowers, Aquaculture, etc.
+   927→   927→  version         String?  // e.g. "v6.0"
+   928→   928→  option          String   // All Farm Base (AFB), Sub-Scope, Single Site
+   929→   929→  issueDate       DateTime
+   930→   930→  expiryDate      DateTime
+   931→   931→  auditDate       DateTime?
+   932→   932→  auditorName     String?
+   933→   933→  compliancePercentage Float?
+   934→   934→  status          String   @default("ACTIVE") // ACTIVE, SUSPENDED, REVOKED, EXPIRED
+   935→   935→  nextAuditDate   DateTime?
+   936→   936→  createdAt       DateTime @default(now())
+   937→   937→  updatedAt       DateTime @updatedAt
+   938→   938→}
+   939→   939→
+   940→   940→// --- CHANNEL SIMULATOR: USSD SESSIONS ---
+   941→   941→
+   942→   942→model UssdSession {
+   943→   943→  id          String   @id @default(cuid())
+   944→   944→  sessionId   String   @unique
+   945→   945→  phoneNumber String
+   946→   946→  currentStep String
+   947→   947→  inputData   String?  // JSON - accumulated input data
+   948→   948→  status      String   @default("ACTIVE") // ACTIVE, COMPLETED, TIMEOUT
+   949→   949→  createdAt   DateTime @default(now())
+   950→   950→  completedAt DateTime?
+   951→   951→}
+   952→   952→
+   953→   953→// --- CHANNEL SIMULATOR: IVR CAMPAIGN ---
+   954→   954→
+   955→   955→model IvrCampaign {
+   956→   956→  id          String   @id @default(cuid())
+   957→   957→  name        String
+   958→   958→  description String?
+   959→   959→  script      String   // JSON - IVR call flow script
+   960→   960→  targetGroup String?  // farmer group or segment
+   961→   961→  status      String   @default("DRAFT") // DRAFT, SCHEDULED, RUNNING, COMPLETED
+   962→   962→  scheduledAt DateTime?
+   963→   963→  totalCalls  Int      @default(0)
+   964→   964→  completedCalls Int   @default(0)
+   965→   965→  createdAt   DateTime @default(now())
+   966→   966→  updatedAt   DateTime @updatedAt
+   967→   967→}
+   968→   968→
+   969→   969→// --- CHANNEL SIMULATOR: SMS BROADCAST ---
+   970→   970→
+   971→   971→model SmsBroadcast {
+   972→   972→  id          String   @id @default(cuid())
+   973→   973→  message     String
+   974→   974→  recipientCount Int   @default(0)
+   975→   975→  status      String   @default("DRAFT") // DRAFT, SCHEDULED, SENT, FAILED
+   976→   976→  scheduledAt DateTime?
+   977→   977→  sentAt      DateTime?
+   978→   978→  createdBy   String?
+   979→   979→  createdAt   DateTime @default(now())
+   980→   980→}
