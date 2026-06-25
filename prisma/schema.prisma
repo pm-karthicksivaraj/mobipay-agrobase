@@ -228,6 +228,12 @@ model FarmerProfile {
   purchases       Purchase[]
   sales           Sale[]
   vslaMemberships VslaMember[]
+  farmVisits      FarmVisit[]      @relation("FarmerVisits")
+  impactAssessments ImpactAssessment[] @relation("FarmerImpact")
+  eudrCompliances EudrCompliance[]  @relation("FarmerEudr")
+  cbamReports     CbamReport[]      @relation("FarmerCbam")
+  rainforestCerts RainforestCertification[] @relation("FarmerRainforest")
+  globalGapCerts  GlobalGapCertification[] @relation("FarmerGlobalGap")
 }
 
 model ChildProfile {
@@ -259,6 +265,7 @@ model FarmLand {
   updatedAt   DateTime @updatedAt
 
   cultivations Cultivation[]
+  polygonPoints FarmPolygon[]
 }
 
 model Cultivation {
@@ -777,5 +784,197 @@ model Feedback {
   category    String?
   message     String
   status      String   @default("NEW") // NEW, REVIEWED, RESOLVED
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+}
+
+// --- FARM VISITS (Individual Training - EKIBBO requirement) ---
+
+model FarmVisit {
+  id            String   @id @default(cuid())
+  farmerId      String?
+  farmer        FarmerProfile? @relation("FarmerVisits", fields: [farmerId], references: [id])
+  extensionOfficerId String?
+  visitDate     DateTime
+  topic         String
+  observations  String?
+  recommendations String?
+  followUpDate  DateTime?
+  status        String   @default("COMPLETED") // SCHEDULED, COMPLETED, CANCELLED
+  createdAt     DateTime @default(now())
+}
+
+// --- IMPACT ASSESSMENT (EKIBBO requirement) ---
+
+model ImpactAssessment {
+  id              String   @id @default(cuid())
+  farmerId        String?
+  farmer          FarmerProfile? @relation("FarmerImpact", fields: [farmerId], references: [id])
+  assessmentDate  DateTime @default(now())
+  category        String   // Income, Yield, QualityOfLife, TrainingImpact, MarketAccess
+  response        String   // JSON - answers to assessment questions
+  score           Float?
+  notes           String?
+  conductedBy     String?
+  createdAt       DateTime @default(now())
+}
+
+// --- FILE ATTACHMENTS (EKIBBO requirement - proof before payment) ---
+
+model FileAttachment {
+  id            String   @id @default(cuid())
+  relatedId     String?  // polymorphic - can be payment, purchase, training, etc.
+  relatedType   String?  // PAYMENT, PURCHASE, TRAINING, FARM_VISIT, CONSENT_FORM
+  fileName      String
+  fileType      String?  // image/png, application/pdf, etc.
+  fileSize      Int?
+  fileUrl       String?
+  uploadedBy    String?
+  description   String?
+  createdAt     DateTime @default(now())
+}
+
+// --- FARM POLYGON / GPS POINTS (EKIBBO - 5+ GPS points per farm) ---
+
+model FarmPolygon {
+  id        String   @id @default(cuid())
+  farmId    String
+  farm      FarmLand @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  pointOrder Int
+  latitude  Float
+  longitude Float
+  altitude  Float?
+  createdAt DateTime @default(now())
+}
+
+// --- COMPLIANCE: EUDR (EU Deforestation Regulation) ---
+
+model EudrCompliance {
+  id              String   @id @default(cuid())
+  farmerId        String?
+  farmer          FarmerProfile? @relation("FarmerEudr", fields: [farmerId], references: [id])
+  plotId          String   @unique
+  plotName        String
+  geolocation     String   // GeoJSON polygon
+  areaHectares    Float
+  commodities     String   // JSON array of commodities
+  deforestationFree Boolean @default(false)
+  deforestationDate DateTime?
+  legalDocuments  String?  // JSON array of document references
+  riskAssessment  String?  // LOW, MEDIUM, HIGH
+  dueDiligenceRef String?
+  status          String   @default("PENDING") // PENDING, VERIFIED, REJECTED, EXPIRED
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  expiryDate      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --- COMPLIANCE: CBAM (Carbon Border Adjustment Mechanism) ---
+
+model CbamReport {
+  id              String   @id @default(cuid())
+  farmerId        String?
+  farmer          FarmerProfile? @relation("FarmerCbam", fields: [farmerId], references: [id])
+  reportingPeriod String   // e.g. "2026-Q1"
+  commodity       String
+  quantityTonnes  Float
+  embeddedEmissions Float  // tCO2e per tonne
+  totalEmissions  Float    // total tCO2e
+  certificationType String? // Organic, Conventional, etc.
+  carbonCredits   Float?
+  status          String   @default("DRAFT") // DRAFT, SUBMITTED, VERIFIED, REJECTED
+  submittedBy     String?
+  submittedAt     DateTime?
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --- COMPLIANCE: RAINFOREST ALLIANCE ---
+
+model RainforestCertification {
+  id              String   @id @default(cuid())
+  farmerId        String?
+  farmer          FarmerProfile? @relation("FarmerRainforest", fields: [farmerId], references: [id])
+  certificateNo   String   @unique
+  certificationLevel String // RA Standard, RA Climate, RA/UTZ
+  issueDate       DateTime
+  expiryDate      DateTime
+  auditDate       DateTime?
+  auditorName     String?
+  auditScore      Float?
+  criticalFindings Int @default(0)
+  majorFindings   Int @default(0)
+  minorFindings   Int @default(0)
+  status          String   @default("ACTIVE") // ACTIVE, SUSPENDED, REVOKED, EXPIRED
+  nextAuditDate   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --- COMPLIANCE: GLOBALG.A.P. ---
+
+model GlobalGapCertification {
+  id              String   @id @default(cuid())
+  farmerId        String?
+  farmer          FarmerProfile? @relation("FarmerGlobalGap", fields: [farmerId], references: [id])
+  ggnNumber       String   @unique
+  scope           String   // Crops, Flowers, Aquaculture, etc.
+  version         String?  // e.g. "v6.0"
+  option          String   // All Farm Base (AFB), Sub-Scope, Single Site
+  issueDate       DateTime
+  expiryDate      DateTime
+  auditDate       DateTime?
+  auditorName     String?
+  compliancePercentage Float?
+  status          String   @default("ACTIVE") // ACTIVE, SUSPENDED, REVOKED, EXPIRED
+  nextAuditDate   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --- CHANNEL SIMULATOR: USSD SESSIONS ---
+
+model UssdSession {
+  id          String   @id @default(cuid())
+  sessionId   String   @unique
+  phoneNumber String
+  currentStep String
+  inputData   String?  // JSON - accumulated input data
+  status      String   @default("ACTIVE") // ACTIVE, COMPLETED, TIMEOUT
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+}
+
+// --- CHANNEL SIMULATOR: IVR CAMPAIGN ---
+
+model IvrCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  script      String   // JSON - IVR call flow script
+  targetGroup String?  // farmer group or segment
+  status      String   @default("DRAFT") // DRAFT, SCHEDULED, RUNNING, COMPLETED
+  scheduledAt DateTime?
+  totalCalls  Int      @default(0)
+  completedCalls Int   @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- CHANNEL SIMULATOR: SMS BROADCAST ---
+
+model SmsBroadcast {
+  id          String   @id @default(cuid())
+  message     String
+  recipientCount Int   @default(0)
+  status      String   @default("DRAFT") // DRAFT, SCHEDULED, SENT, FAILED
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdBy   String?
   createdAt   DateTime @default(now())
 }

@@ -3,8 +3,9 @@
 import React from 'react'
 import { useAppStore } from '@/lib/store'
 import { useTheme } from 'next-themes'
+import { useSession, signOut } from 'next-auth/react'
 import {
-  Sun, Moon, Menu, Bell, Search, ChevronDown, LogOut, Leaf
+  Sun, Moon, Menu, Bell, Search, ChevronDown, LogOut, Leaf, User
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,15 +24,13 @@ const MODULE_TITLES: Record<string, string> = {
   payments: 'Payments',
   loans: 'Loan Management',
   reports: 'Reports & Analytics',
-  training: 'Training & Extension',
+  training: 'Training & Groups',
   settings: 'Settings',
   communication: 'Communication',
   agritrack: 'AgriTrack',
-  profile: 'Profile',
-  companies: 'Companies',
   'input-aggregation': 'Input Aggregation',
   purchases: 'Purchases',
-  approvals: 'Approvals',
+  approvals: 'Approvals Hub',
   sales: 'Sales',
   deliveries: 'Deliveries',
   consignments: 'Consignments',
@@ -39,22 +38,31 @@ const MODULE_TITLES: Record<string, string> = {
   ccrp: 'CCRP',
   cohort1: 'Cohort 1',
   cohort2: 'Cohort 2',
-  smile: 'SMILE',
-  nakivaale: 'Nakivaale',
+  smile: 'SMILE Program',
+  nakivaale: 'Nakivaale Project',
   ivr: 'IVR',
+  'channel-sim': 'Channel Simulator',
   feedback: 'Feedback',
   trace: 'Traceability',
   users: 'User Management',
   surveys: 'Surveys',
+  'farm-visits': 'Farm Visits',
+  'impact-assessment': 'Impact Assessment',
+  compliance: 'Compliance Hub',
+  profile: 'Profile',
+  companies: 'Companies',
 }
 
 export function TopBar() {
-  const { activeModule, setSidebarOpen } = useAppStore()
+  const { activeModule, setSidebarOpen, user } = useAppStore()
   const { theme, setTheme } = useTheme()
+  const { data: session } = useSession()
+
+  const userName = user?.name || session?.user?.name || 'Super Admin'
+  const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
     <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center px-4 lg:px-6 gap-4 shrink-0 sticky top-0 z-30">
-      {/* Mobile menu button */}
       <Button
         variant="ghost"
         size="icon"
@@ -64,7 +72,6 @@ export function TopBar() {
         <Menu className="w-5 h-5" />
       </Button>
 
-      {/* Breadcrumb / Title */}
       <div className="flex items-center gap-2 min-w-0">
         <Leaf className="w-4 h-4 text-primary shrink-0" />
         <h2 className="text-lg font-semibold truncate">
@@ -74,7 +81,6 @@ export function TopBar() {
 
       <div className="flex-1" />
 
-      {/* Search */}
       <div className="hidden md:flex items-center relative max-w-xs w-full">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
@@ -83,9 +89,7 @@ export function TopBar() {
         />
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-1">
-        {/* Theme toggle */}
         <Button
           variant="ghost"
           size="icon"
@@ -97,7 +101,6 @@ export function TopBar() {
           <span className="sr-only">Toggle theme</span>
         </Button>
 
-        {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-9 w-9 relative">
@@ -119,30 +122,34 @@ export function TopBar() {
               <span className="text-xs text-muted-foreground">1 hour ago</span>
             </DropdownMenuItem>
             <DropdownMenuItem className="flex flex-col items-start gap-1 py-2">
-              <span className="text-sm font-medium">Market match confirmed</span>
+              <span className="text-sm font-medium">EUDR compliance expiring soon</span>
               <span className="text-xs text-muted-foreground">3 hours ago</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-9 gap-2 px-2">
               <Avatar className="h-7 w-7">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs">SA</AvatarFallback>
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs">{userInitials}</AvatarFallback>
               </Avatar>
-              <span className="hidden sm:inline text-sm font-medium">Super Admin</span>
+              <span className="hidden sm:inline text-sm font-medium">{userName}</span>
               <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Preferences</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => useAppStore.getState().setActiveModule('profile')}>
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => useAppStore.getState().setActiveModule('settings')}>
+              Settings
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem className="text-destructive" onClick={() => signOut({ callbackUrl: '/' })}>
               <LogOut className="w-4 h-4 mr-2" />
               Sign out
             </DropdownMenuItem>

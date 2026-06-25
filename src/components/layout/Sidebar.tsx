@@ -4,70 +4,87 @@ import React from 'react'
 import { useAppStore, type ModuleKey } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Users, Landmark, Store, CreditCard, FileText, GraduationCap,
-  Settings, MessageSquare, BarChart3, Leaf, Tractor, Wheat, Fish, TreePine,
-  Package, Truck, ClipboardCheck, Building2, DollarSign, Target,
-  Smartphone, Map, Radio, Database, ShoppingCart,
-  ChevronDown, ChevronRight, Sprout, Receipt, Layers, TrendingUp,
-  X, HandCoins, Shield, UserCheck, PiggyBank
+  LayoutDashboard, Users, Store, CreditCard, GraduationCap,
+  Settings, MessageSquare, BarChart3, Target,
+  Package, Truck, ClipboardCheck, Building2, UserCheck, Shield, Layers,
+  Receipt, TrendingUp, Phone, Map, Radio, ShoppingCart,
+  Sprout, PiggyBank, DollarSign, FileText, Leaf,
+  Stethoscope, Activity, Smartphone, TreePine, UsersRound
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface NavItem {
   key: ModuleKey
   label: string
   icon: React.ElementType
-  group?: string
+  group: string
 }
 
-const CORE_MODULES: NavItem[] = [
+const ALL_MODULES: NavItem[] = [
+  // Overview
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
+  // Core Operations
   { key: 'farmers', label: 'Farmer Profiling', icon: Users, group: 'Core Operations' },
   { key: 'vsla', label: 'VSLA Management', icon: PiggyBank, group: 'Core Operations' },
   { key: 'marketplace', label: 'Marketplace', icon: Store, group: 'Core Operations' },
   { key: 'payments', label: 'Payments', icon: CreditCard, group: 'Core Operations' },
   { key: 'loans', label: 'Loan Management', icon: DollarSign, group: 'Core Operations' },
-  { key: 'training', label: 'Training & Extension', icon: GraduationCap, group: 'Core Operations' },
-  { key: 'reports', label: 'Reports & Analytics', icon: BarChart3, group: 'Intelligence' },
-  { key: 'agritrack', label: 'AgriTrack', icon: Target, group: 'Intelligence' },
-]
-
-const EXTENDED_MODULES: NavItem[] = [
+  { key: 'training', label: 'Training & Groups', icon: GraduationCap, group: 'Core Operations' },
+  { key: 'farm-visits', label: 'Farm Visits', icon: Leaf, group: 'Core Operations' },
+  // Supply Chain
   { key: 'input-aggregation', label: 'Input Aggregation', icon: Package, group: 'Supply Chain' },
   { key: 'purchases', label: 'Purchases', icon: ShoppingCart, group: 'Supply Chain' },
+  { key: 'approvals', label: 'Approvals Hub', icon: ClipboardCheck, group: 'Supply Chain' },
+  { key: 'processing', label: 'Processing', icon: Layers, group: 'Supply Chain' },
+  { key: 'sales', label: 'Sales', icon: Receipt, group: 'Supply Chain' },
+  { key: 'deliveries', label: 'Deliveries', icon: Truck, group: 'Supply Chain' },
   { key: 'consignments', label: 'Consignments', icon: Truck, group: 'Supply Chain' },
   { key: 'trace', label: 'Traceability', icon: Map, group: 'Supply Chain' },
+  // Intelligence
+  { key: 'reports', label: 'Reports & Analytics', icon: BarChart3, group: 'Intelligence' },
+  { key: 'agritrack', label: 'AgriTrack', icon: Target, group: 'Intelligence' },
+  { key: 'impact-assessment', label: 'Impact Assessment', icon: Activity, group: 'Intelligence' },
+  // Engagement
   { key: 'communication', label: 'Communication', icon: MessageSquare, group: 'Engagement' },
-  { key: 'surveys', label: 'Surveys', icon: ClipboardCheck, group: 'Engagement' },
+  { key: 'surveys', label: 'Surveys', icon: FileText, group: 'Engagement' },
   { key: 'feedback', label: 'Feedback', icon: Radio, group: 'Engagement' },
+  { key: 'channel-sim', label: 'Channel Simulator', icon: Smartphone, group: 'Engagement' },
+  // Programs
+  { key: 'ccrp', label: 'CCRP', icon: TreePine, group: 'Programs' },
+  { key: 'cohort1', label: 'Cohort 1', icon: Users, group: 'Programs' },
+  { key: 'cohort2', label: 'Cohort 2', icon: UsersRound, group: 'Programs' },
+  { key: 'smile', label: 'SMILE', icon: TrendingUp, group: 'Programs' },
+  { key: 'nakivaale', label: 'Nakivaale', icon: Map, group: 'Programs' },
+  // Admin
+  { key: 'compliance', label: 'Compliance Hub', icon: Shield, group: 'Admin' },
   { key: 'companies', label: 'Companies', icon: Building2, group: 'Admin' },
   { key: 'users', label: 'User Management', icon: UserCheck, group: 'Admin' },
   { key: 'settings', label: 'Settings', icon: Settings, group: 'Admin' },
-  { key: 'profile', label: 'Profile', icon: Shield, group: 'Admin' },
+  { key: 'profile', label: 'Profile', icon: Stethoscope, group: 'Admin' },
 ]
 
-const MODULE_GROUPS: Record<string, NavItem[]> = {
-  'Core Operations': CORE_MODULES.filter(m => m.group === 'Core Operations'),
-  'Intelligence': CORE_MODULES.filter(m => m.group === 'Intelligence'),
-  'Supply Chain': EXTENDED_MODULES.filter(m => m.group === 'Supply Chain'),
-  'Engagement': EXTENDED_MODULES.filter(m => m.group === 'Engagement'),
-  'Admin': EXTENDED_MODULES.filter(m => m.group === 'Admin'),
+const MODULE_GROUPS: Record<string, NavItem[]> = {}
+for (const mod of ALL_MODULES) {
+  if (!MODULE_GROUPS[mod.group]) MODULE_GROUPS[mod.group] = []
+  MODULE_GROUPS[mod.group].push(mod)
 }
 
 export function Sidebar() {
-  const { activeModule, setActiveModule, sidebarOpen, setSidebarOpen } = useAppStore()
+  const { activeModule, setActiveModule, sidebarOpen, setSidebarOpen, user } = useAppStore()
 
   const handleNav = (key: ModuleKey) => {
     setActiveModule(key)
     setSidebarOpen(false)
   }
 
+  const userInitials = user?.name
+    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'SA'
+
   return (
     <>
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -75,14 +92,13 @@ export function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
           'fixed left-0 top-0 z-50 h-full w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Logo area */}
+        {/* Logo */}
         <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border shrink-0">
           <div className="w-9 h-9 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <Sprout className="w-5 h-5 text-sidebar-primary-foreground" />
@@ -97,7 +113,8 @@ export function Sidebar() {
             className="lg:hidden h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             onClick={() => setSidebarOpen(false)}
           >
-            <X className="w-4 h-4" />
+            <span className="sr-only">Close</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </Button>
         </div>
 
@@ -146,11 +163,11 @@ export function Sidebar() {
         <div className="border-t border-sidebar-border p-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-bold text-sidebar-primary">
-              SA
+              {userInitials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">Super Admin</p>
-              <p className="text-[11px] text-sidebar-foreground/50 truncate">admin@agrobase.co</p>
+              <p className="text-sm font-medium truncate">{user?.name || 'Super Admin'}</p>
+              <p className="text-[11px] text-sidebar-foreground/50 truncate">{user?.role || 'SUPER_ADMIN'}</p>
             </div>
           </div>
         </div>

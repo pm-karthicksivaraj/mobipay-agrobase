@@ -1,37 +1,31 @@
 ---
 Task ID: 1
 Agent: Main Agent
-Task: Continue Agrobase V3 implementation - fix seed, build full frontend SPA
+Task: Build remaining 19 modules, NextAuth, theme persistence, USSD/IVR/SMS simulators, EKIBBO compliance
 
 Work Log:
-- Regenerated Prisma client and pushed schema (db push --force-reset)
-- Ran standalone seed script via `npx tsx scripts/seed.ts` bypassing Turbopack cache - seeded 50 farmers, 5 VSLA groups (75 savings, 20 loans, 20 meetings), 20 market products, 30 payments, 8 trainings, 25 credit scores, 12 loan applications
-- Created `/src/components/layout/Sidebar.tsx` - full sidebar with 30 module nav items grouped into Core Operations, Intelligence, Supply Chain, Engagement, Admin sections, responsive with mobile overlay
-- Created `/src/components/layout/TopBar.tsx` - top bar with module title, search, theme toggle (dark/light), notifications dropdown, user menu
-- Created 11 module view components:
-  - `DashboardView.tsx` - 4 stat cards, farmer registration bar chart, VSLA savings horizontal bar chart, gender split, recent activity table
-  - `FarmersView.tsx` - searchable/filterable data table with pagination, add farmer dialog form, farmer detail view with profile card
-  - `VslaView.tsx` - 4 summary cards, tabbed interface (Groups, Savings, Loans, Meetings), loan status pie chart
-  - `MarketplaceView.tsx` - summary cards, 3 tabs (Products, Matches, Input Aggregation) with product cards, match table, dealer/request lists
-  - `PaymentsView.tsx` - stats, transaction history table, analytics with pie chart, send payment dialog
-  - `LoansView.tsx` - loan applications table, loan products grid, loan calculator dialog with EMI formula
-  - `ReportsView.tsx` - 7 categories with 35 report types, searchable grid
-  - `TrainingView.tsx` - stats cards, training session cards with attendance counts
-  - `SettingsView.tsx` - 5 tabs (Tenants, Users, Geography, Modules, System), tenant table, module entitlement switches
-  - `CommunicationView.tsx` - SMS/Email/IVR compose, outbox with message table, broadcast placeholder
-  - `AgriTrackView.tsx` - credit score distribution stats, 4-factor credit scoring table with progress bars
-- Rebuilt `page.tsx` as SPA router with lazy-loaded module views, placeholder components for 19 unimplemented modules
-- Fixed all API routes to return consistent JSON keys matching frontend expectations
-- Fixed BigInt serialization error in dashboard stats API (SQLite COUNT returns BigInt)
-- Fixed monthly registration chart to handle single-month data with simulated fallback
-- Added fallback to use payments as recent transactions when no VSLA transactions exist
-- Disabled Prisma query logging to reduce memory usage
-- Verified production build compiles with zero errors
-- All APIs return correct data: 47 farmers, 5 VSLA groups, UGX 180,000 savings, 15 active loans, 15 market listings, 10 recent transactions
+- Read EKIBBO feedback PDF - identified 12 key requirements (3-tier access, farm visits, impact assessment, compliance, multi-point GPS, attachments, etc.)
+- Updated Prisma schema with 11 new models: FarmVisit, ImpactAssessment, FileAttachment, FarmPolygon, EudrCompliance, CbamReport, RainforestCertification, GlobalGapCertification, UssdSession, IvrCampaign, SmsBroadcast
+- Added backward relations to FarmerProfile (6 new relations) and FarmLand (polygonPoints)
+- Pushed schema to DB and generated Prisma client
+- Set up NextAuth.js v4 with CredentialsProvider, JWT strategy, multi-tenant roles, session sync to Zustand
+- Built LoginPage with demo auto-fill, auth guard in page.tsx
+- Built 20 new module views via 3 parallel subagent tasks: TraceabilityView, SurveysView, InputAggregationView, PurchasesView, ConsignmentsView, SalesView, DeliveriesView, CompaniesView, UsersView, FeedbackView, ApprovalsView, ProcessingView, ComplianceView, ImpactAssessmentView, FarmVisitsView, ProfileView, ChannelSimulatorView, CcrpView, CohortsView, ProgramsView
+- Created 25 API routes for all new modules
+- Updated Zustand store with 4 new module keys (farm-visits, impact-assessment, channel-sim, compliance)
+- Rewrote Sidebar with 31 modules organized in 6 groups
+- Rewrote TopBar with sign-out, all module titles, user sync
+- Rewrote page.tsx with lazy imports for all 31 modules, auth guard
+- Created comprehensive seed script (50 farmers, EKIBBO tenant, compliance records, channel data)
+- Fixed runtime errors: Budget icon → Wallet, SurveysView questions reduce, PurchasesView charges/taxes/netAmount, SalesView totalAmount
+- Browser-verified: Login, Dashboard, Farmers, Compliance Hub (EUDR/CBAM/Rainforest/GGN), Channel Simulator (USSD/IVR/SMS), Sales, Purchases, Traceability, Impact Assessment all load without errors
 
 Stage Summary:
-- Full SPA dashboard with 11 functional module views and 19 placeholder modules
-- All API routes tested and returning correct data
-- Production build successful (zero errors, 29 API routes)
-- Green agricultural theme with emerald primary, amber accent, slate backgrounds
-- Responsive design: sidebar collapses on mobile, tables hide columns on smaller screens
+- All 31 module views built and wired into SPA router
+- NextAuth.js authentication with 3 demo users (admin, extension officer, farmer)
+- EKIBBO compliance modules: EUDR, CBAM, Rainforest Alliance, GLOBALG.A.P.
+- USSD/IVR/SMS channel simulators
+- Farm Visits and Impact Assessment modules per EKIBBO feedback
+- Dark/light theme persistence via next-themes
+- 25 new API routes + 50 seeded farmers + 9 tenants
+- 0 lint errors (except pre-existing VslaView issue)
