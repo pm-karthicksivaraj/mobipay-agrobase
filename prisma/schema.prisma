@@ -47,8 +47,18 @@ model Tenant {
   surveys          Survey[]
   consignments     Consignment[]
   deliveries       Delivery[]
-  messages         Message[]
-  feedback         Feedback[]
+  messages             Message[]
+  feedback             Feedback[]
+  satelliteImages      SatelliteImage[]
+  ndvTimeSeries        NdvTimeSeries[]
+  rainfallRecords      RainfallRecord[]
+  deforestationAlerts  DeforestationAlert[]
+  carbonFootprints     CarbonFootprint[]
+  cbamCalculations     CbamCalculation[]
+  productBatches       ProductBatch[]
+  traceEvents          TraceEvent[]
+  farmPassports        FarmPassport[]
+  costOfCultivations   CostOfCultivation[]
 }
 
 // --- USERS & AUTH ---
@@ -249,6 +259,8 @@ model FarmerProfile {
   globalGapCerts  GlobalGapCertification[] @relation("FarmerGlobalGap")
   produceIntakes        ProduceIntake[]        @relation("FarmerIntake")
   cooperativePayments   CooperativePayment[]    @relation("FarmerCoopPayment")
+  productBatches       ProductBatch[]         @relation("FarmerBatches")
+  farmPassport         FarmPassport?          @relation("FarmerPassport")
 }
 
 model ChildProfile {
@@ -921,6 +933,10 @@ model EudrCompliance {
   expiryDate      DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  deforestationAlerts  DeforestationAlert[]  @relation("EudrDeforestation")
+  documents           EudrDocument[]          @relation("EudrDocuments")
+  auditLogs           EudrAuditLog[]          @relation("EudrAuditLogs")
 }
 
 // --- COMPLIANCE: CBAM (Carbon Border Adjustment Mechanism) ---
@@ -943,6 +959,8 @@ model CbamReport {
   verifiedAt      DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  cbamCalculation  CbamCalculation?  @relation("CbamCalc")
 }
 
 // --- COMPLIANCE: RAINFOREST ALLIANCE ---
@@ -1221,4 +1239,235 @@ model IdMapping {
   createdAt   DateTime @default(now())
 
   @@unique([tableName, v1Id])
+}
+
+// ============================================
+// PHASE 3 — SATELLITE, CARBON, TRACEABILITY
+// ============================================
+
+// --- SATELLITE INTELLIGENCE ---
+
+model SatelliteImage {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  source          String   // SENTINEL2, LANDSAT8, LANDSAT9, CHIRPS
+  farmId          String?
+  acquisitionDate DateTime
+  bbox            String   // JSON: [west, south, east, north]
+  cloudCover      Float    @default(0)
+  resolution      Float
+  thumbnailUrl    String?
+  downloadUrl     String?
+  processedData   String?  // JSON: vegetation indices, land cover, etc.
+  createdAt       DateTime @default(now())
+}
+
+model NdvTimeSeries {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  farmId          String
+  plotId          String?
+  date            String
+  ndviValue       Float
+  eviValue        Float?
+  cloudCover      Float    @default(0)
+  source          String   @default("SENTINEL2")
+  createdAt       DateTime @default(now())
+}
+
+model RainfallRecord {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  farmId          String?
+  latitude        Float
+  longitude       Float
+  date            String   // YYYY-MM-DD
+  rainfallMm      Float
+  isChirps        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+model DeforestationAlert {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  eudrComplianceId  String?
+  eudrCompliance    EudrCompliance? @relation("EudrDeforestation", fields: [eudrComplianceId], references: [id])
+  farmId            String?
+  severity          String   @default("NONE") // NONE, LOW, MEDIUM, HIGH, CRITICAL
+  areaAffectedHa    Float    @default(0)
+  detectionDate     DateTime
+  baselineDate      DateTime @default(dbgenerated("'2020-12-31 00:00:00'"))
+  confidence        Float    @default(0)
+  affectedAreaGeo   String?  // GeoJSON polygon of affected area
+  status            String   @default("ACTIVE") // ACTIVE, DISMISSED, CONFIRMED
+  resolvedAt        DateTime?
+  resolvedBy        String?
+  createdAt         DateTime @default(now())
+}
+
+// --- CARBON / CBAM ---
+
+model CarbonFootprint {
+  id                    String   @id @default(cuid())
+  tenantId              String
+  tenant                Tenant   @relation(fields: [tenantId], references: [id])
+  cultivationId         String
+  commodity             String
+  totalEmissionsKgCO2e  Float
+  emissionsPerKg        Float
+  emissionsPerHectare   Float
+  breakdown             String   // JSON: {FERTILIZER: X, FUEL: Y, ...}
+  stages                String   // JSON: array of CropStageEmission
+  calculationMethod     String   @default("IPCC_TIER2")
+  verificationStatus    String   @default("DRAFT")
+  verifiedBy            String?
+  verifiedAt            DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model CbamCalculation {
+  id                        String   @id @default(cuid())
+  tenantId                  String
+  tenant                    Tenant   @relation(fields: [tenantId], references: [id])
+  cbamReportId              String?   @unique
+  cbamReport                CbamReport? @relation("CbamCalc", fields: [cbamReportId], references: [id])
+  commodity                 String
+  originCountry             String
+  quantityTonnes            Float
+  embeddedEmissionsPerTonne Float
+  totalEmbeddedEmissions    Float
+  euCarbonPrice             Float
+  cbamCertificateCost       Float
+  carbonCreditsApplied      Float    @default(0)
+  netCost                   Float
+  reportingPeriod           String
+  status                    String   @default("DRAFT")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+// --- TRACEABILITY ---
+
+model ProductBatch {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  batchId           String   @unique
+  farmerId          String?
+  farmer            FarmerProfile? @relation("FarmerBatches", fields: [farmerId], references: [id])
+  cooperativeId     String?
+  commodity         String
+  variety           String?
+  quantityKg        Float
+  farmLandId        String?
+  farmName          String?
+  season            String?
+  sowingDate        DateTime?
+  harvestDate       DateTime?
+  status            String   @default("GROWING")
+  currentStage      String   @default("FARM")
+  qualityGrade      String?
+  eudrComplianceId  String?
+  carbonFootprintId String?
+  traceEventCount   Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  events            TraceEvent[]
+}
+
+model TraceEvent {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  productBatchId    String
+  productBatch      ProductBatch @relation(fields: [productBatchId], references: [id], onDelete: Cascade)
+  eventType         String
+  stage             String
+  timestamp         DateTime @default(now())
+  locationName      String?
+  latitude          Float?
+  longitude         Float?
+  actorId           String?
+  actorName         String?
+  actorType         String?
+  details           String?  // JSON
+  evidence          String?  // JSON array of {type, url, description}
+  verificationHash  String?
+  createdAt         DateTime @default(now())
+}
+
+// --- FARM PASSPORT ---
+
+model FarmPassport {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  passportId        String   @unique  // AGRO-UG-2026-ABCDEF
+  farmerId          String   @unique
+  farmer            FarmerProfile @relation("FarmerPassport", fields: [farmerId], references: [id])
+  passportData      String   // JSON - full passport snapshot
+  generatedAt       DateTime @default(now())
+  regeneratedAt     DateTime?
+  qrCodeUrl         String?
+  verificationUrl   String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// --- COST OF CULTIVATION ---
+
+model CostOfCultivation {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  farmerId        String?
+  farmId          String?
+  commodity       String
+  country         String
+  areaHectares    Float
+  season          String?
+  costBreakdown   String   // JSON: {landPrep, seeds, fertilizer, pesticide, labor, ...}
+  totalCost       Float
+  expectedYield   Float
+  expectedRevenue Float
+  actualYield     Float?
+  actualRevenue   Float?
+  profitLoss      Float?
+  roi             Float?
+  status          String   @default("ESTIMATED") // ESTIMATED, ACTUAL
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --- EUDR ENHANCEMENTS ---
+
+model EudrDocument {
+  id                String   @id @default(cuid())
+  eudrComplianceId  String
+  eudrCompliance    EudrCompliance @relation("EudrDocuments", fields: [eudrComplianceId], references: [id], onDelete: Cascade)
+  documentType      String  // LAND_TITLE, USE_RIGHTS, ENVIRONMENTAL_PERMIT, SURVEY_MAP
+  fileName          String
+  fileUrl           String?
+  fileSize          Int?
+  uploadedAt        DateTime @default(now())
+  verified          Boolean  @default(false)
+  verifiedBy        String?
+  verifiedAt        DateTime?
+}
+
+model EudrAuditLog {
+  id                String   @id @default(cuid())
+  eudrComplianceId  String
+  eudrCompliance    EudrCompliance @relation("EudrAuditLogs", fields: [eudrComplianceId], references: [id], onDelete: Cascade)
+  action            String  // CREATED, SUBMITTED, VERIFIED, REJECTED, EXPIRED, RENEWED
+  performedBy       String?
+  performedAt       DateTime @default(now())
+  details           String?
 }
