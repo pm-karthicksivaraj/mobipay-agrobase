@@ -1,6 +1,11 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const db = new PrismaClient()
+
+async function hashPw(pw: string): Promise<string> {
+  return bcrypt.hash(pw, 12)
+}
 
 async function main() {
   console.log('🌱 Seeding Agrobase V3 database...')
@@ -24,12 +29,13 @@ async function main() {
   const ekibbo = tenants[4]
 
   // --- USERS ---
+  const pw = await hashPw('password123')
   const users = await Promise.all([
-    db.user.create({ data: { tenantId: superTenant.id, role: 'SUPER_ADMIN', email: 'admin@agrobase.co', phone: '+256700000001', passwordHash: 'password123', firstName: 'Super', lastName: 'Admin', isActive: true } }),
-    db.user.create({ data: { tenantId: ugTenant.id, role: 'COUNTRY_ADMIN', email: 'ugadmin@agrobase.co', phone: '+256700000002', passwordHash: 'password123', firstName: 'Uganda', lastName: 'Admin', isActive: true } }),
-    db.user.create({ data: { tenantId: ugTenant.id, role: 'EXTENSION_OFFICER', email: 'eo@agrobase.co', phone: '+256700000010', passwordHash: 'password123', firstName: 'John', lastName: 'Okello', isActive: true } }),
-    db.user.create({ data: { tenantId: ugTenant.id, role: 'EXTENSION_OFFICER', email: 'eo2@agrobase.co', phone: '+256700000011', passwordHash: 'password123', firstName: 'Grace', lastName: 'Achieng', isActive: true } }),
-    db.user.create({ data: { tenantId: ugTenant.id, role: 'FARMER', email: 'farmer@agrobase.co', phone: '+256700000020', passwordHash: 'password123', firstName: 'James', lastName: 'Mugisha', isActive: true } }),
+    db.user.create({ data: { tenantId: superTenant.id, role: 'SUPER_ADMIN', email: 'admin@agrobase.co', phone: '+256700000001', passwordHash: pw, firstName: 'Super', lastName: 'Admin', isActive: true } }),
+    db.user.create({ data: { tenantId: ugTenant.id, role: 'COUNTRY_ADMIN', email: 'ugadmin@agrobase.co', phone: '+256700000002', passwordHash: pw, firstName: 'Uganda', lastName: 'Admin', isActive: true } }),
+    db.user.create({ data: { tenantId: ugTenant.id, role: 'EXTENSION_OFFICER', email: 'eo@agrobase.co', phone: '+256700000010', passwordHash: pw, firstName: 'John', lastName: 'Okello', isActive: true } }),
+    db.user.create({ data: { tenantId: ugTenant.id, role: 'EXTENSION_OFFICER', email: 'eo2@agrobase.co', phone: '+256700000011', passwordHash: pw, firstName: 'Grace', lastName: 'Achieng', isActive: true } }),
+    db.user.create({ data: { tenantId: ugTenant.id, role: 'FARMER', email: 'farmer@agrobase.co', phone: '+256700000020', passwordHash: pw, firstName: 'James', lastName: 'Mugisha', isActive: true } }),
   ])
 
   // --- FARMER GROUPS ---

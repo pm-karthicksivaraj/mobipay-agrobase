@@ -735,6 +735,28 @@ model AuditLog {
   createdAt   DateTime @default(now())
 }
 
+// --- RBAC: PERMISSIONS ---
+
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique  // e.g. "farmers:read", "vsla:approve_loans"
+  module      String   // e.g. "farmers", "vsla", "compliance"
+  action      String   // read, create, update, delete, approve, manage
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  id            String     @id @default(cuid())
+  role          String     // SUPER_ADMIN, COUNTRY_ADMIN, TENANT_ADMIN, AGENT, EXTENSION_OFFICER, CBT, CASUAL, FARMER, VSLA_MEMBER
+  permissionId  String
+  permission    Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+}
+
 // --- SALES ---
 
 model Sale {

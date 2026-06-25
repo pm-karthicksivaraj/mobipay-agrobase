@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { db } from '@/lib/db'
+import { verifyPassword } from '@/lib/password'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -21,6 +22,7 @@ export const authOptions: NextAuthOptions = {
               { email: credentials.email },
               { phone: credentials.email },
             ],
+            isActive: true,
           },
         })
 
@@ -28,8 +30,9 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        // Dev environment: plain text password comparison
-        if (user.passwordHash !== credentials.password) {
+        // Verify hashed password (supports both bcrypt and legacy plain-text during migration)
+        const isValid = await verifyPassword(credentials.password, user.passwordHash)
+        if (!isValid) {
           return null
         }
 
@@ -47,7 +50,7 @@ export const authOptions: NextAuthOptions = {
         // Fetch full user from DB to get tenantId and role
         const dbUser = await db.user.findUnique({
           where: { id: user.id! },
-          select: { id: true, tenantId: true, role: true, firstName: true, lastName: true },
+          select: { id: true, tenantId: true, role: true, firstName: true, lastName: true, isActive: true },
         })
         if (dbUser) {
           token.userId = dbUser.id

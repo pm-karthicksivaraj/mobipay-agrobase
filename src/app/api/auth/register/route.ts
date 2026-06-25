@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { hashPassword } from '@/lib/password'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +10,13 @@ export async function POST(request: NextRequest) {
     if (!phone || !password || !firstName || !lastName || !tenantId) {
       return NextResponse.json(
         { success: false, error: 'Phone, password, firstName, lastName, and tenantId are required' },
+        { status: 400 }
+      )
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        { success: false, error: 'Password must be at least 8 characters' },
         { status: 400 }
       )
     }
@@ -38,13 +46,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Hash password with bcrypt before storage
+    const hashedPassword = await hashPassword(password)
+
     const user = await db.user.create({
       data: {
         tenantId,
         role: role || 'FARMER',
         email: email || null,
         phone,
-        passwordHash: password, // Dev: store plain text
+        passwordHash: hashedPassword,
         firstName,
         lastName,
         isActive: true,
