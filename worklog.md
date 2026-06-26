@@ -271,3 +271,26 @@ Stage Summary:
 - Fail-open design: cache miss/stale never blocks requests
 - SUPER_ADMIN bypasses all entitlement checks
 - Cache: 5min TTL, 500 tenants max, per-tenant invalidation on grant/revoke
+---
+Task ID: 6
+Agent: Main Agent
+Task: Job #6 — Escrow + settlement engine
+
+Work Log:
+- Scanned Prisma schema: Escrow (2117-2174), Settlement (2176-2235), PaymentTransaction (1301-1326), JournalEntry (1180-1197)
+- Scanned existing code: PaymentGateway (4 providers), AccountingEngine (double-entry), payments/types
+- Fixed 3 Prisma schema validation errors: @unique on paymentTxnId (Escrow, Settlement), @unique on journalEntryId (Settlement), added reverse relation on JournalEntry
+- Created src/lib/escrow/types.ts — EscrowSourceType, EscrowStatus, ESCROW_TRANSITIONS state machine, request/response types
+- Created src/lib/escrow/engine.ts — EscrowEngine: createEscrow, holdEscrow, releaseEscrow (full+partial), refundEscrow, disputeEscrow, expireOverdueEscrows, getSummary, listEscrows
+- Created src/lib/settlement/types.ts — SettlementSourceType, SettlementStatus, SETTLEMENT_TRANSITIONS, batch types
+- Created src/lib/settlement/engine.ts — SettlementEngine: createSettlement, createFromEscrow, approveSettlement, processSettlement (via PaymentGateway), failSettlement, reverseSettlement, createBatchSettlement, processBatch
+- Created 7 API routes: /api/escrow, /api/escrow/[id], /api/escrow/cron/expire, /api/settlements, /api/settlements/[id], /api/settlements/batch
+- tsc --noEmit: 0 errors after 3 rounds of fixes
+- Pushed to main: d888d68
+
+Stage Summary:
+- 13 files changed, 2590 insertions
+- EscrowEngine: 6 lifecycle operations + cron expiry + summary stats
+- SettlementEngine: 7 operations including batch (up to 200) + auto-provider resolution (UGX→mPay, GHS→aIntel, KES→M-Pesa)
+- All operations integrate with AccountingEngine for double-entry journal entries
+- Escrow release auto-creates Settlement via /api/escrow/[id] PATCH action=release
