@@ -39,7 +39,7 @@ export async function POST() {
     for (let i = 0; i < GROUP_NAMES.length; i++) {
       groups.push(await db.farmerGroup.create({
         data: { tenantId: i < 3 ? coop.id : ngo1.id, companyId: i < 3 ? company.id : null, name: GROUP_NAMES[i], isVsla: i < 5,
-          vslaSettings: i < 5 ? JSON.stringify({ shareValue: 1000, loanRate: 10, maxLoanAmount: 500000 }) : null }
+          vslaSettings: i < 5 ? { shareValue: 1000, loanRate: 10, maxLoanAmount: 500000 } : undefined }
       }))
     }
 
@@ -93,7 +93,7 @@ export async function POST() {
       for (let j = 0; j < 3; j++) {
         const amt = 50000 + j * 50000
         await db.vslaLoan.create({
-          data: { vslaGroupId: vg.id, farmerId: farmers[(i*6+j+2) % farmers.length].id,
+          data: { tenantId: ug.id, vslaGroupId: vg.id, farmerId: farmers[(i*6+j+2) % farmers.length].id,
             amount: amt, interestRate: 10, totalRepayable: amt * 1.1,
             amountRepaid: j === 2 ? amt * 1.1 : amt * 0.3,
             status: j === 2 ? 'REPAID' : 'DISBURSED',
@@ -103,7 +103,7 @@ export async function POST() {
       // Meetings (3 each)
       for (let j = 0; j < 3; j++) {
         await db.vslaMeeting.create({
-          data: { vslaGroupId: vg.id, agenda: ['Weekly Savings','Loan Approvals','Share-out Planning'][j],
+          data: { tenantId: ug.id, vslaGroupId: vg.id, agenda: ['Weekly Savings','Loan Approvals','Share-out Planning'][j],
             meetingDate: new Date(2026, 5, 1+j*7), startTime: '14:00', endTime: '15:30',
             status: j < 2 ? 'CONCLUDED' : 'SCHEDULED' }
         })
@@ -114,7 +114,7 @@ export async function POST() {
     for (let i = 0; i < 15; i++) {
       const f = farmers[i % farmers.length]
       await db.marketProduct.create({
-        data: { sellerId: f.id, sellerName: `${f.firstName} ${f.lastName}`,
+        data: { tenantId: ug.id, sellerId: f.id, sellerName: `${f.firstName} ${f.lastName}`,
           commodity: CROPS[i % CROPS.length], variety: ['Local','Improved','Hybrid'][i%3],
           quantity: `${(i+1)*100} Kg`, unitPrice: 500 + (i%10)*200,
           location: DISTRICTS[i % DISTRICTS.length], status: i < 12 ? 'AVAILABLE' : 'MATCHED' }
@@ -135,7 +135,7 @@ export async function POST() {
     // Trainings (5)
     for (let i = 0; i < 5; i++) {
       await db.training.create({
-        data: { topic: ['Good Agricultural Practices','Coffee Pruning','Post-Harvest Handling','VSLA Management','Financial Literacy'][i],
+        data: { tenantId: ug.id, topic: ['Good Agricultural Practices','Coffee Pruning','Post-Harvest Handling','VSLA Management','Financial Literacy'][i],
           date: new Date(2026, 4, 5+i*5), location: DISTRICTS[i % DISTRICTS.length], trainerName: `Trainer ${i+1}` }
       })
     }

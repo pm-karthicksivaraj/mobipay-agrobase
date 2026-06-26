@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     // Filter through farmer tenantId
     if (!ctx.isSuperAdmin) {
       const validFarmerIds = await db.farmerProfile.findMany({
-        where: { tenantId: { in: ctx.tenantScope } },
+        where: { tenantId: { in: ctx.tenantScope as string[] } },
         select: { id: true },
       })
       const idList = validFarmerIds.map(f => f.id)

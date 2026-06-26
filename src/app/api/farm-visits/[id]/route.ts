@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const where: Record<string, unknown> = { id }
   if (!ctx.isSuperAdmin) {
     const validFarmerIds = await db.farmerProfile.findMany({
-      where: { tenantId: { in: ctx.tenantScope } },
+      where: { tenantId: { in: ctx.tenantScope as string[] } },
       select: { id: true },
     })
     const idList = validFarmerIds.map(f => f.id)
@@ -32,7 +32,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const where: Record<string, unknown> = { id }
   if (!ctx.isSuperAdmin) {
     const validFarmerIds = await db.farmerProfile.findMany({
-      where: { tenantId: { in: ctx.tenantScope } },
+      where: { tenantId: { in: ctx.tenantScope as string[] } },
       select: { id: true },
     })
     const idList = validFarmerIds.map(f => f.id)
@@ -56,7 +56,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const where: Record<string, unknown> = { id }
   if (!ctx.isSuperAdmin) {
     const validFarmerIds = await db.farmerProfile.findMany({
-      where: { tenantId: { in: ctx.tenantScope } },
+      where: { tenantId: { in: ctx.tenantScope as string[] } },
       select: { id: true },
     })
     const idList = validFarmerIds.map(f => f.id)

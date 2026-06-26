@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
     const tenantWhere = ctx.isSuperAdmin
       ? {}
-      : { tenantId: { in: ctx.tenantScope } }
+      : { tenantId: { in: ctx.tenantScope as string[] } }
 
     switch (report) {
       case 'trial_balance': {

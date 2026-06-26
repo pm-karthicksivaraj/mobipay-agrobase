@@ -53,7 +53,7 @@ async function buildPassportData(farmerId: string, tenantId: string) {
       id: f.id,
       name: f.name,
       sizeHectares: f.sizeHectares,
-      crops: f.mainCrops,
+      crops: farmer.mainCrops,
     })),
     certifications: {
       eudr: farmer.eudrCompliances.map((e) => ({
@@ -68,7 +68,7 @@ async function buildPassportData(farmerId: string, tenantId: string) {
         expiryDate: r.expiryDate,
       })),
       globalGap: farmer.globalGapCerts.map((g) => ({
-        certificateNo: g.certificateNo,
+        certificateNo: g.ggnNumber,
         scope: g.scope,
         expiryDate: g.expiryDate,
       })),

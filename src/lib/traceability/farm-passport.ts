@@ -395,8 +395,12 @@ export class FarmPassportGenerator {
               include: {
                 subCounty: {
                   include: {
-                    district: {
-                      include: { subRegion: { include: { region: true } } },
+                    constituency: {
+                      include: {
+                        district: {
+                          include: { subRegion: { include: { region: true } } },
+                        },
+                      },
                     },
                   },
                 },
@@ -448,7 +452,7 @@ export class FarmPassportGenerator {
     }
 
     const country =
-      farmer.tenant?.country ?? farmer.village?.parish?.subCounty?.district?.subRegion?.region?.country ?? 'UG'
+      farmer.tenant?.country ?? farmer.village?.parish?.subCounty?.constituency?.district?.subRegion?.region?.country ?? 'UG'
 
     const passportId = generatePassportId(country)
 
@@ -462,7 +466,7 @@ export class FarmPassportGenerator {
       location: {
         village: farmer.village?.name ?? undefined,
         district:
-          farmer.village?.parish?.subCounty?.district?.name ?? undefined,
+          farmer.village?.parish?.subCounty?.constituency?.district?.name ?? undefined,
         country,
       },
     }

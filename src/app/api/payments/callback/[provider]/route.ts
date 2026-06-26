@@ -56,7 +56,7 @@ export async function POST(
     }
 
     // Find and update the payment
-    const payment = await db.payment.findUnique({
+    const payment = await db.payment.findFirst({
       where: { transactionRef },
     })
 

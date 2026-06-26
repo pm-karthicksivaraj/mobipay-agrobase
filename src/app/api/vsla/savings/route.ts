@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     if (groupId) where.vslaGroupId = groupId
     // Filter through vslaGroup tenantId
     if (!ctx.isSuperAdmin) {
-      where.vslaGroup = { tenantId: { in: ctx.tenantScope } }
+      where.vslaGroup = { tenantId: { in: ctx.tenantScope as string[] } }
     }
     const savings = await db.vslaSaving.findMany({
       where,
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     // Verify VSLA group belongs to tenant
     if (!ctx.isSuperAdmin) {
       const group = await db.vslaGroup.findFirst({
-        where: { id: body.vslaGroupId, tenantId: { in: ctx.tenantScope } },
+        where: { id: body.vslaGroupId, tenantId: { in: ctx.tenantScope as string[] } },
       })
       if (!group) {
         return NextResponse.json({ error: 'VSLA group not found in your tenant' }, { status: 403 })

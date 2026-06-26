@@ -61,7 +61,7 @@ export async function GET(request: Request) {
 
     // TODO: Wire to SatelliteEngine.getNdviTimeSeries()
     // Return placeholder mock data
-    const points = []
+    const points: { date: string; ndvi: number; evi: number }[] = []
     const now = new Date()
     for (let i = months; i >= 0; i--) {
       const d = new Date(now)

@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     if (!ctx.isSuperAdmin) {
       where.farmerId = {
         in: (await db.farmerProfile.findMany({
-          where: { tenantId: { in: ctx.tenantScope } },
+          where: { tenantId: { in: ctx.tenantScope as string[] } },
           select: { id: true },
         })).map(f => f.id),
       }
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     // Use payments as a proxy until cooperative payment model is added
     const payments = await db.payment.findMany({
       where: ctx.isSuperAdmin ? {} : {
-        paymentAccount: { tenantId: { in: ctx.tenantScope } },
+        paymentAccount: { tenantId: { in: ctx.tenantScope as string[] } },
         type: { in: ['BULK_PURCHASE', 'BULK_DISBURSEMENT'] },
       },
       skip: (page - 1) * limit,
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
     const total = await db.payment.count({
       where: ctx.isSuperAdmin ? {} : {
-        paymentAccount: { tenantId: { in: ctx.tenantScope } },
+        paymentAccount: { tenantId: { in: ctx.tenantScope as string[] } },
         type: { in: ['BULK_PURCHASE', 'BULK_DISBURSEMENT'] },
       },
     })
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     // Verify farmer belongs to tenant
     if (farmerId && !ctx.isSuperAdmin) {
       const farmer = await db.farmerProfile.findFirst({
-        where: { id: farmerId, tenantId: { in: ctx.tenantScope } },
+        where: { id: farmerId, tenantId: { in: ctx.tenantScope as string[] } },
       })
       if (!farmer) {
         return NextResponse.json({ error: 'Farmer not found in your tenant' }, { status: 403 })

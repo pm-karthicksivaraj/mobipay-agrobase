@@ -10,7 +10,7 @@ export async function GET() {
     // For loan applications, filter through loanProduct tenantId
     const appWhere: Record<string, unknown> = {}
     if (!ctx.isSuperAdmin) {
-      appWhere.loanProduct = { tenantId: { in: ctx.tenantScope } }
+      appWhere.loanProduct = { tenantId: { in: ctx.tenantScope as string[] } }
     }
 
     const [loans, products] = await Promise.all([
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     // Verify loan product belongs to tenant
     if (!ctx.isSuperAdmin) {
       const product = await db.loanProduct.findFirst({
-        where: { id: body.loanProductId, tenantId: { in: ctx.tenantScope } },
+        where: { id: body.loanProductId, tenantId: { in: ctx.tenantScope as string[] } },
       })
       if (!product) {
         return NextResponse.json({ error: 'Loan product not found in your tenant' }, { status: 403 })

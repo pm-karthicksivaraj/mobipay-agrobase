@@ -13,7 +13,7 @@ import type {
 import { hashEvent } from './verification'
 
 // In-memory batch store (in production, these would be persisted via Prisma models)
-const batchStore = new Map<string, ProductBatch>()
+export const batchStore = new Map<string, ProductBatch>()
 const batchSequenceCounter = new Map<string, number>()
 
 // Mapping from event type to resulting batch status + stage transitions
@@ -56,7 +56,7 @@ export class TraceabilityEngine {
       where: { id: farmerId },
       include: {
         group: { include: { company: true } },
-        village: { include: { parish: { include: { subCounty: { include: { district: true } } } } } },
+        village: { include: { parish: { include: { subCounty: { include: { constituency: { include: { district: true } } } } } } } },
       },
     })
 

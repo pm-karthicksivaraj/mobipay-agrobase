@@ -55,6 +55,9 @@ model Tenant {
   deforestationAlerts  DeforestationAlert[]
   carbonFootprints     CarbonFootprint[]
   cbamCalculations     CbamCalculation[]
+  cbamReports          CbamReport[]
+  rainforestCertifications RainforestCertification[]
+  globalGapCertifications  GlobalGapCertification[]
   productBatches       ProductBatch[]
   traceEvents          TraceEvent[]
   farmPassports        FarmPassport[]
@@ -79,6 +82,19 @@ model Tenant {
   scheduledReports     ScheduledReport[]     @relation("TenantScheduledReports")
   translations         Translation[]         @relation("TenantTranslations")
   brandingConfigs      BrandingConfig[]      @relation("TenantBranding")
+  inputDealers         InputDealer[]
+  inputProducts        InputProduct[]
+  inputRequests        InputRequest[]
+  marketProducts       MarketProduct[]
+  marketMatches        MarketMatch[]
+  fileAttachments      FileAttachment[]
+  ussdSessions         UssdSession[]
+  ivrCampaigns         IvrCampaign[]
+  smsBroadcasts        SmsBroadcast[]
+  vslaLoans            VslaLoan[]
+  vslaLoanRepayments   VslaLoanRepayment[]
+  vslaMeetings         VslaMeeting[]
+  vslaAttendances      VslaAttendance[]
 }
 
 // --- USERS & AUTH ---
@@ -271,6 +287,7 @@ model FarmerProfile {
   creditScores    CreditScore[]
   savings         VslaSaving[]
   vslaLoans       VslaLoan[]
+  vslaAttendance  VslaAttendance[]
   trainings       TrainingAttendance[]
   purchases       Purchase[]
   sales           Sale[]
@@ -392,6 +409,8 @@ model VslaSaving {
 
 model VslaLoan {
   id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
   vslaGroupId     String
   vslaGroup       VslaGroup @relation(fields: [vslaGroupId], references: [id])
   farmerId        String
@@ -404,6 +423,7 @@ model VslaLoan {
   purpose         String?  // Savings, Welfare
   status          String   @default("PENDING") // PENDING, APPROVED, DISBURSED, REPAID, REJECTED, OVERDUE
   approvedByIds   String?  // JSON array of approver IDs
+  loanDate        DateTime @default(now())
   requestedAt     DateTime @default(now())
   approvedAt      DateTime?
   disbursedAt     DateTime?
@@ -416,6 +436,8 @@ model VslaLoan {
 
 model VslaLoanRepayment {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   loanId      String
   loan        VslaLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
   amount      Float
@@ -426,27 +448,37 @@ model VslaLoanRepayment {
 
 model VslaMeeting {
   id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
   vslaGroupId     String
   vslaGroup       VslaGroup @relation(fields: [vslaGroupId], references: [id])
   agenda          String?
   meetingDate     DateTime
+  meetingType     String?
   startTime       String?
   endTime         String?
+  notes           String?
   status          String   @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, CONCLUDED
   createdById     String?
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   attendance      VslaAttendance[]
 }
 
 model VslaAttendance {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   meetingId   String
   meeting     VslaMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   farmerId    String
+  farmer      FarmerProfile @relation(fields: [farmerId], references: [id])
   markedBy    String?  // if marked on behalf
   present     Boolean  @default(false)
   createdAt   DateTime @default(now())
+
+  @@unique([meetingId, farmerId])
 }
 
 model VslaTransaction {
@@ -513,6 +545,8 @@ model LoanApplication {
 
 model InputDealer {
   id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   name      String
   phone     String?
   location  String?
@@ -526,6 +560,8 @@ model InputDealer {
 
 model InputProduct {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   dealerId    String
   dealer      InputDealer @relation(fields: [dealerId], references: [id])
   name        String
@@ -540,6 +576,8 @@ model InputProduct {
 
 model InputRequest {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   dealerId    String?
   dealer      InputDealer? @relation(fields: [dealerId], references: [id])
   farmerId    String?
@@ -558,6 +596,8 @@ model InputRequest {
 
 model MarketProduct {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   sellerId    String?  // farmer or group ID
   sellerName  String
   commodity   String   // Maize, Coffee, Rice, etc.
@@ -574,6 +614,8 @@ model MarketProduct {
 
 model MarketMatch {
   id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
   productId       String?
   product         MarketProduct? @relation(fields: [productId], references: [id])
   buyerName       String
@@ -753,6 +795,8 @@ model ModuleEntitlement {
   config      String?  // JSON for module-specific settings
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, moduleCode])
 }
 
 model Subscription {
@@ -934,6 +978,8 @@ model ImpactAssessment {
 
 model FileAttachment {
   id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
   relatedId     String?  // polymorphic - can be payment, purchase, training, etc.
   relatedType   String?  // PAYMENT, PURCHASE, TRAINING, FARM_VISIT, CONSENT_FORM
   fileName      String
@@ -990,6 +1036,8 @@ model EudrCompliance {
 
 model CbamReport {
   id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
   farmerId        String?
   farmer          FarmerProfile? @relation("FarmerCbam", fields: [farmerId], references: [id])
   reportingPeriod String   // e.g. "2026-Q1"
@@ -1014,6 +1062,8 @@ model CbamReport {
 
 model RainforestCertification {
   id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
   farmerId        String?
   farmer          FarmerProfile? @relation("FarmerRainforest", fields: [farmerId], references: [id])
   certificateNo   String   @unique
@@ -1036,6 +1086,8 @@ model RainforestCertification {
 
 model GlobalGapCertification {
   id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
   farmerId        String?
   farmer          FarmerProfile? @relation("FarmerGlobalGap", fields: [farmerId], references: [id])
   ggnNumber       String   @unique
@@ -1057,6 +1109,8 @@ model GlobalGapCertification {
 
 model UssdSession {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   sessionId   String   @unique
   phoneNumber String
   currentStep String
@@ -1070,6 +1124,8 @@ model UssdSession {
 
 model IvrCampaign {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   name        String
   description String?
   script      String   // JSON - IVR call flow script
@@ -1086,6 +1142,8 @@ model IvrCampaign {
 
 model SmsBroadcast {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   message     String
   recipientCount Int   @default(0)
   status      String   @default("DRAFT") // DRAFT, SCHEDULED, SENT, FAILED
@@ -2024,4 +2082,18 @@ model BrandingConfig {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// --- MULTI-CURRENCY / EXCHANGE RATES ---
+
+model ExchangeRate {
+  id            String   @id @default(cuid())
+  fromCurrency  String
+  toCurrency    String
+  rate          Float
+  source        String   @default("manual")
+  validFrom     DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@unique([fromCurrency, toCurrency])
 }

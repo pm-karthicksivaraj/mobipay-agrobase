@@ -10,7 +10,7 @@ export interface TenantContext {
   userId: string
   role: string
   tenantId: string
-  tenantScope: 'all' | string[]  // 'all' for SUPER_ADMIN, or list of allowed tenant IDs
+  tenantScope: string[]  // list of allowed tenant IDs (empty array = no filter for SUPER_ADMIN)
   isSuperAdmin: boolean
 }
 
@@ -49,7 +49,7 @@ export async function getTenantContext(_req?: NextRequest | Request): Promise<Te
     userId,
     role,
     tenantId,
-    tenantScope: isSuperAdmin ? 'all' : tenantScope.split(',').filter(Boolean),
+    tenantScope: isSuperAdmin ? [] : tenantScope.split(',').filter(Boolean),
     isSuperAdmin,
   }
 }
@@ -70,7 +70,7 @@ export async function getTenantContext(_req?: NextRequest | Request): Promise<Te
  * ```
  */
 export function buildTenantFilter(ctx: TenantContext, field: string = 'tenantId'): Record<string, unknown> {
-  if (ctx.isSuperAdmin || ctx.tenantScope === 'all') {
+  if (ctx.isSuperAdmin || ctx.tenantScope.length === 0) {
     return {} // No filtering for super admin
   }
   return { [field]: { in: ctx.tenantScope } }

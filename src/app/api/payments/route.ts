@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     if (type) where.type = type
     // Filter through paymentAccount tenantId
     if (!ctx.isSuperAdmin) {
-      where.paymentAccount = { tenantId: { in: ctx.tenantScope } }
+      where.paymentAccount = { tenantId: { in: ctx.tenantScope as string[] } }
     }
 
     const [data, total] = await Promise.all([

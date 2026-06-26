@@ -1,9 +1,12 @@
 import { db } from '@/lib/db'
+import { getTenantContext, buildTenantFilter } from '@/lib/tenant'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(req: NextRequest) {
+  const ctx = await getTenantContext()
+  const tf = buildTenantFilter(ctx, 'tenantId') as any
   const status = req.nextUrl.searchParams.get('status') || ''
-  const where: Record<string, unknown> = {}
+  const where: Record<string, unknown> = { ...tf }
   if (status) where.status = status
   const messages = await db.message.findMany({
     where, orderBy: { createdAt: 'desc' }, take: 100
@@ -12,9 +15,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const ctx = await getTenantContext()
   const body = await req.json()
   const message = await db.message.create({
     data: {
+      tenantId: ctx.tenantId,
       type: body.type || 'SMS', recipient: body.recipient,
       content: body.content, status: 'PENDING'
     }

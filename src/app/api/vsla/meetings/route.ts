@@ -10,12 +10,12 @@ export async function GET(req: NextRequest) {
     if (groupId) where.vslaGroupId = groupId
     // Filter through vslaGroup tenantId
     if (!ctx.isSuperAdmin) {
-      where.vslaGroup = { tenantId: { in: ctx.tenantScope } }
+      where.vslaGroup = { tenantId: { in: ctx.tenantScope as string[] } }
     }
     const meetings = await db.vslaMeeting.findMany({
       where, include: {
         _count: { select: { attendance: true } },
-        attendance: { include: { farmer: { select: { firstName: true, lastName: true } } } }
+        attendance: true,
       },
       orderBy: { meetingDate: 'desc' }, take: 50,
     })
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     // Verify VSLA group belongs to tenant
     if (!ctx.isSuperAdmin) {
       const group = await db.vslaGroup.findFirst({
-        where: { id: body.vslaGroupId, tenantId: { in: ctx.tenantScope } },
+        where: { id: body.vslaGroupId, tenantId: { in: ctx.tenantScope as string[] } },
       })
       if (!group) {
         return NextResponse.json({ error: 'VSLA group not found in your tenant' }, { status: 403 })
@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
 
     const meeting = await db.vslaMeeting.create({
       data: {
-        vslaGroupId: body.vslaGroupId, agenda: body.agenda,
+        vslaGroupId: body.vslaGroupId, tenantId: ctx.tenantId,
+        agenda: body.agenda,
         meetingDate: new Date(body.meetingDate),
         startTime: body.startTime, endTime: body.endTime,
         status: 'SCHEDULED', createdById: body.createdById || null

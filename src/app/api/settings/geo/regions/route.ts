@@ -1,6 +1,9 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
+// NOTE: This is a SYSTEM_ROUTE that bypasses auth in middleware.
+// Geo data (regions, districts, etc.) is shared across all tenants — no tenant isolation needed.
+
 export async function GET() {
   const regions = await db.region.findMany({
     include: {

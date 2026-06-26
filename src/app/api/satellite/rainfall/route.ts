@@ -71,8 +71,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       location: {
-        latitude: farm.gpsLatitude || 0.3476,
-        longitude: farm.gpsLongitude || 32.5825,
+        latitude: farm.latitude || 0.3476,
+        longitude: farm.longitude || 32.5825,
       },
       totalMm: Math.round(totalMm * 100) / 100,
       dailyData,

@@ -1,8 +1,11 @@
 import { db } from '@/lib/db'
+import { getTenantContext } from '@/lib/tenant'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(req: NextRequest) {
+  const ctx = await getTenantContext()
   const status = req.nextUrl.searchParams.get('status') || ''
+  // TODO: InputRequest model lacks tenantId and has no farmer relation — add column to schema for full isolation
   const where: Record<string, unknown> = {}
   if (status) where.status = status
   const requests = await db.inputRequest.findMany({
@@ -12,9 +15,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const ctx = await getTenantContext()
   const body = await req.json()
   const request = await db.inputRequest.create({
     data: {
+      tenantId: ctx.tenantId,
       dealerId: body.dealerId || null, farmerId: body.farmerId || null,
       farmerName: body.farmerName, farmerPhone: body.farmerPhone,
       product: body.product, quantity: body.quantity,

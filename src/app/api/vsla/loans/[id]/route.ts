@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     where: { id, ...tf },
     include: {
       repayments: { orderBy: { createdAt: 'desc' } },
-      group: { select: { id: true, name: true } },
+      vslaGroup: { select: { id: true, name: true } },
       farmer: { select: { id: true, firstName: true, lastName: true } },
     },
   })
@@ -28,14 +28,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const existing = await db.vslaLoan.findFirst({ where: { id, ...tf } })
   if (!existing) return NextResponse.json({ error: 'Loan not found' }, { status: 404 })
 
-  const { status, amount, interestRate, loanTerm, purpose } = body
+  const { status, amount, interestRate, purpose } = body
   const loan = await db.vslaLoan.update({
     where: { id },
     data: {
       ...(status !== undefined && { status }),
       ...(amount !== undefined && { amount }),
       ...(interestRate !== undefined && { interestRate }),
-      ...(loanTerm !== undefined && { loanTerm }),
       ...(purpose !== undefined && { purpose }),
       ...(status === 'APPROVED' && { approvedAt: new Date() }),
       ...(status === 'DISBURSED' && { disbursedAt: new Date() }),

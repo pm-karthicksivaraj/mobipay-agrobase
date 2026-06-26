@@ -59,17 +59,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'cultivationId and commodity are required' }, { status: 400 })
     }
 
-    // Verify cultivation access
+    // Verify cultivation access through farm -> tenant
     const cultivation = await db.cultivation.findFirst({
       where: { id: cultivationId },
-      include: { farmLand: { select: { tenantId: true } } },
+      include: { farm: { include: { farmer: { select: { tenantId: true } } } } },
     })
 
     if (!cultivation) {
       return NextResponse.json({ error: 'Cultivation not found' }, { status: 404 })
     }
 
-    if (!ctx.isSuperAdmin && cultivation.farmLand && !ctx.tenantScope.includes(cultivation.farmLand.tenantId)) {
+    if (!ctx.isSuperAdmin && cultivation.farm?.farmer && !ctx.tenantScope.includes(cultivation.farm.farmer.tenantId)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 

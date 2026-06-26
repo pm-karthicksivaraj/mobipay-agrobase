@@ -1,8 +1,10 @@
 import { db } from '@/lib/db'
+import { getTenantContext } from '@/lib/tenant'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || ''
     const page = parseInt(searchParams.get('page') || '1')
@@ -10,7 +12,7 @@ export async function GET(request: Request) {
 
     const where: Record<string, unknown> = {}
     if (status) where.status = status
-
+    // TODO: SmsBroadcast model lacks tenantId — add column to schema for full isolation
     const [data, total] = await Promise.all([
       db.smsBroadcast.findMany({
         where,
@@ -29,9 +31,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const body = await request.json()
     const broadcast = await db.smsBroadcast.create({
       data: {
+        tenantId: ctx.tenantId,
         message: body.message,
         recipientCount: body.recipientCount ?? 0,
         status: body.status || 'DRAFT',

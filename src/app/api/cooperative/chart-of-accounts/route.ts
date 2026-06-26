@@ -32,7 +32,7 @@ export async function GET() {
     // Compute actual balances from existing data
     const tenantFilter = ctx.isSuperAdmin
       ? {}
-      : { tenantId: { in: ctx.tenantScope } }
+      : { tenantId: { in: ctx.tenantScope as string[] } }
 
     const [savingsTotal, loansTotal, loansRepaid, paymentsTotal] = await Promise.all([
       db.vslaSaving.aggregate({

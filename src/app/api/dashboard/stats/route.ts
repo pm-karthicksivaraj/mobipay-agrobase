@@ -13,7 +13,7 @@ export async function GET() {
   const tf = buildTenantFilter(ctx, 'tenantId') as any
 
   // Build safe tenant condition for raw SQL (parameterized)
-  const isAll = ctx.isSuperAdmin || ctx.tenantScope === 'all'
+  const isAll = ctx.isSuperAdmin || ctx.tenantScope.length === 0
   const tenantIds = !isAll && ctx.tenantScope.length > 0 ? ctx.tenantScope : null
 
   // Use Prisma.sql for parameterized queries — prevents SQL injection

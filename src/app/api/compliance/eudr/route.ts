@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
       // Tenant isolation through farmer relation
       if (!ctx.isSuperAdmin) {
-        where.farmer = { tenantId: { in: ctx.tenantScope } }
+        where.farmer = { tenantId: { in: ctx.tenantScope as string[] } }
       }
 
       const data = await db.eudrCompliance.findMany({
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
 
     // Tenant isolation through farmer relation
     if (!ctx.isSuperAdmin) {
-      where.farmer = { tenantId: { in: ctx.tenantScope } }
+      where.farmer = { tenantId: { in: ctx.tenantScope as string[] } }
     }
 
     const [data, total] = await Promise.all([

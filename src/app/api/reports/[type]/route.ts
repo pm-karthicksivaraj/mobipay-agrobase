@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ typ
       case 'vsla-savings': {
         const vslaSavingsWhere: Record<string, unknown> = { status: 'COMPLETED' }
         if (!ctx.isSuperAdmin) {
-          vslaSavingsWhere.vslaGroup = { tenantId: { in: ctx.tenantScope } }
+          vslaSavingsWhere.vslaGroup = { tenantId: { in: ctx.tenantScope as string[] } }
         }
         data = await db.vslaSaving.findMany({
           where: vslaSavingsWhere,
@@ -32,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ typ
       case 'vsla-loans': {
         const vslaLoansWhere: Record<string, unknown> = {}
         if (!ctx.isSuperAdmin) {
-          vslaLoansWhere.vslaGroup = { tenantId: { in: ctx.tenantScope } }
+          vslaLoansWhere.vslaGroup = { tenantId: { in: ctx.tenantScope as string[] } }
         }
         data = await db.vslaLoan.findMany({
           where: vslaLoansWhere,
@@ -48,7 +48,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ typ
       case 'payments': {
         const paymentWhere: Record<string, unknown> = {}
         if (!ctx.isSuperAdmin) {
-          paymentWhere.paymentAccount = { tenantId: { in: ctx.tenantScope } }
+          paymentWhere.paymentAccount = { tenantId: { in: ctx.tenantScope as string[] } }
         }
         data = await db.payment.findMany({
           where: paymentWhere,
@@ -66,7 +66,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ typ
       case 'credit-scores': {
         const creditWhere: Record<string, unknown> = {}
         if (!ctx.isSuperAdmin) {
-          creditWhere.farmer = { tenantId: { in: ctx.tenantScope } }
+          creditWhere.farmer = { tenantId: { in: ctx.tenantScope as string[] } }
         }
         data = await db.creditScore.findMany({
           where: creditWhere,

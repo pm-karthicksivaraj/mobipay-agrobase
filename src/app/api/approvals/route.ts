@@ -1,22 +1,26 @@
 import { db } from '@/lib/db'
+import { getTenantContext } from '@/lib/tenant'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   try {
+    const ctx = await getTenantContext()
+
     // Fetch pending purchases
     const pendingPurchases = await db.purchase.findMany({
-      where: { status: 'PENDING' },
+      where: { status: 'PENDING', farmer: { tenantId: ctx.tenantId } },
       include: { farmer: true },
       orderBy: { createdAt: 'desc' },
     })
 
     // Fetch pending loan applications
     const pendingLoans = await db.loanApplication.findMany({
-      where: { status: 'PENDING' },
+      where: { status: 'PENDING', loanProduct: { tenantId: ctx.tenantId } },
       orderBy: { createdAt: 'desc' },
     })
 
     // Fetch pending input requests
+    // TODO: InputRequest model lacks tenantId and has no farmer relation — add column to schema for full isolation
     const pendingInputRequests = await db.inputRequest.findMany({
       where: { status: 'PENDING' },
       orderBy: { createdAt: 'desc' },

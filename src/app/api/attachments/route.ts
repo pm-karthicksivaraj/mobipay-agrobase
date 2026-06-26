@@ -1,8 +1,10 @@
 import { db } from '@/lib/db'
+import { getTenantContext } from '@/lib/tenant'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const { searchParams } = new URL(request.url)
     const relatedId = searchParams.get('relatedId') || ''
     const relatedType = searchParams.get('relatedType') || ''
@@ -12,7 +14,7 @@ export async function GET(request: Request) {
     const where: Record<string, unknown> = {}
     if (relatedId) where.relatedId = relatedId
     if (relatedType) where.relatedType = relatedType
-
+    // TODO: FileAttachment model lacks tenantId — add column to schema for full isolation
     const [data, total] = await Promise.all([
       db.fileAttachment.findMany({
         where,
@@ -31,9 +33,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const ctx = await getTenantContext()
     const body = await request.json()
     const attachment = await db.fileAttachment.create({
       data: {
+        tenantId: ctx.tenantId,
         relatedId: body.relatedId || null,
         relatedType: body.relatedType || null,
         fileName: body.fileName,

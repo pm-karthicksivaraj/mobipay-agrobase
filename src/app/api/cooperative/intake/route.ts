@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     if (!ctx.isSuperAdmin) {
       // Intake is linked through farmer → tenant
       const validFarmerIds = await db.farmerProfile.findMany({
-        where: { tenantId: { in: ctx.tenantScope } },
+        where: { tenantId: { in: ctx.tenantScope as string[] } },
         select: { id: true },
       })
       where.farmerId = { in: validFarmerIds.map(f => f.id) }
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     // Since ProduceIntake model may not exist in schema yet, use a generic approach
     // This will work with a ProduceIntake model when added to the schema
     const intakes = await db.farmerProfile.findMany({
-      where: ctx.isSuperAdmin ? {} : { tenantId: { in: ctx.tenantScope } },
+      where: ctx.isSuperAdmin ? {} : { tenantId: { in: ctx.tenantScope as string[] } },
       select: { id: true, firstName: true, lastName: true, mainCrops: true },
       skip: (page - 1) * limit,
       take: limit,
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     })
 
     const total = await db.farmerProfile.count({
-      where: ctx.isSuperAdmin ? {} : { tenantId: { in: ctx.tenantScope } },
+      where: ctx.isSuperAdmin ? {} : { tenantId: { in: ctx.tenantScope as string[] } },
     })
 
     return NextResponse.json({
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     // Verify farmer belongs to tenant
     if (farmerId && !ctx.isSuperAdmin) {
       const farmer = await db.farmerProfile.findFirst({
-        where: { id: farmerId, tenantId: { in: ctx.tenantScope } },
+        where: { id: farmerId, tenantId: { in: ctx.tenantScope as string[] } },
       })
       if (!farmer) {
         return NextResponse.json({ error: 'Farmer not found in your tenant' }, { status: 403 })

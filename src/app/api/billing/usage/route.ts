@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
     const tenantWhere = ctx.isSuperAdmin
       ? {}
-      : { tenantId: { in: ctx.tenantScope } }
+      : { tenantId: { in: ctx.tenantScope as string[] } }
 
     // Gather usage metrics in parallel
     const [
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
         },
       }),
       db.training.count({
-        where: { date: { gte: startDate, lte: endDate } },
+        where: { date: { gte: startDate, lte: endDate }, ...(ctx.isSuperAdmin ? {} : { tenantId: { in: ctx.tenantScope as string[] } }) },
       }),
       db.farmVisit.count({
         where: {

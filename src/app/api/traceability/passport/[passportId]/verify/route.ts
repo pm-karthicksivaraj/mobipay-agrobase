@@ -55,7 +55,7 @@ export async function GET(
     // Check for expired GlobalGAP certs
     for (const cert of farmer.globalGapCerts) {
       if (cert.expiryDate <= new Date()) {
-        warnings.push(`GLOBALG.A.P. certificate ${cert.certificateNo} has expired`)
+        warnings.push(`GLOBALG.A.P. certificate ${cert.ggnNumber} has expired`)
       }
     }
 

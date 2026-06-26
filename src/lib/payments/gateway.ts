@@ -114,7 +114,7 @@ export class PaymentGateway {
     const country = tenant?.country ?? 'UG'
 
     return {
-      apiKey: envKey('API_KEY') || account?.address ?? '',
+      apiKey: (envKey('API_KEY') || account?.address) ?? '',
       apiSecret: envKey('API_SECRET') || '',
       baseUrl: envKey('BASE_URL') || '',
       merchantId: envKey('MERCHANT_ID') || account?.id,
@@ -401,7 +401,7 @@ export class PaymentGateway {
       success: false,
       status: 'FAILED',
       message: lastError?.message ?? 'Max retries exceeded',
-    }
+    } as T
   }
 }
 

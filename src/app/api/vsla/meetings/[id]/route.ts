@@ -10,8 +10,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const meeting = await db.vslaMeeting.findFirst({
     where: { id, ...tf },
     include: {
-      attendance: { include: { farmer: { select: { id: true, firstName: true, lastName: true } } } },
-      group: { select: { id: true, name: true } },
+      attendance: true,
+      vslaGroup: { select: { id: true, name: true } },
     },
   })
   if (!meeting) return NextResponse.json({ error: 'Meeting not found' }, { status: 404 })
@@ -27,15 +27,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const existing = await db.vslaMeeting.findFirst({ where: { id, ...tf } })
   if (!existing) return NextResponse.json({ error: 'Meeting not found' }, { status: 404 })
 
-  const { meetingDate, meetingType, notes, status } = body
+  const { meetingDate, meetingType, status } = body
   const meeting = await db.vslaMeeting.update({
     where: { id },
     data: {
       ...(meetingDate !== undefined && { meetingDate: new Date(meetingDate) }),
       ...(meetingType !== undefined && { meetingType }),
-      ...(notes !== undefined && { notes }),
       ...(status !== undefined && { status }),
-      updatedAt: new Date(),
     },
   })
   return NextResponse.json({ data: meeting })
@@ -51,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!existing) return NextResponse.json({ error: 'Meeting not found' }, { status: 404 })
 
   const { attendance } = body as { attendance: { farmerId: string; present: boolean }[] }
-  const results = []
+  const results: any[] = []
   for (const a of attendance) {
     const record = await db.vslaAttendance.upsert({
       where: { meetingId_farmerId: { meetingId: id, farmerId: a.farmerId } },
@@ -62,7 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
   await db.vslaMeeting.update({
     where: { id },
-    data: { status: 'CONCLUDED', updatedAt: new Date() },
+    data: { status: 'CONCLUDED' },
   })
   return NextResponse.json({ data: results })
 }
@@ -79,7 +77,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   await db.vslaAttendance.deleteMany({ where: { meetingId: id } })
   await db.vslaMeeting.update({
     where: { id },
-    data: { status: 'CANCELLED', updatedAt: new Date() },
+    data: { status: 'CANCELLED' },
   })
   return NextResponse.json({ message: 'Meeting cancelled' })
 }
