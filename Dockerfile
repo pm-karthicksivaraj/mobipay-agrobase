@@ -5,7 +5,7 @@
 # ============================================
 
 # --- Stage 1: Dependencies (layer-cached) ---
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
@@ -19,7 +19,7 @@ RUN \
   fi
 
 # --- Stage 2: Build ---
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
@@ -41,7 +41,7 @@ ENV NEXT_SKIP_TYPECHECK=true
 RUN npm run build
 
 # --- Stage 3: Production Runner (minimal attack surface) ---
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 RUN apk add --no-cache libc6-compat wget ca-certificates tzdata && \
     cp /usr/share/zoneinfo/Africa/Kampala /etc/localtime && \
     echo "Africa/Kampala" > /etc/timezone && \

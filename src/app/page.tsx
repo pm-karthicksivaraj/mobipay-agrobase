@@ -42,6 +42,7 @@ const ChannelSimulatorView = lazy(() => import('@/components/modules/ChannelSimu
 const CcrpView = lazy(() => import('@/components/modules/CcrpView'))
 const CohortsView = lazy(() => import('@/components/modules/CohortsView'))
 const ProgramsView = lazy(() => import('@/components/modules/ProgramsView'))
+const MfiPortalView = lazy(() => import('@/components/modules/MfiPortalView'))
 
 function ModuleLoader() {
   return (
@@ -100,6 +101,8 @@ function ModuleRouter() {
     // Channel
     case 'ivr': return <ChannelSimulatorView />
     case 'channel-sim': return <ChannelSimulatorView />
+    // Finance
+    case 'mfi': return <MfiPortalView />
     default: return <DashboardView />
   }
 }
