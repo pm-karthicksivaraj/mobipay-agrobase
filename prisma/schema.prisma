@@ -82,6 +82,9 @@ model Tenant {
   commissionRules      CommissionRule[]      @relation("TenantCommissionRules")
   commissionSettlements CommissionSettlement[] @relation("TenantCommissionSettlements")
   bulkOperations       BulkOperation[]       @relation("TenantBulkOps")
+  carbonProjects       CarbonProject[]       @relation("TenantCarbonProjects")
+  carbonCredits        CarbonCredit[]        @relation("TenantCarbonCredits")
+  carbonVerifications  CarbonVerification[]  @relation("TenantCarbonVerifications")
   dashboardWidgets     DashboardWidget[]     @relation("TenantDashWidgets")
   reportTemplates      ReportTemplate[]      @relation("TenantReportTemplates")
   scheduledReports     ScheduledReport[]     @relation("TenantScheduledReports")
@@ -101,6 +104,10 @@ model Tenant {
   vslaMeetings         VslaMeeting[]
   vslaAttendances      VslaAttendance[]
   exportJobs           ExportJob[]            @relation("TenantExportJob")
+  mfiPartners          MfiPartner[]           @relation("TenantMfiPartners")
+  mfiLoanProducts      MfiLoanProduct[]       @relation("TenantMfiLoanProducts")
+  mfiLoans             MfiLoan[]              @relation("TenantMfiLoans")
+  mfiRepayments        MfiRepayment[]         @relation("TenantMfiRepayments")
 }
 
 // --- USERS & AUTH ---
@@ -546,6 +553,166 @@ model LoanApplication {
   disbursedAt     DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// --- MFI / BANK LOANS ---
+
+model MfiPartner {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantMfiPartners", fields: [tenantId], references: [id])
+  name            String
+  partnerType     String   // MFI, BANK, SACCO, MICROFINANCE
+  code            String?  @unique  // e.g. "BRAC_UG", "Pride_Microfinance"
+  contactName     String?
+  contactEmail    String?
+  contactPhone    String?
+  address         String?
+  country         String?
+  isActive        Boolean  @default(true)
+  apiEndpoint     String?  // For future API integration
+  apiKey          String?  // Encrypted API key for partner
+  maxExposure     Float?  // Maximum total loan exposure (USD)
+  currentExposure Float    @default(0)
+  interestRateSpread Float? // Spread over base rate the MFI charges
+  metadata        String?  // JSON
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  loanProducts    MfiLoanProduct[]
+  loans           MfiLoan[]
+
+  @@index([tenantId])
+  @@index([partnerType])
+  @@index([isActive])
+}
+
+model MfiLoanProduct {
+  id                String     @id @default(cuid())
+  tenantId          String
+  tenant            Tenant     @relation("TenantMfiLoanProducts", fields: [tenantId], references: [id])
+  partnerId         String?
+  partner           MfiPartner? @relation(fields: [partnerId], references: [id])
+  name              String
+  description       String?
+  interestRateType  String     @default("FLAT")  // FLAT, DECLINING_BALANCE, AMORTIZED
+  interestRate      Float     // Annual rate %
+  maxAmount         Float
+  minAmount         Float?
+  maxDurationMonths Int
+  gracePeriodMonths Int       @default(0)
+  latePaymentPenalty Float?   // % per month on overdue
+  processingFeePercent Float?  // % of loan amount
+  insuranceFeePercent  Float?  // % of loan amount
+  collateralRequired Boolean  @default(false)
+  requiredDocuments  String?   // JSON: array of doc types
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  loans             MfiLoan[]
+
+  @@index([tenantId])
+  @@index([partnerId])
+  @@index([isActive])
+}
+
+model MfiLoan {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  tenant              Tenant   @relation("TenantMfiLoans", fields: [tenantId], references: [id])
+  partnerId           String?
+  partner             MfiPartner? @relation(fields: [partnerId], references: [id])
+  loanProductId       String
+  loanProduct         MfiLoanProduct @relation(fields: [loanProductId], references: [id])
+  farmerId            String?
+  applicantName        String
+  applicantPhone       String
+  amount               Float
+  approvedAmount       Float?
+  interestRate        Float
+  durationMonths      Int
+  gracePeriodMonths   Int      @default(0)
+  purpose              String?
+  status               String   @default("PENDING") // PENDING, UNDER_REVIEW, APPROVED, DISBURSED, REPAID, OVERDUE, DEFAULTED, REJECTED, CANCELLED
+  appliedAt            DateTime @default(now())
+  approvedAt           DateTime?
+  approvedBy           String?
+  disbursedAt          DateTime?
+  disbursedBy          String?
+  completedAt         DateTime?
+  nextPaymentDate      DateTime?
+  totalRepayment       Float?
+  totalInterest        Float?
+  totalPenalty         Float    @default(0)
+  totalPaid            Float    @default(0)
+  outstandingBalance   Float?
+  collateralDetails   String?  // JSON
+  documents            String?  // JSON: array of uploaded doc URLs
+  rejectionReason      String?
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  repayments          MfiRepayment[]
+  schedule             MfiLoanSchedule[]
+
+  @@index([tenantId])
+  @@index([partnerId])
+  @@index([loanProductId])
+  @@index([farmerId])
+  @@index([status])
+  @@index([applicantPhone])
+}
+
+model MfiLoanSchedule {
+  id              String   @id @default(cuid())
+  loanId          String
+  loan            MfiLoan   @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  installmentNumber Int
+  dueDate         DateTime
+  principalDue    Float
+  interestDue     Float
+  penaltyDue      Float     @default(0)
+  totalDue        Float
+  principalPaid   Float     @default(0)
+  interestPaid    Float     @default(0)
+  penaltyPaid     Float     @default(0)
+  totalPaid       Float     @default(0)
+  status          String    @default("PENDING") // PENDING, PARTIAL, PAID, OVERDUE
+  repayments      MfiRepayment[]
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([loanId, installmentNumber])
+  @@index([loanId])
+  @@index([dueDate])
+  @@index([status])
+}
+
+model MfiRepayment {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantMfiRepayments", fields: [tenantId], references: [id])
+  loanId          String
+  loan            MfiLoan   @relation(fields: [loanId], references: [id])
+  scheduleId      String?
+  schedule        MfiLoanSchedule? @relation(fields: [scheduleId], references: [id])
+  amount          Float
+  principalAmount Float
+  interestAmount  Float
+  penaltyAmount   Float     @default(0)
+  paymentMethod   String?   // MOBILE_MONEY, BANK_TRANSFER, CASH, CHEQUE
+  referenceNumber String?  // Transaction reference
+  receivedBy      String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([loanId])
+  @@index([scheduleId])
+  @@index([createdAt])
 }
 
 // --- INPUT AGGREGATION ---
@@ -1467,6 +1634,143 @@ model CbamCalculation {
   updatedAt                 DateTime @updatedAt
 }
 
+// --- CARBON CREDITS (Verra VCS / Gold Standard) ---
+
+model CarbonProject {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  tenant              Tenant   @relation("TenantCarbonProjects", fields: [tenantId], references: [id])
+  name                String
+  description         String?
+  standard            String   // VERRA_VCS, GOLD_STANDARD, PLANET, AMERICAN_CARBON_REGISTRY
+  methodologyCode     String   // e.g. "VM0042", "GS_REF0001", "AR-ACM0003"
+  methodologyVersion  String?
+  projectType         String   // AFFORESTATION, REFORESTATION, AGRICULTURE, SOIL_CARBON, BIOCHAR, AGROFORESTRY
+  status              String   @default("DRAFT") // DRAFT, SUBMITTED, VALIDATED, REGISTERED, ACTIVE, SUSPENDED, CLOSED
+  region              String?
+  country             String?
+  totalAreaHectares   Float?
+  estimatedAnnualRemovals Float?  // tonnes CO2e per year
+  projectStartDate    DateTime?
+  projectEndDate      DateTime?
+  creditingPeriodYears Int     @default(10)
+  creditingPeriodStart DateTime?
+  creditingPeriodEnd   DateTime?
+  proponentName       String?
+  proponentContact    String?
+  vvbName             String?  // Validation/Verification Body
+  vvbContact          String?
+  verraProjectId      String?  // External Verra registry ID
+  goldStandardId      String?  // External Gold Standard ID
+  pddDocumentUrl      String?  // Project Design Document
+  baselineScenario    String?  // JSON: baseline emissions data
+  monitoringPlan      String?  // JSON: monitoring methodology
+  totalCreditsIssued  Float    @default(0)
+  totalCreditsRetired Float    @default(0)
+  totalCreditsTransferred Float @default(0)
+  metadata            String?  // JSON: any additional data
+  createdById         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  credits        CarbonCredit[]
+  verifications  CarbonVerification[]
+  methodologies  CarbonProjectMethodology[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([standard])
+  @@index([methodologyCode])
+  @@index([verraProjectId])
+}
+
+model CarbonCredit {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  tenant              Tenant   @relation("TenantCarbonCredits", fields: [tenantId], references: [id])
+  projectId           String
+  project             CarbonProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  vintageYear         Int
+  quantityTonnesCO2   Float
+  status              String   @default("PENDING") // PENDING, ISSUED, VERIFIED, RETIRED, TRANSFERRED, EXPIRED, CANCELLED
+  serialNumber        String?  // Registry serial number
+  issuanceDate        DateTime?
+  expiryDate          DateTime?
+  retirementReason    String?  // VOLUNTARY, COMPLIANCE, CBAM_OFFSET
+  retirementDate      DateTime?
+  retiredById         String?
+  retiredOnBehalfOf   String?  // Organization name for whom credits were retired
+  transferDate        DateTime?
+  transferTo          String?  // Receiving registry/account
+  verificationId      String?
+  verification        CarbonVerification? @relation("CreditVerification", fields: [verificationId], references: [id])
+  @@index([verificationId])
+  unitPriceUsd        Float?
+  totalValueUsd       Float?
+  originType          String   @default("REMOVAL") // REMOVAL, AVOIDANCE, REDUCTION
+  batchNumber         String?  // Issuance batch reference
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([projectId, vintageYear, batchNumber])
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([status])
+  @@index([vintageYear])
+  @@index([serialNumber])
+}
+
+model CarbonVerification {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  tenant              Tenant   @relation("TenantCarbonVerifications", fields: [tenantId], references: [id])
+  projectId           String
+  project             CarbonProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type                String   // VALIDATION, VERIFICATION, POST_VALIDATION
+  status              String   @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, COMPLETED, REJECTED, CORRECTIVE_ACTION
+  vvbName             String?
+  vvbAccreditation    String?
+  startDate           DateTime?
+  endDate             DateTime?
+  scope               String?  // JSON: what was verified
+  findings            String?  // JSON: verification findings
+  nonConformities     String?  // JSON: list of NCs
+  correctiveActions   String?  // JSON: corrective action plan
+  conclusion          String?  // POSITIVE, POSITIVE_WITH_CONDITIONS, NEGATIVE
+  recommendation      String?  // ISSUE, HOLD, REJECT
+  reportUrl           String?
+  statementUrl        String?  // Verification statement
+  performedById       String?
+  credits             CarbonCredit[] @relation("CreditVerification")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([type])
+  @@index([status])
+}
+
+model CarbonProjectMethodology {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         CarbonProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  methodologyCode String
+  parameterName   String
+  parameterValue  Float
+  parameterUnit   String?
+  source          String?  // IPCC, Verra tool, default value, measured
+  confidence      String?  // HIGH, MEDIUM, LOW
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([projectId, methodologyCode, parameterName])
+  @@index([projectId])
+  @@index([methodologyCode])
+}
+
 // --- TRACEABILITY ---
 
 model ProductBatch {
@@ -1996,21 +2300,27 @@ model BulkOperation {
   tenantId      String
   tenant        Tenant   @relation("TenantBulkOps", fields: [tenantId], references: [id])
   type          String
-  status        String   @default("PENDING")
+  status        String   @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED, PARTIAL, CANCELLED
   fileName      String
   fileSize      Int?
   totalRows     Int      @default(0)
   processedRows Int      @default(0)
   successRows   Int      @default(0)
   failedRows    Int      @default(0)
-  errorSummary  String?
-  configFile   String?
-  resultFileUrl String?
-  performedBy   String?
+  errorSummary  String?                     // Short summary of first error
+  errorDetails  String?                     // JSON array of { row, message } for detailed per-row errors
+  configFile   String?                     // JSON config for MASS_UPDATE operations
+  resultFileUrl String?                     // URL to download result/errors CSV
+  performedBy   String?                     // userId who triggered the operation
   startedAt     DateTime?
   completedAt   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([type])
+  @@index([performedBy])
 }
 
 // --- ANALYTICS & DASHBOARDS ---

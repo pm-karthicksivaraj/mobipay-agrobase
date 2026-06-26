@@ -16,7 +16,7 @@ export const MODULES = [
   'input_aggregation', 'purchases', 'approvals', 'processing', 'sales',
   'deliveries', 'consignments', 'companies', 'users', 'settings',
   'agritrack', 'feedback', 'farm_visits', 'impact_assessment',
-  'channel_sim', 'profile',
+  'channel_sim', 'carbon', 'mfi', 'profile',
 ] as const
 
 export type ModuleKey = (typeof MODULES)[number]
@@ -49,6 +49,7 @@ const ROLE_PERMISSIONS: RolePerms = {
     'processing:*', 'sales:*', 'deliveries:*', 'consignments:*',
     'companies:read', 'users:*', 'agritrack:*',
     'feedback:*', 'farm_visits:*', 'impact_assessment:*',
+    'carbon:*', 'mfi:*',
   ],
 
   // Agent: field data collection
@@ -61,6 +62,7 @@ const ROLE_PERMISSIONS: RolePerms = {
     'farm_visits:read', 'farm_visits:create',
     'trace:read',
     'compliance:read',
+    'carbon:read',
     'profile:read', 'profile:update',
   ],
 
@@ -73,6 +75,7 @@ const ROLE_PERMISSIONS: RolePerms = {
     'surveys:read',
     'trace:read',
     'compliance:read',
+    'carbon:read',
     'profile:read', 'profile:update',
   ],
 

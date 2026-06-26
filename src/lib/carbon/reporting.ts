@@ -6,6 +6,7 @@
 
 import { db } from '@/lib/db'
 import { CarbonCalculator } from './calculator'
+import { getCnCode as getCnCodeFromModule } from '@/lib/cbam/cn-codes'
 import type {
   CbamCommodityReport,
   CbamReportData,
@@ -618,21 +619,9 @@ function escapeXml(str: string): string {
 
 /**
  * Map commodity names to EU Combined Nomenclature (CN) codes
- * used in CBAM declarations. Note: most agricultural products
- * are not yet in CBAM scope, but we pre-map for future compliance.
+ * used in CBAM declarations. Delegates to the comprehensive
+ * CN code mapping module.
  */
 function getCnCode(commodity: string): string {
-  const codes: Record<string, string> = {
-    COFFEE: '0901',          // Coffee, whether or not roasted or decaffeinated
-    COCOA: '1801',           // Cocoa beans, whole or broken, raw or roasted
-    MAIZE: '1005',           // Maize (corn)
-    RICE: '1006',            // Rice
-    TEA: '0902',             // Tea, whether or not flavoured
-    OIL_PALM: '1511',        // Palm oil and its fractions
-    SUGARCANE: '1701',       // Cane sugar
-    BEANS: '0713',           // Dried leguminous vegetables, shelled
-    GROUNDNUT: '1202',       // Ground-nuts, not roasted or otherwise cooked
-    CASSAVA: '0714',         // Cassava, arrowroot, salep, sweet potatoes, fresh or chilled
-  }
-  return codes[commodity] ?? '9999' // 9999 = unclassified
+  return getCnCodeFromModule(commodity)
 }

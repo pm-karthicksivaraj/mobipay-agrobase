@@ -1,35 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getTenantContext, buildTenantFilter } from '@/lib/tenant'
+import { getTenantContext } from '@/lib/tenant'
+import { BulkEngine } from '@/lib/bulk/engine'
 
+/**
+ * GET /api/bulk/operations — List bulk operations with pagination
+ */
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getTenantContext()
     if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const filter = buildTenantFilter(ctx)
-    const { searchParams } = new URL(req.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const [data, total] = await Promise.all([
-      db.bulkOperation.findMany({ where: filter, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' } }),
-      db.bulkOperation.count({ where: filter }),
-    ])
-    return NextResponse.json({ data, pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
-  } catch (error) {
-    console.error('Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
 
-export async function POST(req: NextRequest) {
-  try {
-    const ctx = await getTenantContext()
-    if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const body = await req.json()
-    const record = await db.bulkOperation.create({ data: { tenantId: ctx.tenantId, status: 'PENDING', ...body } })
-    return NextResponse.json({ data: record }, { status: 201 })
+    const url = new URL(req.url)
+    const page = parseInt(url.searchParams.get('page') || '1', 10)
+    const pageSize = parseInt(url.searchParams.get('pageSize') || '20', 10)
+    const type = url.searchParams.get('type') || undefined
+    const status = url.searchParams.get('status') || undefined
+
+    const result = await BulkEngine.listOperations(ctx.tenantId, { page, pageSize, type, status })
+    return NextResponse.json(result)
   } catch (error) {
-    console.error('Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : 'Internal server error'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

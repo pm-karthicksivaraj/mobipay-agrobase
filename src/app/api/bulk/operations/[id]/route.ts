@@ -1,61 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getTenantContext, buildTenantFilter } from '@/lib/tenant'
+import { getTenantContext } from '@/lib/tenant'
+import { BulkEngine } from '@/lib/bulk/engine'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+/**
+ * GET /api/bulk/operations/[id] — Get operation status with progress
+ * DELETE /api/bulk/operations/[id] — Cancel a PENDING operation
+ */
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const ctx = await getTenantContext()
+    if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { id } = await params
-    const filter = buildTenantFilter(ctx) as any
-    const record = await db.bulkOperation.findFirst({ where: { id, ...filter } })
-    if (!record) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json({ data: record })
+
+    const operation = await BulkEngine.getStatus(id, ctx.tenantId)
+    return NextResponse.json(operation)
   } catch (error) {
-    console.error('Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : 'Internal server error'
+    const status = msg.includes('not found') ? 404 : 500
+    return NextResponse.json({ error: msg }, { status })
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const ctx = await getTenantContext()
+    if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { id } = await params
-    const filter = buildTenantFilter(ctx) as any
-    const existing = await db.bulkOperation.findFirst({ where: { id, ...filter } })
-    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    const body = await req.json()
-    const { status, result, error } = body
-    const record = await db.bulkOperation.update({
-      where: { id },
-      data: {
-        ...(status !== undefined && { status }),
-        ...(result !== undefined && { result: typeof result === 'string' ? result : JSON.stringify(result) }),
-        ...(error !== undefined && { error }),
-        completedAt: status === 'COMPLETED' || status === 'FAILED' ? new Date() : undefined,
-      },
-    })
-    return NextResponse.json({ data: record })
-  } catch (error) {
-    console.error('Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const ctx = await getTenantContext()
-    const { id } = await params
-    const filter = buildTenantFilter(ctx) as any
-    const existing = await db.bulkOperation.findFirst({ where: { id, ...filter } })
-    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    // Soft-cancel: set status to CANCELLED
-    const record = await db.bulkOperation.update({
-      where: { id },
-      data: { status: 'CANCELLED', completedAt: new Date() },
-    })
-    return NextResponse.json({ data: record, message: 'Operation cancelled' })
+    const operation = await BulkEngine.cancelOperation(id, ctx.tenantId)
+    return NextResponse.json({ data: operation, message: 'Operation cancelled' })
   } catch (error) {
-    console.error('Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : 'Internal server error'
+    const status = msg.includes('not found') ? 404 : msg.includes('Only PENDING') ? 400 : 500
+    return NextResponse.json({ error: msg }, { status })
   }
 }

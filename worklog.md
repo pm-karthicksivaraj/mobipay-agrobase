@@ -322,3 +322,148 @@ Stage Summary:
 - Multi-channel dispatch, user preference routing, retry logic, scheduled processing
 - Channel providers unchanged (already well-implemented)
 - 7 new API routes with proper auth/permissions/tenant isolation
+---
+Task ID: 2a
+Agent: full-stack-developer
+Task: Enhance carbon credits engine with 7 new methods
+
+Work Log:
+- Read existing engine.ts (914 lines) and Prisma schema for CarbonProject/Credit/Verification models
+- Added `updateProject()` — full field update with JSON stringify for baselineScenario, monitoringPlan, metadata; DRAFT/SUBMITTED enforcement for methodology-sensitive fields
+- Added `deleteProject()` — DRAFT projects hard-deleted (cascade), other statuses soft-deleted (CLOSED + cancel PENDING credits)
+- Added `transferCredits()` — ISSUED/VERIFIED credits transferable; full transfer → TRANSFERRED status, partial → reduced quantity; updates project.totalCreditsTransferred; appends transfer notes
+- Added `updateVerificationStatus()` — state machine: SCHEDULED→IN_PROGRESS→COMPLETED/REJECTED/CORRECTIVE_ACTION, CORRECTIVE_ACTION→COMPLETED/REJECTED; auto-sets startDate/endDate; auto-advances project to VALIDATED on validation completion
+- Added `getVerification()` — single verification with project + credits includes
+- Added `expireOverdueCredits()` — cron method, finds ISSUED/VERIFIED credits with past expiryDate, sets to EXPIRED
+- Added `getCredit()` — single credit with project + verification includes
+- Fixed 3 pre-existing TS errors: serialNumber null coalescing, missing totalCreditsTransferred in select, typed results array
+- tsc --noEmit: 0 errors
+
+Stage Summary:
+- 7 new static methods added to CarbonCreditsEngine (914→1185 lines)
+- 3 pre-existing TypeScript bugs fixed alongside new code
+- All methods follow existing patterns: JSDoc, tenant scoping, error messages, state machine transitions
+
+---
+Task ID: 2b
+Agent: Main Agent
+Task: Build 14 API routes for carbon credits module
+
+Work Log:
+- Created 14 API route files under src/app/api/carbon/
+- Projects: GET (list with filters) + POST (create) at /api/carbon/projects
+- Project CRUD: GET/PUT/PATCH/DELETE at /api/carbon/projects/[id]
+- PDD generation: GET at /api/carbon/projects/[id]/pdd
+- Methodology parameters: GET + PUT at /api/carbon/projects/[id]/parameters
+- Credits list: GET at /api/carbon/credits
+- Credit operations: GET + POST (issue) at /api/carbon/credits/[id]
+- Credit retirement: POST at /api/carbon/credits/[id]/retire
+- Credit transfer: POST at /api/carbon/credits/[id]/transfer
+- Verification schedule: POST at /api/carbon/verifications
+- Verification CRUD: GET/PATCH/POST (complete) at /api/carbon/verifications/[id]
+- Project verifications: GET at /api/carbon/verifications/project/[projectId]
+- Methodology registry: GET at /api/carbon/methodologies
+- Portfolio summary: GET at /api/carbon/portfolio
+- Cron expire: POST at /api/carbon/credits/cron/expire
+- Added 'carbon' to MODULES in permissions.ts
+- Added carbon:* to TENANT_ADMIN, carbon:read to AGENT and EXTENSION_OFFICER
+- All routes use getTenantContext(), hasPermission('carbon:update') for writes
+- tsc --noEmit: 0 errors
+
+Stage Summary:
+- 14 new API routes, 1 modified (permissions.ts)
+- Full REST coverage: projects, credits, verifications, methodologies, portfolio
+- Permission-gated write operations, tenant-isolated queries
+
+---
+Task ID: 3a
+Agent: Main Agent
+Task: Wire CBAM engine to API routes
+
+Work Log:
+- Rewrote /api/carbon/cbam/route.ts: removed hardcoded EMISSION_FACTORS and EU_CARBON_PRICE_PER_TONNE, now uses CarbonCalculator.calculateCBAM() from calculator.ts
+- Rewrote /api/compliance/cbam/route.ts: fixed getTenantContext(request)→getTenantContext(), added mode=generate (calls generateCBAMReport + persists), mode=validate (generates + validates)
+- Created /api/compliance/cbam/reports/route.ts: POST generates full CBAM report, GET exports as JSON/XML/CSV with proper Content-Type headers
+- Created /api/compliance/cbam/validate/route.ts: validates pre-generated or auto-generated reports, returns ValidationResult with score
+- tsc --noEmit: 0 errors
+
+Stage Summary:
+- 2 routes rewritten, 2 routes created
+- CBAM POST now uses CarbonCalculator engine (dynamic EU carbon prices, benchmark-based factors, auto credit offset detection)
+- XML export follows EU CBAM transitional registry structure with CN codes
+- CSV export uses semicolon delimiter for EU locale compatibility
+
+---
+Task ID: 3b
+Agent: Main Agent
+Task: EUDR automation + monitoring routes
+
+Work Log:
+- Created /api/compliance/eudr/engine/route.ts: wires to EudrEngine.submitDueDiligence(), getFarmerComplianceStatus(), generateComplianceReport()
+- Created /api/compliance/eudr/batch/route.ts: action=verify calls EudrEngine.batchVerify(tenantId), action=reject loops through plotIds
+- Created /api/compliance/eudr/cron/monitor/route.ts: 3 automated checks — expiring (30 days), expired (auto-EXPIRED), stale pending (>90 days)
+- Created /api/compliance/eudr/risk/route.ts: POST runs EudrEngine.assessRisk(), GET returns risk distribution aggregation
+- Created /api/compliance/eudr/deforestation/route.ts: POST runs EudrEngine.checkDeforestation() with GeoJSON polygon extraction
+- Fixed EudrEngine method name mismatches (getFarmerEudrStatus→getFarmerComplianceStatus, generateReport→generateComplianceReport)
+- Fixed batchVerify signature (takes tenantId only, not plotIds)
+- tsc --noEmit: 0 errors
+
+Stage Summary:
+- 5 new EUDR routes, 2 CBAM routes rewritten + 2 created
+- Full EUDR automation: engine-wired due diligence, batch verify, cron monitoring, risk assessment, deforestation checking
+- CBAM fully wired to CarbonCalculator engine (no more hardcoded factors)
+
+---
+Task ID: 10a
+Agent: Main Agent
+Task: MFI / Bank Portal module — Prisma models, permissions, MFI Engine
+
+Work Log:
+- Added 5 new Prisma models: MfiPartner, MfiLoanProduct, MfiLoan, MfiLoanSchedule, MfiRepayment
+- Added 4 reverse relations to Tenant model (mfiPartners, mfiLoanProducts, mfiLoans, mfiRepayments)
+- Added repayments reverse relation on MfiLoanSchedule for MfiRepayment
+- Added 'mfi' to MODULES array in permissions.ts
+- Added 'mfi:*' to TENANT_ADMIN role permissions
+- Created src/lib/mfi/engine.ts (MfiEngine static class, ~600 lines):
+  - Loan Products: create, list, get, update
+  - Loan Applications: apply, list, get (with schedule + repayments)
+  - Approval: approve (PENDING/UNDER_REVIEW → APPROVED), reject
+  - Disbursement: disburse (APPROVED → DISBURSED), generates amortization schedule, updates partner exposure
+  - Amortization: 3 methods — FLAT, DECLINING_BALANCE, AMORTIZED (PMT formula); grace period support
+  - Repayment: record with interest→penalty→principal allocation, overpayment rollover, auto-overdue detection, PAR tracking
+  - Portfolio Summary: totalDisbursed, totalRepaid, totalOutstanding, totalOverdue, PAR30, loansByStatus/Product, expectedRepayments
+  - MFI Partners: CRUD + updatePartnerExposure (with max exposure guard)
+  - Accounting integration: dynamic import of AccountingEngine for journal entries (non-blocking)
+- prisma generate: ✅ success
+- tsc --noEmit: ✅ 0 errors
+- ESLint: 1 pre-existing error in VslaView.tsx (unrelated)
+
+Stage Summary:
+- 3 files edited (schema.prisma, permissions.ts, worklog.md), 1 file created (mfi/engine.ts)
+- 5 new Prisma models with proper indexes and relations
+- Full MFI loan lifecycle engine with 3 amortization methods
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Job #3 — CBAM wiring + EUDR automation
+
+Work Log:
+- Read and analyzed existing CBAM route, reporting engine, EUDR engine, risk-scoring, and all EUDR API routes
+- Created `src/lib/cbam/cn-codes.ts` — comprehensive CN code mapping module (100+ codes across agriculture, cement, steel, aluminum, fertilizers, electricity, hydrogen)
+- Created `src/lib/cbam/index.ts` — CBAM engine wrapper with report persistence, lifecycle (DRAFT→SUBMITTED→VERIFIED→REJECTED), export, scheduling, CN lookup
+- Updated `src/lib/carbon/reporting.ts` — replaced hardcoded 9-commodity CN code map with delegation to new module
+- Added 4 TRACES integration methods to `src/lib/eudr/engine.ts`: submitToTraces, getTracesStatus, retryTracesSubmission, batchSubmitToTraces + TRACES types
+- Created 10 CBAM API routes: reports (list/generate), report by ID, XML export, CSV export, validate, emissions-summary, schedule, calc CRUD, cron generate, CN code lookup
+- Created 4 EUDR API routes: TRACES submit/batch/retry, TRACES status, geolocation verify, deforestation-free baseline check, country profiles
+- Enhanced EUDR cron monitor with 2 new checks: satellite deforestation re-checks for high-risk verified plots, TRACES failed submission polling
+- All files pass `npx tsc --noEmit` with zero errors
+
+Stage Summary:
+- 2 new engine/library modules (CBAM CN codes, CBAM engine wrapper)
+- 14 new API routes (10 CBAM + 4 EUDR)
+- 1 enhanced existing route (EUDR cron monitor)
+- 1 modified existing file (reporting.ts CN code delegation)
+- TRACES integration: full submit/status/retry/batch workflow with simulated EU IS API
+- CN code database: 100+ entries covering current CBAM scope + agricultural future scope
+- Portfolio analytics including PAR30 calculation

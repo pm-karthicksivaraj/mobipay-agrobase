@@ -879,6 +879,376 @@ export class EudrEngine {
       orderBy: { expiryDate: 'asc' },
     })
   }
+
+  // ─────────────────────────────────────────────
+  // TRACES Integration (EU Information System)
+  // ─────────────────────────────────────────────
+  //
+  // The EU Deforestation Regulation requires due diligence
+  // statements to be submitted via the EU Information System
+  // (EUDR IS, successor concept to TRACES). This module
+  // provides a simulated integration layer following the
+  // expected API contract. In production, replace the
+  // mock calls with actual EUDR IS API calls.
+
+  /**
+   * Submit a due diligence statement to the EU TRACES/EUDR IS.
+   * Creates a submission record and returns the TRACES reference.
+   */
+  static async submitToTraces(
+    eudrComplianceId: string,
+    submittedBy: string,
+    options?: {
+      referenceNumber?: string
+      operatorName?: string
+      operatorEori?: string
+      customsReference?: string
+    },
+  ): Promise<TracesSubmissionResult> {
+    const compliance = await db.eudrCompliance.findUnique({
+      where: { id: eudrComplianceId },
+      include: {
+        farmer: { select: { id: true, firstName: true, lastName: true, tenantId: true } },
+        documents: true,
+      },
+    })
+
+    if (!compliance) {
+      throw new Error(`EUDR compliance record ${eudrComplianceId} not found`)
+    }
+
+    if (compliance.status !== 'VERIFIED') {
+      throw new Error(`Cannot submit to TRACES: record status is ${compliance.status}, must be VERIFIED`)
+    }
+
+    // Generate TRACES reference
+    const tenant = await db.tenant.findUnique({
+      where: { id: compliance.farmer?.tenantId },
+      select: { country: true, name: true },
+    })
+    const country = tenant?.country ?? 'XX'
+    const tracesRef = options?.referenceNumber ?? await EudrEngine.generateTracesReference(country)
+
+    // Build the due diligence statement payload
+    const statement = EudrEngine.buildTracesStatement(compliance, tracesRef, options)
+
+    // Simulate TRACES submission (in production: HTTP POST to EU IS API)
+    const submissionResult = await EudrEngine.simulateTracesSubmission(statement)
+
+    // Audit log
+    await db.eudrAuditLog.create({
+      data: {
+        eudrComplianceId,
+        action: 'SUBMITTED',
+        performedBy: submittedBy,
+        details: `Submitted to TRACES/EUDR IS. Reference: ${tracesRef}. Status: ${submissionResult.status}.`,
+      },
+    })
+
+    return {
+      eudrComplianceId,
+      tracesReference: tracesRef,
+      status: submissionResult.status,
+      submittedAt: new Date(),
+      submittedBy,
+      message: submissionResult.message,
+      retryAvailable: submissionResult.status === 'FAILED',
+      nextRetryAt: submissionResult.status === 'FAILED'
+        ? new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+        : undefined,
+    }
+  }
+
+  /**
+   * Get the status of a TRACES submission.
+   */
+  static async getTracesStatus(
+    eudrComplianceId: string,
+  ): Promise<TracesStatusResult> {
+    const compliance = await db.eudrCompliance.findUnique({
+      where: { id: eudrComplianceId },
+      include: {
+        farmer: { select: { firstName: true, lastName: true } },
+        auditLogs: {
+          where: { action: 'SUBMITTED' },
+          orderBy: { performedAt: 'desc' },
+          take: 1,
+        },
+      },
+    })
+
+    if (!compliance) {
+      throw new Error(`EUDR compliance record ${eudrComplianceId} not found`)
+    }
+
+    // Find the last TRACES submission from audit logs
+    const lastSubmission = compliance.auditLogs[0]
+    if (!lastSubmission) {
+      return {
+        eudrComplianceId,
+        submitted: false,
+        tracesReference: null,
+        status: 'NOT_SUBMITTED',
+        submittedAt: null,
+        checkedAt: new Date(),
+      }
+    }
+
+    // Extract TRACES reference from audit log details
+    const refMatch = lastSubmission.details?.match(/Reference:\s*(EUDR-IS-\S+)/)
+    const tracesReference = refMatch ? refMatch[1] : null
+
+    // In production, this would query the EU IS API for real-time status
+    // For now, derive status from audit log
+    const statusMatch = lastSubmission.details?.match(/Status:\s*(\w+)/)
+    let status: TracesSubmissionStatus = 'ACCEPTED'
+    if (statusMatch) {
+      const mapped: Record<string, TracesSubmissionStatus> = {
+        'ACCEPTED': 'ACCEPTED',
+        'PENDING': 'PENDING_REVIEW',
+        'FAILED': 'FAILED',
+        'REJECTED': 'REJECTED',
+      }
+      status = mapped[statusMatch[1]] ?? 'ACCEPTED'
+    }
+
+    return {
+      eudrComplianceId,
+      plotId: compliance.plotId,
+      plotName: compliance.plotName,
+      farmerName: compliance.farmer
+        ? `${compliance.farmer.firstName} ${compliance.farmer.lastName}`
+        : null,
+      submitted: true,
+      tracesReference,
+      status,
+      submittedAt: lastSubmission.performedAt,
+      checkedAt: new Date(),
+    }
+  }
+
+  /**
+   * Retry a failed TRACES submission.
+   */
+  static async retryTracesSubmission(
+    eudrComplianceId: string,
+    retriedBy: string,
+  ): Promise<TracesSubmissionResult> {
+    const currentStatus = await EudrEngine.getTracesStatus(eudrComplianceId)
+
+    if (currentStatus.status !== 'FAILED') {
+      throw new Error(`Cannot retry: current status is ${currentStatus.status}, only FAILED submissions can be retried`)
+    }
+
+    // Re-submit
+    return EudrEngine.submitToTraces(eudrComplianceId, retriedBy)
+  }
+
+  /**
+   * Batch submit multiple VERIFIED compliance records to TRACES.
+   */
+  static async batchSubmitToTraces(
+    tenantId: string,
+    submittedBy: string,
+    plotIds?: string[],
+  ): Promise<BatchTracesResult> {
+    const where: Record<string, unknown> = {
+      status: 'VERIFIED',
+      farmer: { tenantId },
+    }
+
+    if (plotIds && plotIds.length > 0) {
+      where.plotId = { in: plotIds }
+    }
+
+    const compliances = await db.eudrCompliance.findMany({
+      where,
+      select: { id: true, plotId: true, plotName: true },
+      orderBy: { createdAt: 'asc' },
+      take: 100, // Max 100 per batch
+    })
+
+    let submitted = 0
+    let failed = 0
+    let skipped = 0
+    const results: BatchTracesResult['results'] = []
+
+    for (const compliance of compliances) {
+      try {
+        const result = await EudrEngine.submitToTraces(compliance.id, submittedBy)
+        submitted++
+        results.push({
+          plotId: compliance.plotId,
+          plotName: compliance.plotName,
+          status: result.status,
+          tracesReference: result.tracesReference,
+        })
+      } catch (error) {
+        failed++
+        results.push({
+          plotId: compliance.plotId,
+          plotName: compliance.plotName,
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        })
+      }
+    }
+
+    return {
+      tenantId,
+      totalProcessed: compliances.length,
+      submitted,
+      failed,
+      skipped,
+      results,
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // TRACES Internal Helpers
+  // ─────────────────────────────────────────────
+
+  private static async generateTracesReference(country: string): Promise<string> {
+    const year = new Date().getFullYear()
+    const lastRecord = await db.eudrAuditLog.findFirst({
+      where: {
+        action: 'SUBMITTED',
+        details: { contains: `EUDR-IS-${country}-${year}` },
+      },
+      orderBy: { performedAt: 'desc' },
+    })
+
+    let seq = 1
+    if (lastRecord?.details) {
+      const seqMatch = lastRecord.details.match(/EUDR-IS-\w{2}-\d{4}-(\d+)/)
+      if (seqMatch) seq = parseInt(seqMatch[1], 10) + 1
+    }
+
+    return `EUDR-IS-${country}-${year}-${String(seq).padStart(8, '0')}`
+  }
+
+  private static buildTracesStatement(
+    compliance: EudrCompliance & {
+      farmer?: { id: string; firstName: string; lastName: string; tenantId: string } | null
+      documents?: Array<{ documentType: string; fileName: string; verified: boolean }>
+    },
+    tracesRef: string,
+    options?: {
+      operatorName?: string
+      operatorEori?: string
+      customsReference?: string
+    },
+  ): TracesDdStatement {
+    let commodities: string[] = []
+    try {
+      commodities = JSON.parse(compliance.commodities) as string[]
+    } catch { /* use empty */ }
+
+    return {
+      statementReference: tracesRef,
+      plotId: compliance.plotId,
+      plotName: compliance.plotName,
+      commodities,
+      areaHectares: compliance.areaHectares,
+      deforestationFree: compliance.deforestationFree,
+      deforestationDate: compliance.deforestationDate,
+      geolocation: compliance.geolocation,
+      riskAssessment: compliance.riskAssessment,
+      dueDiligenceRef: compliance.dueDiligenceRef,
+      operator: {
+        name: options?.operatorName ?? 'Agrobase Operator',
+        eori: options?.operatorEori ?? '',
+      },
+      customsReference: options?.customsReference ?? null,
+      documentCount: compliance.documents?.length ?? 0,
+      allDocumentsVerified: compliance.documents?.every((d) => d.verified) ?? false,
+      submittedAt: new Date().toISOString(),
+    }
+  }
+
+  private static async simulateTracesSubmission(
+    _statement: TracesDdStatement,
+  ): Promise<{ status: TracesSubmissionStatus; message: string }> {
+    // Simulate API call latency
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    // Simulate 95% acceptance rate
+    const rand = Math.random()
+    if (rand < 0.95) {
+      return {
+        status: 'ACCEPTED',
+        message: 'Due diligence statement accepted by EU Information System.',
+      }
+    }
+
+    // 5% failure (transient)
+    return {
+      status: 'FAILED',
+      message: 'EU IS temporarily unavailable. Please retry in 15 minutes.',
+    }
+  }
+}
+
+// ============================================================
+// TRACES Integration Types
+// ============================================================
+
+export type TracesSubmissionStatus = 'PENDING_REVIEW' | 'ACCEPTED' | 'REJECTED' | 'FAILED'
+
+export interface TracesSubmissionResult {
+  eudrComplianceId: string
+  tracesReference: string
+  status: TracesSubmissionStatus
+  submittedAt: Date
+  submittedBy: string
+  message: string
+  retryAvailable: boolean
+  nextRetryAt?: Date
+}
+
+export interface TracesStatusResult {
+  eudrComplianceId: string
+  plotId?: string
+  plotName?: string
+  farmerName?: string | null
+  submitted: boolean
+  tracesReference: string | null
+  status: TracesSubmissionStatus | 'NOT_SUBMITTED'
+  submittedAt: Date | null
+  checkedAt: Date
+}
+
+export interface BatchTracesResult {
+  tenantId: string
+  totalProcessed: number
+  submitted: number
+  failed: number
+  skipped: number
+  results: Array<{
+    plotId: string
+    plotName: string
+    status: TracesSubmissionStatus | 'FAILED'
+    tracesReference?: string
+    error?: string
+  }>
+}
+
+interface TracesDdStatement {
+  statementReference: string
+  plotId: string
+  plotName: string
+  commodities: string[]
+  areaHectares: number
+  deforestationFree: boolean
+  deforestationDate: Date | null
+  geolocation: string
+  riskAssessment: string | null
+  dueDiligenceRef: string | null
+  operator: { name: string; eori: string }
+  customsReference: string | null
+  documentCount: number
+  allDocumentsVerified: boolean
+  submittedAt: string
 }
 
 // ============================================================
