@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET() {
   const ctx = await getTenantContext()
-  // TODO: InputDealer model lacks tenantId — add column to schema for full isolation
   const dealers = await db.inputDealer.findMany({
+    where: { tenantId: ctx.tenantId },
     include: { products: true, _count: { select: { requests: true } } },
     orderBy: { createdAt: 'desc' }
   })

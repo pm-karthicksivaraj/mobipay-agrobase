@@ -19,10 +19,9 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
     })
 
-    // Fetch pending input requests
-    // TODO: InputRequest model lacks tenantId and has no farmer relation — add column to schema for full isolation
+    // Fetch pending input requests (filtered by tenant via dealer relationship)
     const pendingInputRequests = await db.inputRequest.findMany({
-      where: { status: 'PENDING' },
+      where: { status: 'PENDING', dealer: { tenantId: ctx.tenantId } },
       orderBy: { createdAt: 'desc' },
     })
 

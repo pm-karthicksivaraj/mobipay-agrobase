@@ -5,8 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(req: NextRequest) {
   const ctx = await getTenantContext()
   const status = req.nextUrl.searchParams.get('status') || ''
-  // TODO: InputRequest model lacks tenantId and has no farmer relation — add column to schema for full isolation
-  const where: Record<string, unknown> = {}
+  const where: Record<string, unknown> = { tenantId: ctx.tenantId }
   if (status) where.status = status
   const requests = await db.inputRequest.findMany({
     where, include: { dealer: true }, orderBy: { createdAt: 'desc' }, take: 100

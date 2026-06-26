@@ -11,10 +11,9 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { tenantId: ctx.tenantId }
     if (relatedId) where.relatedId = relatedId
     if (relatedType) where.relatedType = relatedType
-    // TODO: FileAttachment model lacks tenantId — add column to schema for full isolation
     const [data, total] = await Promise.all([
       db.fileAttachment.findMany({
         where,
