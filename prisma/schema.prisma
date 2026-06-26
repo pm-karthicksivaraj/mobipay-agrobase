@@ -100,6 +100,7 @@ model Tenant {
   vslaLoanRepayments   VslaLoanRepayment[]
   vslaMeetings         VslaMeeting[]
   vslaAttendances      VslaAttendance[]
+  exportJobs           ExportJob[]            @relation("TenantExportJob")
 }
 
 // --- USERS & AUTH ---
@@ -2250,4 +2251,60 @@ model Settlement {
   @@index([sourceType, sourceId])
   @@index([beneficiaryId])
   @@index([batchId])
+}
+
+// ---------------------------------------------------------------------------
+// Data Export Jobs (async export to S3/MinIO)
+// ---------------------------------------------------------------------------
+
+model ExportJob {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation("TenantExportJob", fields: [tenantId], references: [id])
+
+  // What to export
+  exportType    String                       // farmers, purchases, inventory, contracts, shipments, partners, vsla_savings, vsla_loans, payments, accounting, traceability
+  format        String   @default("CSV")     // CSV, JSON, XLSX
+  status        String   @default("PENDING") // PENDING, GENERATING, COMPLETED, FAILED, EXPIRED, CANCELLED
+
+  // Requestor
+  requestedBy   String?                      // userId who triggered the export
+
+  // Filters & column selection
+  filters       String?                      // JSON: { dateFrom, dateTo, status, ... }
+  columns       String?                      // JSON: string[] of selected columns
+
+  // Result
+  fileKey       String?                      // S3 object key: exports/{tenantId}/{type}_{timestamp}.{ext}
+  fileName      String?                      // human-friendly download name
+  fileSize      Int?                         // bytes
+  rowCount      Int?                         // number of rows in the export
+  fileChecksum  String?                      // MD5 or SHA256 for integrity
+
+  // Presigned URL (generated on demand, cached)
+  downloadUrl   String?
+  downloadUrlExpiry DateTime?
+
+  // Lifecycle timestamps
+  startedAt     DateTime?
+  completedAt   DateTime?
+  failedAt      DateTime?
+  failureReason String?
+  expiresAt     DateTime?                    // auto-expire link after N days
+
+  // Retry
+  attemptCount  Int      @default(0)
+  maxAttempts   Int      @default(3)
+
+  metadata      String?                      // JSON: additional context
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([exportType])
+  @@index([requestedBy])
+  @@index([expiresAt])
+  @@index([createdAt])
 }
