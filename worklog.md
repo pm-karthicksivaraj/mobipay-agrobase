@@ -294,3 +294,31 @@ Stage Summary:
 - SettlementEngine: 7 operations including batch (up to 200) + auto-provider resolution (UGX→mPay, GHS→aIntel, KES→M-Pesa)
 - All operations integrate with AccountingEngine for double-entry journal entries
 - Escrow release auto-creates Settlement via /api/escrow/[id] PATCH action=release
+---
+Task ID: 7
+Agent: Main Agent
+Task: Job #7 — Notification channels (SMS/Email/WhatsApp) upgrade
+
+Work Log:
+- Scanned existing code: 4 channel providers (SMS/Email/WhatsApp/InApp) + basic engine + stub API routes
+- Added NotificationPreference Prisma model (tenantId + userId + channel + enabled, unique constraint)
+- Added reverse relations to Tenant and User models
+- Rewrote types.ts: added MultiChannelRequest, UserNotificationRequest, UserPreferences, NotificationStats, TemplateVariable, CATEGORY_DEFAULT_CHANNELS
+- Rewrote engine.ts as static class (consistent with Escrow/Settlement pattern):
+  - dispatch, dispatchMultiChannel, dispatchToUser (preference-aware)
+  - retryFailed (3 attempts, 5s/15s/60s backoff), processScheduled (cron)
+  - markRead, markAllRead, getUnreadCount
+  - getUserPreferences, updateUserPreferences, resolveUserChannels
+  - createTemplate, updateTemplate, deleteTemplate
+  - listNotifications, getStats
+- Created 7 API routes: notifications CRUD, templates CRUD, preferences, cron/retry, cron/scheduled, callback/[provider]
+- Delivery callback provider supports AT, Resend, Twilio, Meta WhatsApp status mapping
+- tsc --noEmit: 0 errors after 1 fix (empty return type)
+- Pushed to main: 829105c
+
+Stage Summary:
+- 12 files changed, 1575 insertions, 165 deletions
+- Engine upgraded from singleton instance to static class
+- Multi-channel dispatch, user preference routing, retry logic, scheduled processing
+- Channel providers unchanged (already well-implemented)
+- 7 new API routes with proper auth/permissions/tenant isolation
