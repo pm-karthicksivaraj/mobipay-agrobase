@@ -152,3 +152,34 @@ Work Log:
 
 Stage Summary:
 - 33 route files covering notifications, webhooks, inventory, quality, contracts, logistics, partners, bulk ops, analytics, reports
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: Critical Architecture Hardening — Phase A (Bug Fixes) + Phase B (Scalability)
+
+Work Log:
+- Discovered getTenantContext() signature mismatch: 15+ routes pass (req) but function takes no args
+- Fixed tenant.ts: added optional _req parameter, removed broken 'declare module ./context'
+- Fixed SQL injection in dashboard/stats: replaced $queryRawUnsafe string interpolation with Prisma.sql parameterized queries
+- Added PUT to api-keys/[id] (with new updateKey method in engine.ts)
+- Added PUT+DELETE to bulk/operations/[id] (soft-cancel)
+- Added DELETE to logistics/shipments/[id] (soft-cancel)
+- Added DELETE to quality/inspections/[id] (void)
+- Rewrote vsla/loans/[id]: added GET with includes, proper PUT, DELETE for PENDING only, tenant checks
+- Rewrote vsla/meetings/[id]: added GET, PUT, DELETE with attendance cleanup
+- Production db.ts: connection pool config, graceful shutdown (SIGTERM/SIGINT), startup logging
+- Production Dockerfile: 3-stage build, non-root user, Africa/Kampala TZ, devDeps stripped
+- Created /api/health: DB ping, memory stats, 503 on failure
+- Security headers in next.config.ts: CSP, HSTS, X-Frame-Options, Referrer-Policy, static caching
+- Mobile sync v2: delta sync tokens, push endpoint, conflict resolution (server-wins), entity selection
+- Fixed CI/CD: removed redundant ci-cd.yml, npm consistency, PostgreSQL DATABASE_URL for builds
+- docker-compose: Redis AOF, connection_limit=10, memory limits, TZ=Africa/Kampala
+- Pushed commit a995905 to GitHub
+
+Stage Summary:
+- 20 files changed, 992 insertions, 397 deletions
+- 3 critical bugs fixed (SQL injection, type mismatch, missing CRUD)
+- 6 routes now have complete CRUD
+- Production-ready: health check, connection pooling, security headers, graceful shutdown
+- Mobile: offline-first delta sync with conflict resolution
