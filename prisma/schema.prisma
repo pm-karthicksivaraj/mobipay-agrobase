@@ -18,8 +18,9 @@ model Tenant {
   id          String   @id @default(cuid())
   name        String
   type        String   // SUPER_ADMIN, COUNTRY, NGO, COOPERATIVE, AGRIBUSINESS, EXPORTER, MFI, BANK, INPUT_SUPPLIER, PROCESSING
-  country     String?  // Uganda, Ghana, Kenya
-  parentId    String?
+  country         String?             // Uganda, Ghana, Kenya
+  defaultCurrency String   @default("UGX") // UGX, GHS, KES — derived from country, overridable
+  parentId        String?
   parent      Tenant?  @relation("TenantHierarchy", fields: [parentId], references: [id])
   children    Tenant[] @relation("TenantHierarchy")
   isActive    Boolean  @default(true)
@@ -55,6 +56,7 @@ model Tenant {
   deforestationAlerts  DeforestationAlert[]
   carbonFootprints     CarbonFootprint[]
   cbamCalculations     CbamCalculation[]
+  exchangeRates        ExchangeRate[]  @relation("TenantExchangeRates")
   cbamReports          CbamReport[]
   rainforestCertifications RainforestCertification[]
   globalGapCertifications  GlobalGapCertification[]
@@ -2088,12 +2090,19 @@ model BrandingConfig {
 
 model ExchangeRate {
   id            String   @id @default(cuid())
+  tenantId      String?
+  tenant        Tenant?  @relation("TenantExchangeRates", fields: [tenantId], references: [id])
   fromCurrency  String
   toCurrency    String
   rate          Float
-  source        String   @default("manual")
+  source        String   @default("manual") // manual, fixer, frankfurter, cbk, bou
   validFrom     DateTime @default(now())
+  validTo       DateTime?                   // null = current/active
+  isBase        Boolean  @default(false)   // true = system-wide default rate (SUPER_ADMIN)
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  @@unique([fromCurrency, toCurrency])
+  @@unique([fromCurrency, toCurrency, tenantId])
+  @@index([tenantId])
+  @@index([fromCurrency, toCurrency])
 }

@@ -1,301 +1,323 @@
 /**
  * Agrobase V3 — Multi-Currency Engine
+ * MobiPay AgroSys Limited
  *
- * Converts between East African currencies (UGX, GHS, KES) and USD.
- * Uses an in-memory cache with 1-hour TTL backed by the ExchangeRate
- * Prisma model for persistence. In production, Redis would replace
- * the in-memory Map.
+ * Central currency utilities for the entire application:
+ *   - Currency metadata (symbols, decimals, locale, country mapping)
+ *   - Amount formatting (Intl.NumberFormat) with tenant branding support
+ *   - Validation helpers
+ *   - Conversion delegation to ExchangeRateEngine
  *
- * Default rates (hardcoded fallback):
- *   1 USD = 3,800 UGX
- *   1 USD = 15 GHS
- *   1 USD = 153 KES
+ * Supported currencies: UGX, GHS, KES, USD
+ * Country mapping: UG→UGX, GH→GHS, KE→KES
  */
 
 import { db } from '@/lib/db'
+import { getExchangeRate } from './exchange-rates'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Currency Metadata Registry ─────────────────────────────────────────────
 
-export interface ExchangeRate {
-  fromCurrency: string
-  toCurrency: string
-  rate: number
-  source: string
-  validFrom: Date
+export interface CurrencyInfo {
+  code: string
+  name: string
+  symbol: string
+  decimals: number      // minor units: 0 for UGX, 2 for GHS/KES/USD
+  locale: string        // for Intl.NumberFormat
+  country: string       // primary country code
 }
 
-export interface CachedRate {
-  rate: number
-  expiresAt: number // Unix timestamp in ms
+/** Complete registry of supported currencies */
+export const CURRENCIES: Record<string, CurrencyInfo> = {
+  UGX: {
+    code: 'UGX',
+    name: 'Ugandan Shilling',
+    symbol: 'USh',
+    decimals: 0,
+    locale: 'en-UG',
+    country: 'UG',
+  },
+  GHS: {
+    code: 'GHS',
+    name: 'Ghanaian Cedi',
+    symbol: 'GH₵',
+    decimals: 2,
+    locale: 'en-GH',
+    country: 'GH',
+  },
+  KES: {
+    code: 'KES',
+    name: 'Kenyan Shilling',
+    symbol: 'KSh',
+    decimals: 2,
+    locale: 'en-KE',
+    country: 'KE',
+  },
+  USD: {
+    code: 'USD',
+    name: 'US Dollar',
+    symbol: '$',
+    decimals: 2,
+    locale: 'en-US',
+    country: 'US',
+  },
 }
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+/** Valid currency codes set — for quick validation */
+export const VALID_CURRENCY_CODES = new Set(Object.keys(CURRENCIES))
 
-/** Supported currency codes */
-export const SUPPORTED_CURRENCIES = ['UGX', 'GHS', 'KES', 'USD'] as const
-export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number]
-
-/** Default rates against USD (fallback when DB has no data) */
-const DEFAULT_RATES: Record<string, number> = {
-  'USD-UGX': 3800,
-  'USD-GHS': 15,
-  'USD-KES': 153,
-  'UGX-USD': 1 / 3800,
-  'GHS-USD': 1 / 15,
-  'KES-USD': 1 / 153,
-  'UGX-UGX': 1,
-  'GHS-GHS': 1,
-  'KES-KES': 1,
-  'USD-USD': 1,
+/** Country → default currency mapping */
+export const COUNTRY_CURRENCY: Record<string, string> = {
+  UG: 'UGX',
+  GH: 'GHS',
+  KE: 'KES',
 }
 
-/** In-memory cache TTL: 1 hour */
-const CACHE_TTL_MS = 60 * 60 * 1000
+/** Currency code → symbol (backward compat with payments/types.ts) */
+export const CURRENCY_SYMBOLS: Record<string, string> = Object.fromEntries(
+  Object.entries(CURRENCIES).map(([code, info]) => [code, info.symbol])
+)
 
-/** Currency display configurations */
-const CURRENCY_CONFIG: Record<string, { symbol: string; code: boolean; decimals: number; thousandsSep: string; decimalSep: string }> = {
-  UGX: { symbol: 'UGX', code: true, decimals: 0, thousandsSep: ',', decimalSep: '.' },
-  GHS: { symbol: 'GHS', code: true, decimals: 2, thousandsSep: ',', decimalSep: '.' },
-  KES: { symbol: 'KES', code: true, decimals: 0, thousandsSep: ',', decimalSep: '.' },
-  USD: { symbol: '$', code: false, decimals: 2, thousandsSep: ',', decimalSep: '.' },
+// ─── Currency Validation ────────────────────────────────────────────────────
+
+/**
+ * Check if a currency code is supported.
+ */
+export function isValidCurrency(code: string): boolean {
+  return VALID_CURRENCY_CODES.has(code)
 }
 
-// ─── Currency Engine ─────────────────────────────────────────────────────────
+/**
+ * Validate a currency code, throwing if invalid.
+ * @throws Error if code is not in the supported set
+ */
+export function requireValidCurrency(code: string): void {
+  if (!isValidCurrency(code)) {
+    throw new Error(
+      `Unsupported currency: "${code}". Supported: ${[...VALID_CURRENCY_CODES].join(', ')}`
+    )
+  }
+}
 
-export class CurrencyEngine {
-  /** In-memory rate cache. Key: "FROM-TO" (uppercase) */
-  private cache: Map<string, CachedRate> = new Map()
+/**
+ * Infer the default currency from a tenant's country.
+ * Falls back to UGX if country is not mapped.
+ */
+export function currencyFromCountry(country: string | null | undefined): string {
+  if (!country) return 'UGX'
+  return COUNTRY_CURRENCY[country] || 'UGX'
+}
 
-  /**
-   * Convert an amount from one currency to another.
-   * Uses the cross-rate via USD when no direct rate exists.
-   */
-  async convert(amount: number, from: string, to: string): Promise<number> {
-    const fromUpper = from.toUpperCase()
-    const toUpper = to.toUpperCase()
+// ─── Amount Formatting ──────────────────────────────────────────────────────
 
-    if (fromUpper === toUpper) return amount
+export type CurrencyFormatStyle = 'symbol' | 'code' | 'none'
 
-    // Try direct rate first
-    const directKey = `${fromUpper}-${toUpper}`
-    const directRate = await this.getRate(directKey)
-    if (directRate !== null) {
-      return amount * directRate
-    }
-
-    // Cross-rate via USD
-    const toUsdKey = `${fromUpper}-USD`
-    const fromUsdKey = `USD-${toUpper}`
-    const toUsdRate = await this.getRate(toUsdKey)
-    const fromUsdRate = await this.getRate(fromUsdKey)
-
-    if (toUsdRate !== null && fromUsdRate !== null) {
-      return amount * toUsdRate * fromUsdRate
-    }
-
-    // Use default rates as final fallback
-    const defaultRate = DEFAULT_RATES[directKey] ?? DEFAULT_RATES[toUsdKey] * (DEFAULT_RATES[fromUsdKey] ?? 0)
-    if (defaultRate && defaultRate > 0) {
-      return amount * defaultRate
-    }
-
-    throw new Error(`No exchange rate found for ${fromUpper} → ${toUpper}`)
+/**
+ * Format a monetary amount for display.
+ *
+ * Uses Intl.NumberFormat for locale-aware formatting.
+ * Falls back gracefully if Intl is not available (Edge Runtime edge cases).
+ *
+ * @param amount  - The numeric amount
+ * @param currency - ISO 4217 code (UGX, GHS, KES, USD)
+ * @param formatStyle - How to display the currency: 'symbol' (USh 1,000), 'code' (UGX 1,000.00), 'none' (1,000)
+ *
+ * @example
+ * ```ts
+ * formatMoney(1500000, 'UGX')             // "USh 1,500,000"
+ * formatMoney(250.50, 'GHS')              // "GH₵ 250.50"
+ * formatMoney(5000, 'KES', 'code')        // "KES 5,000.00"
+ * formatMoney(100, 'USD', 'none')         // "100.00"
+ * ```
+ */
+export function formatMoney(
+  amount: number,
+  currency: string = 'UGX',
+  formatStyle: CurrencyFormatStyle = 'symbol'
+): string {
+  const info = CURRENCIES[currency]
+  if (!info) {
+    // Unknown currency — fallback to code + 2 decimals
+    return `${currency} ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
-  /**
-   * Get all current exchange rates (all pairs stored in DB).
-   */
-  async getExchangeRates(): Promise<ExchangeRate[]> {
-    // Try to load from DB
-    try {
-      const rates = await db.exchangeRate.findMany({
-        orderBy: { validFrom: 'desc' },
-      })
-      if (rates.length > 0) {
-        // Update cache
-        for (const r of rates) {
-          const key = `${r.fromCurrency}-${r.toCurrency}`
-          this.cache.set(key, { rate: r.rate, expiresAt: Date.now() + CACHE_TTL_MS })
-        }
-        return rates.map((r) => ({
-          fromCurrency: r.fromCurrency,
-          toCurrency: r.toCurrency,
-          rate: r.rate,
-          source: r.source,
-          validFrom: r.validFrom,
-        }))
-      }
-    } catch {
-      // DB not available — fall through to defaults
-    }
-
-    // Return defaults when DB has no rates
-    return this.getDefaultRates()
-  }
-
-  /**
-   * Format an amount with the appropriate currency symbol and formatting.
-   *
-   * Examples:
-   *   formatAmount(1000000, 'UGX') → "UGX 1,000,000"
-   *   formatAmount(1000, 'GHS')   → "GHS 1,000.00"
-   *   formatAmount(100000, 'KES') → "KES 100,000"
-   *   formatAmount(1000, 'USD')   → "$1,000.00"
-   */
-  formatAmount(amount: number, currency: string): string {
-    const upper = currency.toUpperCase()
-    const config = CURRENCY_CONFIG[upper] || { symbol: upper, code: true, decimals: 2, thousandsSep: ',', decimalSep: '.' }
-
-    const formatted = this.formatNumber(amount, config.decimals, config.thousandsSep, config.decimalSep)
-
-    if (config.code) {
-      return `${config.symbol} ${formatted}`
-    }
-    return `${config.symbol}${formatted}`
-  }
-
-  /**
-   * Set (upsert) an exchange rate. Admin-only operation.
-   * Also updates the in-memory cache.
-   */
-  async setExchangeRate(from: string, to: string, rate: number): Promise<void> {
-    const fromUpper = from.toUpperCase()
-    const toUpper = to.toUpperCase()
-
-    await db.exchangeRate.upsert({
-      where: {
-        fromCurrency_toCurrency: {
-          fromCurrency: fromUpper,
-          toCurrency: toUpper,
-        },
-      },
-      create: {
-        fromCurrency: fromUpper,
-        toCurrency: toUpper,
-        rate,
-        source: 'manual',
-        validFrom: new Date(),
-      },
-      update: {
-        rate,
-        source: 'manual',
-        validFrom: new Date(),
-      },
+  // Use Intl.NumberFormat for proper locale formatting
+  try {
+    const formatter = new Intl.NumberFormat(info.locale, {
+      minimumFractionDigits: info.decimals,
+      maximumFractionDigits: info.decimals,
     })
 
-    // Update cache
-    const key = `${fromUpper}-${toUpper}`
-    this.cache.set(key, { rate, expiresAt: Date.now() + CACHE_TTL_MS })
-  }
+    const formatted = formatter.format(amount)
 
-  /**
-   * Bulk seed default rates into the database.
-   * Called once during initial setup.
-   */
-  async seedDefaultRates(): Promise<void> {
-    const defaults: Array<{ from: string; to: string; rate: number }> = [
-      { from: 'USD', to: 'UGX', rate: 3800 },
-      { from: 'USD', to: 'GHS', rate: 15 },
-      { from: 'USD', to: 'KES', rate: 153 },
-      { from: 'UGX', to: 'USD', rate: 1 / 3800 },
-      { from: 'GHS', to: 'USD', rate: 1 / 15 },
-      { from: 'KES', to: 'USD', rate: 1 / 153 },
-    ]
-
-    for (const d of defaults) {
-      await db.exchangeRate.upsert({
-        where: {
-          fromCurrency_toCurrency: {
-            fromCurrency: d.from,
-            toCurrency: d.to,
-          },
-        },
-        create: {
-          fromCurrency: d.from,
-          toCurrency: d.to,
-          rate: d.rate,
-          source: 'default',
-        },
-        update: {}, // Don't overwrite existing manual rates
-      })
-
-      // Also cache
-      const key = `${d.from}-${d.to}`
-      this.cache.set(key, { rate: d.rate, expiresAt: Date.now() + CACHE_TTL_MS })
+    switch (formatStyle) {
+      case 'symbol':
+        return `${info.symbol} ${formatted}`
+      case 'code':
+        return `${info.code} ${formatted}`
+      case 'none':
+        return formatted
+      default:
+        return `${info.symbol} ${formatted}`
     }
-  }
-
-  // ─── Private Helpers ─────────────────────────────────────────────────────
-
-  /**
-   * Get a rate by key ("FROM-TO"). Checks cache first, then DB, then defaults.
-   */
-  private async getRate(key: string): Promise<number | null> {
-    // 1. Check in-memory cache
-    const cached = this.cache.get(key)
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.rate
-    }
-
-    // 2. Try DB
-    try {
-      const [from, to] = key.split('-')
-      const record = await db.exchangeRate.findUnique({
-        where: { fromCurrency_toCurrency: { fromCurrency: from, toCurrency: to } },
-      })
-      if (record) {
-        this.cache.set(key, { rate: record.rate, expiresAt: Date.now() + CACHE_TTL_MS })
-        return record.rate
-      }
-    } catch {
-      // DB not available
-    }
-
-    // 3. Default rates
-    if (key in DEFAULT_RATES) {
-      return DEFAULT_RATES[key]
-    }
-
-    return null
-  }
-
-  /**
-   * Get default exchange rates as ExchangeRate objects.
-   */
-  private getDefaultRates(): ExchangeRate[] {
-    return Object.entries(DEFAULT_RATES).map(([key, rate]) => {
-      const [from, to] = key.split('-')
-      return {
-        fromCurrency: from,
-        toCurrency: to,
-        rate,
-        source: 'default',
-        validFrom: new Date(),
-      }
+  } catch {
+    // Intl fallback (shouldn't happen but be defensive)
+    const formatted = amount.toLocaleString('en-US', {
+      minimumFractionDigits: info.decimals,
+      maximumFractionDigits: info.decimals,
     })
-  }
-
-  /**
-   * Format a number with thousands separator and decimal places.
-   */
-  private formatNumber(
-    value: number,
-    decimals: number,
-    thousandsSep: string,
-    decimalSep: string,
-  ): string {
-    const fixed = value.toFixed(decimals)
-    const [intPart, decPart] = fixed.split('.')
-
-    // Add thousands separators
-    const withSep = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSep)
-
-    if (decPart) {
-      return `${withSep}${decimalSep}${decPart}`
-    }
-    return withSep
+    return `${info.symbol} ${formatted}`
   }
 }
 
-/** Singleton instance for application-wide use */
-export const currencyEngine = new CurrencyEngine()
+/**
+ * Format money with tenant-aware defaults.
+ * Reads the tenant's defaultCurrency and currencyFormat branding setting.
+ *
+ * @param amount   - The numeric amount
+ * @param tenantId - The tenant to derive currency/format from
+ */
+export async function formatMoneyForTenant(
+  amount: number,
+  tenantId: string
+): Promise<string> {
+  const tenant = await db.tenant.findUnique({
+    where: { id: tenantId },
+    select: { defaultCurrency: true },
+  })
+
+  const currency = tenant?.defaultCurrency || 'UGX'
+  return formatMoney(amount, currency)
+}
+
+// ─── Money Arithmetic (floating-point safe) ─────────────────────────────────
+
+/**
+ * Round a monetary amount to the appropriate decimal places for a currency.
+ * UGX: 0 decimals (whole shillings), GHS/KES/USD: 2 decimals.
+ */
+export function roundMoney(amount: number, currency: string = 'UGX'): number {
+  const info = CURRENCIES[currency]
+  const decimals = info?.decimals ?? 2
+  const factor = Math.pow(10, decimals)
+  return Math.round((amount + Number.EPSILON) * factor) / factor
+}
+
+/**
+ * Add two money amounts with proper rounding.
+ */
+export function addMoney(a: number, b: number, currency?: string): number {
+  return roundMoney(a + b, currency)
+}
+
+/**
+ * Subtract two money amounts with proper rounding.
+ */
+export function subtractMoney(a: number, b: number, currency?: string): number {
+  return roundMoney(a - b, currency)
+}
+
+/**
+ * Multiply amount by a factor (e.g., quantity × unitPrice) with proper rounding.
+ */
+export function multiplyMoney(amount: number, factor: number, currency?: string): number {
+  return roundMoney(amount * factor, currency)
+}
+
+// ─── Currency Conversion ────────────────────────────────────────────────────
+
+/**
+ * Convert an amount from one currency to another using the exchange rate engine.
+ * Falls back to 1:1 if no rate is found and both currencies are the same.
+ *
+ * @param amount      - Amount in source currency
+ * @param fromCurrency - Source currency code
+ * @param toCurrency   - Target currency code
+ * @param tenantId     - Optional tenant for tenant-specific rates
+ * @param asOf         - Optional date for historical rates
+ * @returns Converted amount, or original if no conversion needed/found
+ */
+export async function convertCurrency(
+  amount: number,
+  fromCurrency: string,
+  toCurrency: string,
+  tenantId?: string,
+  asOf?: Date
+): Promise<number> {
+  // Same currency — no conversion
+  if (fromCurrency === toCurrency) return amount
+
+  requireValidCurrency(fromCurrency)
+  requireValidCurrency(toCurrency)
+
+  const rate = await getExchangeRate(fromCurrency, toCurrency, tenantId, asOf)
+
+  if (rate === null) {
+    // No rate found — return original and log a warning
+    console.warn(
+      `[Currency] No exchange rate found for ${fromCurrency}→${toCurrency}` +
+      (tenantId ? ` (tenant: ${tenantId})` : '') +
+      '. Returning original amount.'
+    )
+    return amount
+  }
+
+  return roundMoney(amount * rate, toCurrency)
+}
+
+/**
+ * Get the tenant's effective currency.
+ * Checks Tenant.defaultCurrency first, then infers from country.
+ */
+export async function getTenantCurrency(tenantId: string): Promise<string> {
+  const tenant = await db.tenant.findUnique({
+    where: { id: tenantId },
+    select: { defaultCurrency: true, country: true },
+  })
+
+  if (tenant?.defaultCurrency && VALID_CURRENCY_CODES.has(tenant.defaultCurrency)) {
+    return tenant.defaultCurrency
+  }
+
+  return currencyFromCountry(tenant?.country)
+}
+
+/**
+ * Resolve the effective currency for a request.
+ * Accepts an explicit override, falls back to tenant default, then country.
+ */
+export async function resolveCurrency(
+  tenantId: string,
+  explicitCurrency?: string | null
+): Promise<string> {
+  if (explicitCurrency && isValidCurrency(explicitCurrency)) {
+    return explicitCurrency
+  }
+  return getTenantCurrency(tenantId)
+}
+
+// ─── Currency List for UI ───────────────────────────────────────────────────
+
+/**
+ * Get the list of supported currencies (for dropdowns/settings UI).
+ */
+export function getSupportedCurrencies(): CurrencyInfo[] {
+  return Object.values(CURRENCIES)
+}
+
+/**
+ * Get currencies relevant to a specific country.
+ * Returns the local currency + USD.
+ */
+export function getCurrenciesForCountry(country: string): CurrencyInfo[] {
+  const localCode = COUNTRY_CURRENCY[country]
+  const currencies: CurrencyInfo[] = []
+
+  if (localCode && CURRENCIES[localCode]) {
+    currencies.push(CURRENCIES[localCode])
+  }
+
+  // Always include USD for cross-border / reporting
+  currencies.push(CURRENCIES.USD)
+
+  return currencies
+}
