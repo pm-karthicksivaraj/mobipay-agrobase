@@ -249,3 +249,25 @@ Stage Summary:
 - 4 currencies supported: UGX (0 decimals), GHS (2), KES (2), USD (2)
 - Exchange rate resolution: tenant-specific → system base → cache → null
 - External sync via Frankfurter API (free, ECB data, no API key needed)
+
+---
+Task ID: Job-5
+Agent: Main Agent
+Task: Entitlement enforcement middleware
+
+Work Log:
+- Scanned: EntitlementEngine (exists, DB-backed, per-tenant ModuleEntitlement), BillingEngine, Plans (FREE/BASIC/STANDARD/ENTERPRISE)
+- Identified naming mismatch: plans use lowercase (vsla), entitlements use uppercase (VSLA) — engine calls .toUpperCase() so it works
+- Created src/middleware/edge-entitlements.ts: Edge-compatible in-memory cache with route→module mapping (35 prefixes → 14 modules)
+- Added entitlement check as step 2b in middleware.ts (after RBAC, before tenant headers)
+- Added logEntitlementDenied to edge-logger.ts
+- Created /api/settings/entitlements: list, cache-stats, sync-cache, sync-all, grant, revoke, delete
+- Auto-warm: auth.ts JWT callback now loads entitlements into Edge cache on login
+- tsc --noEmit + next build pass
+
+Stage Summary:
+- Commit 14ee4a0 pushed to GitHub
+- 6 files changed, 527 insertions, 1 deletion
+- Fail-open design: cache miss/stale never blocks requests
+- SUPER_ADMIN bypasses all entitlement checks
+- Cache: 5min TTL, 500 tenants max, per-tenant invalidation on grant/revoke
