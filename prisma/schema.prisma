@@ -57,6 +57,8 @@ model Tenant {
   carbonFootprints     CarbonFootprint[]
   cbamCalculations     CbamCalculation[]
   exchangeRates        ExchangeRate[]  @relation("TenantExchangeRates")
+  escrows             Escrow[]       @relation("TenantEscrow")
+  settlements         Settlement[]    @relation("TenantSettlement")
   cbamReports          CbamReport[]
   rainforestCertifications RainforestCertification[]
   globalGapCertifications  GlobalGapCertification[]
@@ -1191,7 +1193,8 @@ model JournalEntry {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  lines JournalLine[]
+  lines        JournalLine[]
+  settlement    Settlement?    @relation("SettlementJournal")
 }
 
 model JournalLine {
@@ -1318,6 +1321,9 @@ model PaymentTransaction {
   metadata          String?  // JSON for additional data
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  escrowAsPayment    Escrow?       @relation("EscrowPayment")
+  settlementAsPayment Settlement?  @relation("SettlementPayment")
 }
 
 // --- V1 MIGRATION TRACKING ---
@@ -2105,4 +2111,126 @@ model ExchangeRate {
   @@unique([fromCurrency, toCurrency, tenantId])
   @@index([tenantId])
   @@index([fromCurrency, toCurrency])
+}
+
+// --- ESCROW & SETTLEMENT ---
+
+model Escrow {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantEscrow", fields: [tenantId], references: [id])
+
+  // Source transaction that funded this escrow
+  sourceType      String                    // SALE, PURCHASE, CONSIGNMENT, MARKETPLACE_ORDER
+  sourceId        String                    // ID of the Sale/Purchase/Consignment record
+  reference       String   @unique          // Human-readable: "ESC-2024-001"
+
+  // Parties
+  payerId         String?                   // who pays into escrow (buyer / cooperative)
+  payeeId         String?                   // who receives on release (farmer / supplier)
+  payerName       String?
+  payeeName       String?
+
+  // Amount
+  amount          Float
+  currency        String   @default("UGX")
+  feeAmount       Float    @default(0)      // platform fee withheld on release
+  feeRate         Float    @default(0)      // percentage, e.g. 2.5
+
+  // Lifecycle
+  status          String   @default("PENDING")
+  // PENDING → HELD → RELEASED / PARTIALLY_RELEASED / REFUNDED / DISPUTED / EXPIRED
+
+  heldAt          DateTime?
+  heldBy          String?
+  releasedAt      DateTime?
+  releasedBy      String?
+  releasedAmount  Float    @default(0)
+  refundedAt      DateTime?
+  refundedBy      String?
+  refundedAmount  Float    @default(0)
+  disputedAt      DateTime?
+  disputedBy      String?
+  disputeReason   String?
+
+  // Conditions for release
+  releaseConditions String?                  // JSON: { "type": "delivery_confirmation", "deliveryId": "xxx" }
+  autoReleaseAt   DateTime?                  // auto-release if not disputed by this time
+
+  // Linked payment
+  paymentTxnId    String?   @unique
+  paymentTxn      PaymentTransaction? @relation("EscrowPayment", fields: [paymentTxnId], references: [id])
+
+  metadata        String?                    // JSON for additional data
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  settlements     Settlement[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([sourceType, sourceId])
+  @@index([payeeId])
+  @@index([payerId])
+}
+
+model Settlement {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantSettlement", fields: [tenantId], references: [id])
+
+  escrowId        String?
+  escrow          Escrow?  @relation(fields: [escrowId], references: [id])
+
+  // What is being settled
+  sourceType      String                    // ESCROW, COOPERATIVE_PAYMENT, COMMISSION, MARKETPLACE_PAYOUT
+  sourceId        String?                   // ID of the source record
+  reference       String   @unique          // "SET-2024-001"
+
+  // Beneficiary
+  beneficiaryId   String?                   // User or farmer receiving funds
+  beneficiaryName String?
+  beneficiaryPhone String?
+
+  // Amounts
+  grossAmount     Float
+  deductions      Float    @default(0)      // total deductions (fees, taxes, penalties)
+  netAmount       Float
+  currency        String   @default("UGX")
+
+  // Lifecycle
+  status          String   @default("PENDING")
+  // PENDING → APPROVED → PROCESSING → COMPLETED / FAILED / REVERSED
+
+  // Payment execution
+  paymentMethod   String?                   // MOBILE_MONEY, BANK, CASH, WALLET
+  paymentTxnId    String?   @unique
+  paymentTxn      PaymentTransaction? @relation("SettlementPayment", fields: [paymentTxnId], references: [id])
+  initiatedAt     DateTime?
+  completedAt     DateTime?
+  failedAt        DateTime?
+  failureReason   String?
+
+  // Accounting
+  journalEntryId  String?   @unique
+  journalEntry    JournalEntry? @relation("SettlementJournal", fields: [journalEntryId], references: [id])
+
+  // Batch
+  batchId         String?                   // for grouping settlements in a batch run
+  batchReference  String?
+
+  // Audit
+  approvedBy      String?
+  approvedAt      DateTime?
+  initiatedBy     String?
+  metadata        String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([sourceType, sourceId])
+  @@index([beneficiaryId])
+  @@index([batchId])
 }
