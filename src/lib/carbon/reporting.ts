@@ -278,7 +278,7 @@ export async function getTenantEmissionsSummary(
       sowingDate: { gte: startDate, lte: endDate },
     },
     include: {
-      farm: { select: { sizeHectares: true } },
+      farm: { select: { id: true, sizeHectares: true } },
     },
   })
 

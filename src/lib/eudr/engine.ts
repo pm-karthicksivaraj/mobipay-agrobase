@@ -34,7 +34,7 @@ export interface DeforestationCheckResult {
 
 export interface RiskAssessmentResult {
   plotId: string
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
   score: number
   factors: {
     forestProximity: { score: number; details: string }
@@ -787,7 +787,7 @@ export class EudrEngine {
     }
 
     if (filters?.status) where.status = filters.status
-    if (filters?.riskAssessment) where.riskAssessment = filters.riskLevel
+    if (filters?.riskLevel) where.riskLevel = filters.riskLevel
 
     const compliances = await db.eudrCompliance.findMany({
       where,

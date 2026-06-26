@@ -141,7 +141,7 @@ export class MpayProvider implements PaymentProviderHandler {
     const signature = generateSignature(signingPayload, config.apiSecret)
 
     const body: MpayDisburseRequest = {
-      ...signingPayload,
+      ...(signingPayload as Omit<MpayDisburseRequest, 'signature'>),
       signature,
     }
 
@@ -154,7 +154,7 @@ export class MpayProvider implements PaymentProviderHandler {
         config.baseUrl,
         '/payments/disburse',
         config.apiKey,
-        body,
+        body as unknown as Record<string, unknown>,
       )
 
       const statusMap: Record<string, PaymentResult['status']> = {
@@ -223,7 +223,10 @@ export class MpayProvider implements PaymentProviderHandler {
     const rawBody = callback.rawBody as Record<string, unknown> | undefined
     if (rawBody && config.webhookSecret) {
       const expectedSignature = rawBody.signature as string | undefined
-      const signingPayload = { ...rawBody, signature: undefined } as Record<string, string | number>
+      const { signature: _sig, ...rest } = rawBody as Record<string, string | number | undefined>
+      const signingPayload = Object.fromEntries(
+        Object.entries(rest).filter(([, v]) => v !== undefined)
+      ) as Record<string, string | number>
       const computedSignature = generateSignature(signingPayload, config.webhookSecret)
 
       if (expectedSignature && expectedSignature !== computedSignature) {

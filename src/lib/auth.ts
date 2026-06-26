@@ -31,6 +31,9 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Verify hashed password (supports both bcrypt and legacy plain-text during migration)
+        if (!user.passwordHash) {
+          return null
+        }
         const isValid = await verifyPassword(credentials.password, user.passwordHash)
         if (!isValid) {
           return null

@@ -123,14 +123,17 @@ export class V1Migrator {
                 nationalIdNo: row.national_id ?? row.national_id_no ? String(row.national_id ?? row.national_id_no) : undefined,
                 farmerCode: row.farmer_code ? String(row.farmer_code) : undefined,
                 status: (row.status as string) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
+                memberType: 'General',
               },
             })
 
             // Store ID mapping
             await db.idMapping.create({
-              tableName: 'farmers',
-              v1Id,
-              v3Id: profile.id,
+              data: {
+                tableName: 'farmers',
+                v1Id,
+                v3Id: profile.id,
+              },
             })
 
             migratedRecords++
@@ -239,9 +242,11 @@ export class V1Migrator {
             })
 
             await db.idMapping.create({
-              tableName: 'vsla_groups',
-              v1Id,
-              v3Id: group.id,
+              data: {
+                tableName: 'vsla_groups',
+                v1Id,
+                v3Id: group.id,
+              },
             })
 
             migratedRecords++
@@ -338,9 +343,11 @@ export class V1Migrator {
             })
 
             await db.idMapping.create({
-              tableName: 'payments',
-              v1Id,
-              v3Id: payment.id,
+              data: {
+                tableName: 'payments',
+                v1Id,
+                v3Id: payment.id,
+              },
             })
 
             migratedRecords++
@@ -436,9 +443,11 @@ export class V1Migrator {
             })
 
             await db.idMapping.create({
-              tableName: 'trainings',
-              v1Id,
-              v3Id: training.id,
+              data: {
+                tableName: 'trainings',
+                v1Id,
+                v3Id: training.id,
+              },
             })
 
             migratedRecords++

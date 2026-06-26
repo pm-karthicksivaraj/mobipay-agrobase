@@ -31,28 +31,30 @@ interface Sale {
   unit: string
   unitPrice: number
   total: number
+  totalAmount: number
   date: string
+  createdAt: string
 }
 
 const produceItems = ['Hulled Coffee', 'Cocoa', 'Cassava', 'Avocado', 'Vanilla', 'Jackfruit']
 const inputItems = ['Fertilizers', 'Tarpaulins', 'Seedlings', 'Pruning Saws']
 
 const mockSales: Sale[] = [
-  { id: 'sl1', farmerName: 'James Okello', farmerCode: 'FRM-001', product: 'Hulled Coffee', category: 'Produce', quantity: 120, unit: 'kg', unitPrice: 12000, total: 1440000, date: '2024-11-20' },
-  { id: 'sl2', farmerName: 'Grace Achieng', farmerCode: 'FRM-012', product: 'Cocoa', category: 'Produce', quantity: 85, unit: 'kg', unitPrice: 15000, total: 1275000, date: '2024-11-19' },
-  { id: 'sl3', farmerName: 'Sarah Nakamya', farmerCode: 'FRM-023', product: 'Vanilla', category: 'Produce', quantity: 8, unit: 'kg', unitPrice: 95000, total: 760000, date: '2024-11-18' },
-  { id: 'sl4', farmerName: 'Peter Ochieng', farmerCode: 'FRM-031', product: 'Fertilizers', category: 'Inputs', quantity: 5, unit: 'bags', unitPrice: 85000, total: 425000, date: '2024-11-17' },
-  { id: 'sl5', farmerName: 'Wangari Muthoni', farmerCode: 'FRM-045', product: 'Avocado', category: 'Produce', quantity: 300, unit: 'kg', unitPrice: 4000, total: 1200000, date: '2024-11-16' },
-  { id: 'sl6', farmerName: 'Kwame Asante', farmerCode: 'FRM-078', product: 'Tarpaulins', category: 'Inputs', quantity: 3, unit: 'pcs', unitPrice: 120000, total: 360000, date: '2024-11-15' },
-  { id: 'sl7', farmerName: 'James Okello', farmerCode: 'FRM-001', product: 'Hulled Coffee', category: 'Produce', quantity: 200, unit: 'kg', unitPrice: 11500, total: 2300000, date: '2024-11-14' },
-  { id: 'sl8', farmerName: 'Grace Achieng', farmerCode: 'FRM-012', product: 'Seedlings', category: 'Inputs', quantity: 500, unit: 'pcs', unitPrice: 500, total: 250000, date: '2024-11-13' },
-  { id: 'sl9', farmerName: 'Sarah Nakamya', farmerCode: 'FRM-023', product: 'Cassava', category: 'Produce', quantity: 800, unit: 'kg', unitPrice: 900, total: 720000, date: '2024-11-12' },
-  { id: 'sl10', farmerName: 'Peter Ochieng', farmerCode: 'FRM-031', product: 'Jackfruit', category: 'Produce', quantity: 150, unit: 'kg', unitPrice: 2500, total: 375000, date: '2024-11-11' },
-  { id: 'sl11', farmerName: 'Wangari Muthoni', farmerCode: 'FRM-045', product: 'Hulled Coffee', category: 'Produce', quantity: 90, unit: 'kg', unitPrice: 12500, total: 1125000, date: '2024-11-10' },
-  { id: 'sl12', farmerName: 'Kwame Asante', farmerCode: 'FRM-078', product: 'Pruning Saws', category: 'Inputs', quantity: 2, unit: 'pcs', unitPrice: 45000, total: 90000, date: '2024-11-09' },
-  { id: 'sl13', farmerName: 'James Okello', farmerCode: 'FRM-001', product: 'Hulled Coffee', category: 'Produce', quantity: 175, unit: 'kg', unitPrice: 11800, total: 2065000, date: '2024-10-28' },
-  { id: 'sl14', farmerName: 'Grace Achieng', farmerCode: 'FRM-012', product: 'Cocoa', category: 'Produce', quantity: 60, unit: 'kg', unitPrice: 14500, total: 870000, date: '2024-10-25' },
-  { id: 'sl15', farmerName: 'Sarah Nakamya', farmerCode: 'FRM-023', product: 'Avocado', category: 'Produce', quantity: 250, unit: 'kg', unitPrice: 3800, total: 950000, date: '2024-10-20' },
+  { id: 'sl1', farmerName: 'James Okello', farmerCode: 'FRM-001', product: 'Hulled Coffee', category: 'Produce', quantity: 120, unit: 'kg', unitPrice: 12000, total: 1440000, totalAmount: 1440000, date: '2024-11-20', createdAt: '2024-11-20' },
+  { id: 'sl2', farmerName: 'Grace Achieng', farmerCode: 'FRM-012', product: 'Cocoa', category: 'Produce', quantity: 85, unit: 'kg', unitPrice: 15000, total: 1275000, totalAmount: 1275000, date: '2024-11-19', createdAt: '2024-11-19' },
+  { id: 'sl3', farmerName: 'Sarah Nakamya', farmerCode: 'FRM-023', product: 'Vanilla', category: 'Produce', quantity: 8, unit: 'kg', unitPrice: 95000, total: 760000, totalAmount: 760000, date: '2024-11-18', createdAt: '2024-11-18' },
+  { id: 'sl4', farmerName: 'Peter Ochieng', farmerCode: 'FRM-031', product: 'Fertilizers', category: 'Inputs', quantity: 5, unit: 'bags', unitPrice: 85000, total: 425000, totalAmount: 425000, date: '2024-11-17', createdAt: '2024-11-17' },
+  { id: 'sl5', farmerName: 'Wangari Muthoni', farmerCode: 'FRM-045', product: 'Avocado', category: 'Produce', quantity: 300, unit: 'kg', unitPrice: 4000, total: 1200000, totalAmount: 1200000, date: '2024-11-16', createdAt: '2024-11-16' },
+  { id: 'sl6', farmerName: 'Kwame Asante', farmerCode: 'FRM-078', product: 'Tarpaulins', category: 'Inputs', quantity: 3, unit: 'pcs', unitPrice: 120000, total: 360000, totalAmount: 360000, date: '2024-11-15', createdAt: '2024-11-15' },
+  { id: 'sl7', farmerName: 'James Okello', farmerCode: 'FRM-001', product: 'Hulled Coffee', category: 'Produce', quantity: 200, unit: 'kg', unitPrice: 11500, total: 2300000, totalAmount: 2300000, date: '2024-11-14', createdAt: '2024-11-14' },
+  { id: 'sl8', farmerName: 'Grace Achieng', farmerCode: 'FRM-012', product: 'Seedlings', category: 'Inputs', quantity: 500, unit: 'pcs', unitPrice: 500, total: 250000, totalAmount: 250000, date: '2024-11-13', createdAt: '2024-11-13' },
+  { id: 'sl9', farmerName: 'Sarah Nakamya', farmerCode: 'FRM-023', product: 'Cassava', category: 'Produce', quantity: 800, unit: 'kg', unitPrice: 900, total: 720000, totalAmount: 720000, date: '2024-11-12', createdAt: '2024-11-12' },
+  { id: 'sl10', farmerName: 'Peter Ochieng', farmerCode: 'FRM-031', product: 'Jackfruit', category: 'Produce', quantity: 150, unit: 'kg', unitPrice: 2500, total: 375000, totalAmount: 375000, date: '2024-11-11', createdAt: '2024-11-11' },
+  { id: 'sl11', farmerName: 'Wangari Muthoni', farmerCode: 'FRM-045', product: 'Hulled Coffee', category: 'Produce', quantity: 90, unit: 'kg', unitPrice: 12500, total: 1125000, totalAmount: 1125000, date: '2024-11-10', createdAt: '2024-11-10' },
+  { id: 'sl12', farmerName: 'Kwame Asante', farmerCode: 'FRM-078', product: 'Pruning Saws', category: 'Inputs', quantity: 2, unit: 'pcs', unitPrice: 45000, total: 90000, totalAmount: 90000, date: '2024-11-09', createdAt: '2024-11-09' },
+  { id: 'sl13', farmerName: 'James Okello', farmerCode: 'FRM-001', product: 'Hulled Coffee', category: 'Produce', quantity: 175, unit: 'kg', unitPrice: 11800, total: 2065000, totalAmount: 2065000, date: '2024-10-28', createdAt: '2024-10-28' },
+  { id: 'sl14', farmerName: 'Grace Achieng', farmerCode: 'FRM-012', product: 'Cocoa', category: 'Produce', quantity: 60, unit: 'kg', unitPrice: 14500, total: 870000, totalAmount: 870000, date: '2024-10-25', createdAt: '2024-10-25' },
+  { id: 'sl15', farmerName: 'Sarah Nakamya', farmerCode: 'FRM-023', product: 'Avocado', category: 'Produce', quantity: 250, unit: 'kg', unitPrice: 3800, total: 950000, totalAmount: 950000, date: '2024-10-20', createdAt: '2024-10-20' },
 ]
 
 export default function SalesView() {
@@ -90,12 +92,12 @@ export default function SalesView() {
     return matchSearch && matchCategory
   })
 
-  const totalRevenue = sales.reduce((sum, s) => sum + ((s as any).totalAmount || 0), 0)
-  const thisMonth = sales.filter(s => (s.createdAt || '').startsWith('2024-11')).reduce((sum, s) => sum + ((s as any).totalAmount || 0), 0)
+  const totalRevenue = sales.reduce((sum, s) => sum + (s.totalAmount || 0), 0)
+  const thisMonth = sales.filter(s => (s.createdAt || '').startsWith('2024-11')).reduce((sum, s) => sum + (s.totalAmount || 0), 0)
   const avgTransaction = sales.length > 0 ? Math.round(totalRevenue / sales.length) : 0
 
   const productTotals = Object.entries(
-    sales.reduce((acc, s) => { acc[s.product] = (acc[s.product] || 0) + ((s as any).totalAmount || 0); return acc }, {} as Record<string, number>)
+    sales.reduce((acc, s) => { acc[s.product] = (acc[s.product] || 0) + (s.totalAmount || 0); return acc }, {} as Record<string, number>)
   )
   const topProduct = productTotals.length > 0 ? productTotals.reduce((a, b) => a[1] > b[1] ? a : b)[0] : '—'
 
@@ -110,8 +112,8 @@ export default function SalesView() {
   ]
 
   const pieData = [
-    { name: 'Produce', value: sales.filter(s => (s as any).category === 'Produce').reduce((sum, s) => sum + ((s as any).totalAmount || 0), 0), color: '#10b981' },
-    { name: 'Inputs', value: sales.filter(s => (s as any).category === 'Inputs').reduce((sum, s) => sum + ((s as any).totalAmount || 0), 0), color: '#f59e0b' },
+    { name: 'Produce', value: sales.filter(s => s.category === 'Produce').reduce((sum, s) => sum + (s.totalAmount || 0), 0), color: '#10b981' },
+    { name: 'Inputs', value: sales.filter(s => s.category === 'Inputs').reduce((sum, s) => sum + (s.totalAmount || 0), 0), color: '#f59e0b' },
   ]
 
   const paged = filtered.slice((page - 1) * limit, page * limit)
@@ -202,7 +204,7 @@ export default function SalesView() {
                           </TableCell>
                           <TableCell className="hidden md:table-cell text-sm">{s.quantity} {s.unit}</TableCell>
                           <TableCell className="text-sm">UGX {s.unitPrice.toLocaleString()}</TableCell>
-                          <TableCell className="text-sm font-medium text-emerald-700 dark:text-emerald-400">UGX {((s as any).totalAmount || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-sm font-medium text-emerald-700 dark:text-emerald-400">UGX {(s.totalAmount || 0).toLocaleString()}</TableCell>
                           <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{s.createdAt}</TableCell>
                         </TableRow>
                       ))}

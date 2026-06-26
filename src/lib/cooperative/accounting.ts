@@ -259,7 +259,7 @@ export class AccountingEngine {
 
     if (asOfDate) {
       where.journalEntry = {
-        ...where.journalEntry,
+        ...(where.journalEntry as Record<string, unknown>),
         date: { lte: asOfDate },
       }
     }
