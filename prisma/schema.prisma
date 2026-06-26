@@ -68,6 +68,7 @@ model Tenant {
   costOfCultivations   CostOfCultivation[]
   notificationTemplates  NotificationTemplate[] @relation("TenantNotifications")
   notifications         Notification[]       @relation("TenantNotifRecords")
+  notificationPreferences NotificationPreference[] @relation("TenantNotifPrefs")
   webhookEndpoints     WebhookEndpoint[]     @relation("TenantWebhooks")
   warehouses           Warehouse[]           @relation("TenantWarehouses")
   stockItems           StockItem[]           @relation("TenantStockItems")
@@ -123,6 +124,7 @@ model User {
   auditLogs          AuditLog[]
   farmerProfiles     FarmerProfile[]
   notifications      Notification[] @relation("UserNotifications")
+  notificationPreferences NotificationPreference[] @relation("UserNotifPrefs")
   managedWarehouse   Warehouse?       @relation("WarehouseManager")
   qualityInspections QualityInspection[] @relation("QualityInspector")
   apiKeys            ApiKey[]            @relation("UserApiKeys")
@@ -1646,6 +1648,21 @@ model NotificationDelivery {
   sentAt          DateTime?
   deliveredAt     DateTime?
   createdAt       DateTime @default(now())
+}
+
+// --- NOTIFICATION PREFERENCES ---
+
+model NotificationPreference {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation("TenantNotifPrefs", fields: [tenantId], references: [id])
+  userId    String
+  user      User     @relation("UserNotifPrefs", fields: [userId], references: [id])
+  channel   String   // SMS, EMAIL, WHATSAPP, IN_APP
+  enabled   Boolean  @default(true)
+
+  @@unique([tenantId, userId, channel])
+  @@index([userId])
 }
 
 // --- WEBHOOK SYSTEM ---
