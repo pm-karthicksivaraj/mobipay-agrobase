@@ -11,5 +11,14 @@ export {
   logRateLimit,
   logAuthFailure,
   logPermissionDenied,
+  logEntitlementDenied,
   getClientIp,
 } from './edge-logger'
+export {
+  resolveModuleForPath,
+  checkEntitlement,
+  setTenantEntitlements,
+  invalidateTenant,
+  clearEntitlementCache,
+  getCacheStats,
+} from './edge-entitlements'

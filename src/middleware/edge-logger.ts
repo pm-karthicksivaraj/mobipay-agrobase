@@ -209,4 +209,26 @@ export function logPermissionDenied(
   })
 }
 
+/**
+ * Log an entitlement denial (module not in tenant's plan).
+ */
+export function logEntitlementDenied(
+  req: Pick<RequestContext, 'method' | 'path' | 'ip' | 'userId'>,
+  moduleCode: string,
+  tenantId: string
+): void {
+  emit({
+    level: 'warn',
+    ts: Date.now(),
+    msg: 'entitlement_denied',
+    service: 'agrobase-edge',
+    method: req.method,
+    path: redactPath(req.path),
+    ip: req.ip,
+    userId: req.userId,
+    moduleCode,
+    tenantId,
+  })
+}
+
 export { getClientIp }

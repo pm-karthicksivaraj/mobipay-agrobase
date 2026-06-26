@@ -7,7 +7,9 @@ import {
   logRateLimit,
   logAuthFailure,
   logPermissionDenied,
+  logEntitlementDenied,
 } from '@/middleware/edge-logger'
+import { resolveModuleForPath, checkEntitlement } from '@/middleware/edge-entitlements'
 
 // ─── Route Categories ──────────────────────────────────────────────────────
 
@@ -166,6 +168,34 @@ export async function middleware(request: NextRequest) {
 
         return NextResponse.json(
           { success: false, error: 'Insufficient permissions for this module' },
+          { status: 403 }
+        )
+      }
+    }
+  }
+
+  // ─── 2b. ENTITLEMENT CHECK (module access based on tenant's plan) ──────
+  // Resolves /api/vsla/* → VSLA module, then checks the in-memory entitlement cache.
+  // Core routes (dashboard, users, settings, etc.) are not mapped → always allowed.
+  // SUPER_ADMIN bypasses entitlement checks. Fail-open on cache miss/stale.
+  if (userTenantId && moduleMatch && role !== 'SUPER_ADMIN') {
+    const entitlementModule = resolveModuleForPath(pathname)
+    if (entitlementModule) {
+      const hasEntitlement = checkEntitlement(userTenantId, entitlementModule)
+      if (!hasEntitlement) {
+        logEntitlementDenied(
+          { ...reqCtx, userId: token.userId as string },
+          entitlementModule,
+          userTenantId,
+        )
+        logRequest({ ...reqCtx, userId: token.userId as string }, { status: 403 })
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Module '${entitlementModule}' is not included in your current plan. Contact your administrator to upgrade.`,
+            module: entitlementModule,
+          },
           { status: 403 }
         )
       }

@@ -2,6 +2,8 @@ import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { db } from '@/lib/db'
 import { verifyPassword } from '@/lib/password'
+import { entitlementEngine } from '@/lib/entitlements/engine'
+import { setTenantEntitlements } from '@/middleware/edge-entitlements'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -60,6 +62,13 @@ export const authOptions: NextAuthOptions = {
           token.tenantId = dbUser.tenantId
           token.role = dbUser.role
           token.name = `${dbUser.firstName} ${dbUser.lastName}`
+
+          // Auto-warm Edge entitlement cache on login/JWT refresh
+          if (dbUser.tenantId) {
+            entitlementEngine.getEnabledModules(dbUser.tenantId).then(modules => {
+              setTenantEntitlements(dbUser.tenantId!, modules)
+            }).catch(() => { /* non-blocking */ })
+          }
         }
       }
       return token
