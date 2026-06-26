@@ -226,3 +226,26 @@ Stage Summary:
 - 4 files changed, 528 insertions, 40 deletions
 - Every API request now logged with method/path/status/duration/userId/tenantId/role/IP
 - All endpoints rate-limited with standard HTTP headers
+
+---
+Task ID: Job-4
+Agent: Main Agent
+Task: Multi-currency (UGX/GHS/KES) + exchange rates
+
+Work Log:
+- Scanned schema: ~80+ Float money fields across 112 models, 4 models had currency String fields
+- Tenant had country but no defaultCurrency; ExchangeRate was basic (no tenantId, no history)
+- Added Tenant.defaultCurrency (default UGX) to schema
+- Enhanced ExchangeRate: tenantId, validTo, isBase, updatedAt, compound unique + indexes
+- Created src/lib/currency/engine.ts: CurrencyInfo registry, formatMoney (Intl), roundMoney, convertCurrency, validation
+- Created src/lib/currency/exchange-rates.ts: 4-tier rate resolution, CRUD, Frankfurter API sync, LRU cache
+- Created src/lib/currency/index.ts: barrel exports
+- Created /api/settings/currencies: GET/POST/PATCH/DELETE with tenant scoping
+- prisma generate + tsc --noEmit + next build all pass
+
+Stage Summary:
+- Commit 02f6bed pushed to GitHub
+- 5 files changed, 1053 insertions, 261 deletions
+- 4 currencies supported: UGX (0 decimals), GHS (2), KES (2), USD (2)
+- Exchange rate resolution: tenant-specific → system base → cache → null
+- External sync via Frankfurter API (free, ECB data, no API key needed)
