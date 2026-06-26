@@ -1,5 +1,6 @@
 import { headers } from 'next/headers'
 import { db } from '@/lib/db'
+import type { NextRequest } from 'next/server'
 
 /**
  * Extract tenant context from request headers injected by middleware.
@@ -15,19 +16,22 @@ export interface TenantContext {
 
 /**
  * Get the current user's tenant context from the request headers.
- * Call this at the top of every API route handler that needs tenant isolation.
+ * Reads from Next.js headers() API (set by middleware).
+ *
+ * Accepts an optional NextRequest for backward compatibility — it is NOT used
+ * since Next.js 13+ Route Handlers can access headers via the `headers()` API.
  *
  * @example
  * ```ts
  * export async function GET(request: NextRequest) {
- *   const ctx = await getTenantContext()
+ *   const ctx = await getTenantContext()  // or getTenantContext(request) — both work
  *   const farmers = await db.farmerProfile.findMany({
- *     where: ctx.tenantFilter('tenantId'),
+ *     where: { ...buildTenantFilter(ctx) },
  *   })
  * }
  * ```
  */
-export async function getTenantContext(): Promise<TenantContext> {
+export async function getTenantContext(_req?: NextRequest | Request): Promise<TenantContext> {
   const headersList = await headers()
   const userId = headersList.get('x-user-id') || ''
   const role = headersList.get('x-user-role') || ''
@@ -35,6 +39,11 @@ export async function getTenantContext(): Promise<TenantContext> {
   const tenantScope = headersList.get('x-tenant-scope') || ''
 
   const isSuperAdmin = tenantScope === 'all'
+
+  // Validate: non-super-admin must have a tenantId
+  if (!isSuperAdmin && !tenantId) {
+    console.warn('[TenantContext] Non-super-admin user has no tenantId — queries will return empty')
+  }
 
   return {
     userId,
@@ -109,16 +118,9 @@ export async function getDescendantTenantIds(tenantId: string): Promise<string[]
 }
 
 /**
- * Extend TenantContext with a helper method for building tenant filters.
+ * Augment TenantContext with a tenantFilter helper method.
+ * Allows: `ctx.tenantFilter()` or `ctx.tenantFilter('farmer.tenantId')`
  */
-declare module './context' {
-  interface TenantContext {
-    /** Build a Prisma where clause for this tenant's scope */
-    tenantFilter: (field?: string) => Record<string, unknown>
-  }
-}
-
-// Augment TenantContext with the helper
 export function createTenantContextWithHelper(ctx: TenantContext): TenantContext & {
   tenantFilter: (field?: string) => Record<string, unknown>
 } {

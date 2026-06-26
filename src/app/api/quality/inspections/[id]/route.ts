@@ -5,9 +5,8 @@ import { getTenantContext, buildTenantFilter } from '@/lib/tenant'
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await getTenantContext()
-    if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { id } = await params
-    const filter = buildTenantFilter(ctx)
+    const filter = buildTenantFilter(ctx) as any
     const record = await db.qualityInspection.findFirst({ where: { id, ...filter } })
     if (!record) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ data: record })
@@ -20,13 +19,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await getTenantContext()
-    if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { id } = await params
-    const filter = buildTenantFilter(ctx)
+    const filter = buildTenantFilter(ctx) as any
     const existing = await db.qualityInspection.findFirst({ where: { id, ...filter } })
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     const body = await req.json()
-    const record = await db.qualityInspection.update({ where: { id }, data: body })
+    const { grade, notes, inspectorName, status } = body
+    const record = await db.qualityInspection.update({
+      where: { id },
+      data: {
+        ...(grade !== undefined && { grade }),
+        ...(notes !== undefined && { notes }),
+        ...(inspectorName !== undefined && { inspectorName }),
+        ...(status !== undefined && { status }),
+        updatedAt: new Date(),
+      },
+    })
     return NextResponse.json({ data: record })
   } catch (error) {
     console.error('Error:', error)
@@ -34,21 +42,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await getTenantContext()
-    if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { id } = await params
-    const { searchParams } = new URL(req.url)
-    const action = searchParams.get('action')
-    const filter = buildTenantFilter(ctx)
+    const filter = buildTenantFilter(ctx) as any
     const existing = await db.qualityInspection.findFirst({ where: { id, ...filter } })
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    if (existing.status !== 'PENDING') return NextResponse.json({ error: 'Inspection already processed' }, { status: 400 })
-    const status = action === 'approve' ? 'APPROVED' : action === 'reject' ? 'REJECTED' : null
-    if (!status) return NextResponse.json({ error: 'Invalid action. Use approve or reject' }, { status: 400 })
-    const record = await db.qualityInspection.update({ where: { id }, data: { status } })
-    return NextResponse.json({ data: record })
+    // Soft-delete: mark as VOIDED
+    const record = await db.qualityInspection.update({
+      where: { id },
+      data: { status: 'REJECTED', updatedAt: new Date() },
+    })
+    return NextResponse.json({ data: record, message: 'Inspection voided' })
   } catch (error) {
     console.error('Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

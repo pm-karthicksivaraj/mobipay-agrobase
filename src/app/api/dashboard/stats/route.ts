@@ -1,20 +1,66 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 import { getTenantContext, buildTenantFilter } from '@/lib/tenant'
+import { Prisma } from '@prisma/client'
 
 // Helper to safely convert BigInt to number for JSON serialization
 function n(v: unknown): number {
   return typeof v === 'bigint' ? Number(v) : (v as number) || 0
 }
 
-export async function GET(req: Request) {
-  const ctx = await getTenantContext(req)
+export async function GET() {
+  const ctx = await getTenantContext()
   const tf = buildTenantFilter(ctx, 'tenantId') as any
+
+  // Build safe tenant condition for raw SQL (parameterized)
+  const isAll = ctx.isSuperAdmin || ctx.tenantScope === 'all'
+  const tenantIds = !isAll && ctx.tenantScope.length > 0 ? ctx.tenantScope : null
+
+  // Use Prisma.sql for parameterized queries — prevents SQL injection
+  const monthlyRegistrations = tenantIds
+    ? await db.$queryRaw<{ month: string; count: number }[]>(
+        Prisma.sql`
+          SELECT to_char("createdAt", 'YYYY-MM') as month, COUNT(*)::int as count
+          FROM "FarmerProfile"
+          WHERE "status" = 'ACTIVE'
+            AND "tenantId" = ANY(${tenantIds})
+          GROUP BY month ORDER BY month LIMIT 12
+        `
+      )
+    : await db.$queryRaw<{ month: string; count: number }[]>(
+        Prisma.sql`
+          SELECT to_char("createdAt", 'YYYY-MM') as month, COUNT(*)::int as count
+          FROM "FarmerProfile"
+          WHERE "status" = 'ACTIVE'
+          GROUP BY month ORDER BY month LIMIT 12
+        `
+      )
+
+  const vslaSavingsByGroup = tenantIds
+    ? await db.$queryRaw<{ name: string; total: number }[]>(
+        Prisma.sql`
+          SELECT vg."name", COALESCE(SUM(vs."amount"), 0)::float as total
+          FROM "VslaGroup" vg
+          LEFT JOIN "VslaSaving" vs ON vs."vslaGroupId" = vg.id AND vs."status" = 'COMPLETED'
+          WHERE vg."isActive" = true
+            AND vg."tenantId" = ANY(${tenantIds})
+          GROUP BY vg.id, vg."name" ORDER BY total DESC LIMIT 10
+        `
+      )
+    : await db.$queryRaw<{ name: string; total: number }[]>(
+        Prisma.sql`
+          SELECT vg."name", COALESCE(SUM(vs."amount"), 0)::float as total
+          FROM "VslaGroup" vg
+          LEFT JOIN "VslaSaving" vs ON vs."vslaGroupId" = vg.id AND vs."status" = 'COMPLETED'
+          WHERE vg."isActive" = true
+          GROUP BY vg.id, vg."name" ORDER BY total DESC LIMIT 10
+        `
+      )
 
   const [
     farmerCount, vslaCount, totalSavingsResult, activeLoanCount,
     marketListings, trainingCount, maleCount, femaleCount, groupCount,
-    recentTransactions, monthlyRegistrations, vslaSavingsByGroup,
+    recentTransactions,
     loanCount, completedLoans, overdueLoans, pendingLoans
   ] = await Promise.all([
     db.farmerProfile.count({ where: { status: 'ACTIVE', ...tf } }),
@@ -27,22 +73,6 @@ export async function GET(req: Request) {
     db.farmerProfile.count({ where: { gender: 'Female', status: 'ACTIVE', ...tf } }),
     db.farmerGroup.count({ where: { isActive: true, ...tf } }),
     db.vslaTransaction.findMany({ where: tf, take: 10, orderBy: { createdAt: 'desc' } }),
-    // PostgreSQL-compatible monthly registrations query
-    db.$queryRawUnsafe(`
-      SELECT to_char("createdAt", 'YYYY-MM') as month, COUNT(*)::int as count
-      FROM "FarmerProfile" WHERE "status" = 'ACTIVE'
-      ${ctx.tenantId !== 'ALL' ? `AND "tenantId" = '${ctx.tenantId}'` : ''}
-      GROUP BY month ORDER BY month LIMIT 12
-    `) as { month: string; count: number }[],
-    // PostgreSQL-compatible VSLA savings by group
-    db.$queryRawUnsafe(`
-      SELECT vg."name", COALESCE(SUM(vs."amount"), 0)::float as total
-      FROM "VslaGroup" vg
-      LEFT JOIN "VslaSaving" vs ON vs."vslaGroupId" = vg.id AND vs."status" = 'COMPLETED'
-      WHERE vg."isActive" = true
-      ${ctx.tenantId !== 'ALL' ? `AND vg."tenantId" = '${ctx.tenantId}'` : ''}
-      GROUP BY vg.id, vg."name" ORDER BY total DESC LIMIT 10
-    `) as { name: string; total: number }[],
     db.vslaLoan.count({ where: tf }),
     db.vslaLoan.count({ where: { status: 'REPAID', ...tf } }),
     db.vslaLoan.count({ where: { status: 'OVERDUE', ...tf } }),

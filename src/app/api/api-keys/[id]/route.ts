@@ -15,10 +15,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const ctx = await getTenantContext()
+    const { id } = await params
+    const body = await req.json()
+    const result = await apiKeyEngine.updateKey(id, ctx.tenantId, body)
+    return NextResponse.json({ data: result })
+  } catch (error) {
+    console.error('Error:', error)
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await getTenantContext()
-    if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { id } = await params
     const result = await apiKeyEngine.revokeKey(id, ctx.tenantId)
     return NextResponse.json({ data: result })

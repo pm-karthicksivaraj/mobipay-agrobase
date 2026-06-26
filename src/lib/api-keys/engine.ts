@@ -117,6 +117,28 @@ export class ApiKeyEngine {
   }
 
   /**
+   * Update an API key's metadata (name, scopes, rate limits, expiry).
+   */
+  async updateKey(keyId: string, tenantId: string, data: { name?: string; scopes?: string[]; rateLimitRpm?: number; rateLimitRpd?: number; expiresAt?: string | null }) {
+    try {
+      const existing = await db.apiKey.findFirst({ where: { id: keyId, tenantId } })
+      if (!existing) throw new Error('API key not found')
+
+      const updateData: Record<string, unknown> = { updatedAt: new Date() }
+      if (data.name !== undefined) updateData.name = data.name
+      if (data.scopes !== undefined) updateData.scopes = JSON.stringify(data.scopes)
+      if (data.rateLimitRpm !== undefined) updateData.rateLimitRpm = data.rateLimitRpm
+      if (data.rateLimitRpd !== undefined) updateData.rateLimitRpd = data.rateLimitRpd
+      if (data.expiresAt !== undefined) updateData.expiresAt = data.expiresAt ? new Date(data.expiresAt) : null
+
+      return await db.apiKey.update({ where: { id: keyId }, data: updateData })
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`Failed to update API key: ${msg}`)
+    }
+  }
+
+  /**
    * Revoke an API key.
    */
   async revokeKey(keyId: string, tenantId: string) {

@@ -1,6 +1,7 @@
 # ============================================
-# Agrobase V3 — Docker Compose (Development + Production)
+# Agrobase V3 — Docker Compose (Production)
 # MobiPay AgroSys Limited
+# Services: PostgreSQL, Redis, Next.js App, Caddy
 # ============================================
 
 services:
@@ -22,13 +23,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
-  # --- Redis (Rate Limiting + Caching) ---
+  # --- Redis (Rate Limiting + Session Cache) ---
   redis:
     image: redis:7-alpine
     container_name: agrobase-redis
     restart: unless-stopped
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    command: >
+      redis-server
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -38,6 +48,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 192M
 
   # --- Next.js Application ---
   app:
@@ -50,15 +64,22 @@ services:
       - "${APP_PORT:-3000}:3000"
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-agrobase}:${POSTGRES_PASSWORD:-agrobase_dev_pass}@postgres:5432/${POSTGRES_DB:-agrobase_v3}?schema=public
-      REDIS_URL: redis://redis:6379
+      # Connection pool: 10 connections, 30s timeout
+      DATABASE_URL: postgresql://${POSTGRES_USER:-agrobase}:${POSTGRES_PASSWORD:-agrobase_dev_pass}@postgres:5432/${POSTGRES_DB:-agrobase_v3}?schema=public&connection_limit=10&pool_timeout=30
+      REDIS_URL: redis://redis:6379/0
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-in-production}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      # Timezone for East Africa
+      TZ: Africa/Kampala
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   # --- Caddy (Reverse Proxy + Auto HTTPS) ---
   caddy:

@@ -1,22 +1,24 @@
 # ============================================
 # Agrobase V3 — CI Pipeline
-# Runs on every push/PR to main: lint, type-check, build
+# Runs on every push/PR: lint → type-check → build
+# Uses npm (matching package-lock.json)
 # ============================================
 
 name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
     branches: [main]
 
-env:
-  NODE_ENV: production
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
-    name: ESLint
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +33,7 @@ jobs:
       - run: npm run lint
 
   typecheck:
-    name: TypeScript Check
+    name: TypeScript
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +48,7 @@ jobs:
       - run: npx tsc --noEmit
 
   build:
-    name: Next.js Build
+    name: Build
     runs-on: ubuntu-latest
     needs: [lint, typecheck]
     steps:
@@ -59,7 +61,11 @@ jobs:
 
       - run: npm ci
       - run: npx prisma generate
-      - run: npm run build
+
+      - name: Build Next.js
+        run: npm run build
+        env:
+          DATABASE_URL: "postgresql://agrobase:placeholder@localhost:5432/agrobase_v3?schema=public"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
