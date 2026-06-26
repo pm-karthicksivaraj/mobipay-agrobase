@@ -183,3 +183,46 @@ Stage Summary:
 - 6 routes now have complete CRUD
 - Production-ready: health check, connection pooling, security headers, graceful shutdown
 - Mobile: offline-first delta sync with conflict resolution
+
+---
+Task ID: Job-1
+Agent: Main Agent
+Task: Fix 19 TypeScript compilation errors across 8 files
+
+Work Log:
+- Scanned entire codebase with Task agent to locate all TS errors
+- Fixed src/lib/store.ts: extended AuthUser interface with optional fields (avatarUrl, email, phone)
+- Fixed src/components/modules/SalesView.tsx: added totalAmount+createdAt to Sale interface, removed 8x `as any`
+- Fixed src/lib/auth.ts: passwordHash null guard before verifyPassword
+- Fixed src/lib/carbon/reporting.ts: farm select missing `id: true`
+- Fixed src/lib/cooperative/accounting.ts: spread cast for journalEntry
+- Fixed src/lib/eudr/engine.ts: riskLevel union added 'CRITICAL', fixed filters.riskLevel
+- Fixed src/lib/migration/v1-migrator.ts: memberType default, 4x data:{} wrapper for Prisma 6
+- Fixed src/lib/payments/mpay.ts: signature payload type, destructured callback body
+- tsc --noEmit: 0 errors
+
+Stage Summary:
+- Commit 71b5a56 pushed to GitHub
+- 8 files changed, 19 TypeScript errors resolved
+
+---
+Task ID: Job-3
+Agent: Main Agent
+Task: Integrate structured logger + rate limiter into Edge middleware
+
+Work Log:
+- Analyzed constraint: Next.js middleware runs Edge Runtime (no Node.js/ioredis/pino)
+- Created src/middleware/edge-rate-limiter.ts: sliding-window counter, per-key RPM/RPD
+- Created src/middleware/edge-logger.ts: structured JSON (prod) / colored (dev), IP extraction, path redaction
+- Rewrote src/middleware.ts: dual-key rate limiting (IP pre-auth, userId post-auth), request logging
+- Added X-RateLimit-Remaining/Limit/Reset + Retry-After headers
+- Added X-Request-Id (crypto.randomUUID) for request correlation
+- Route-specific limits: auth endpoints 20 RPM / 500 RPD, default 120 RPM / 5000 RPD
+- SUPER_ADMIN bypass for rate limits
+- tsc --noEmit: 0 errors, next build: passes
+
+Stage Summary:
+- Commit 7617070 pushed to GitHub
+- 4 files changed, 528 insertions, 40 deletions
+- Every API request now logged with method/path/status/duration/userId/tenantId/role/IP
+- All endpoints rate-limited with standard HTTP headers
