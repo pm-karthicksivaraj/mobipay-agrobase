@@ -58,6 +58,7 @@ const ALL_MODULES: NavItem[] = [
   { key: 'smile', label: 'SMILE', icon: TrendingUp, group: 'Programs' },
   { key: 'nakivaale', label: 'Nakivaale', icon: Map, group: 'Programs' },
   // Admin
+  { key: 'mfi', label: 'MFI / Bank Portal', icon: Landmark, group: 'Finance' },
   { key: 'compliance', label: 'Compliance Hub', icon: Shield, group: 'Admin' },
   { key: 'companies', label: 'Companies', icon: Building2, group: 'Admin' },
   { key: 'users', label: 'User Management', icon: UserCheck, group: 'Admin' },
