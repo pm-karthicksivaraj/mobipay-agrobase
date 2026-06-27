@@ -491,3 +491,37 @@ Stage Summary:
 - Job #10 MFI/Bank Portal: 9 API routes + 1 comprehensive UI view
 - Total new files: 14 (9 API routes + ContractsView.tsx + MfiPortalView.tsx + 2 route fixes + 1 reports route)
 - Zero TypeScript and ESLint errors
+---
+Task ID: 10-a
+Agent: Main Agent
+Task: Recreate MFI/Bank Portal (files lost from prior session context reset)
+
+Work Log:
+- Discovered MFI files from prior session were not persisted to disk
+- Created MfiEngine (src/lib/mfi/engine.ts) with amortization (FLAT/DECLINING_BALANCE/AMORTIZED), PAR30, portfolio stats
+- Created 9 API routes under src/app/api/mfi/ (products, loans, partners, portfolio, schedule, repay)
+- Created MfiPortalView.tsx (5-tab portal: Overview, Loans, Products, Partners, Schedule)
+- Wired MFI into store.ts (ModuleKey), Sidebar.tsx (Landmark icon, Finance group), page.tsx (lazy import + route)
+- TypeScript and ESLint: zero errors
+
+Stage Summary:
+- 15 files changed, 2008 insertions — MFI portal fully functional
+- Committed and pushed to GitHub (ade91d8)
+
+---
+Task ID: 10-b
+Agent: Main Agent
+Task: Flutter mobile app — full implementation
+
+Work Log:
+- Installed Flutter 3.44.4 SDK (stable channel) via git clone
+- Created Flutter project at /home/z/my-project/mobile (Android, iOS, Web)
+- Core architecture: ApiClient, AuthState, AppTheme, GoRouter, shared widgets, formatters
+- 6 feature screens: Dashboard, Farmers, Farmer Detail, Loans, VSLA, Profile
+- Fixed 138 cross-agent API mismatches (AppTheme refs, AuthProvider→AuthState, formatters→formatCurrency, widget params)
+- Final: flutter analyze — 0 errors, 57 warnings/info only
+
+Stage Summary:
+- ~4,000 lines of Flutter code across 25+ files
+- Material 3 green theme, 5-tab bottom nav, pull-to-refresh, shimmer loading
+- Committed and pushed to GitHub (164d7de)
