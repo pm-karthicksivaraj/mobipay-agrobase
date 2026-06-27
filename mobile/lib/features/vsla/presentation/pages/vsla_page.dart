@@ -241,7 +241,7 @@ class _VslaPageState extends State<VslaPage>
                     const SizedBox(width: 16),
                     _buildGroupStat(
                       Icons.savings_outlined,
-                      formatCurrency((totalSavings as num).toDouble()),
+                      formatCurrency(totalSavings.toDouble()),
                     ),
                   ],
                 ),
@@ -531,7 +531,7 @@ class _VslaPageState extends State<VslaPage>
           ),
           const SizedBox(height: 8),
           Text(
-            formatCurrency((totalSavings as num).toDouble()),
+            formatCurrency(totalSavings.toDouble()),
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w700,

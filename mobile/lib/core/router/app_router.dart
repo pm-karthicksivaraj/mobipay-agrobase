@@ -5,6 +5,9 @@ import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/farmers/presentation/pages/farmers_page.dart';
 import '../../features/loans/presentation/pages/loans_page.dart';
 import '../../features/vsla/presentation/pages/vsla_page.dart';
+import '../../features/mfi/presentation/pages/mfi_page.dart';
+import '../../features/carbon/presentation/pages/carbon_page.dart';
+import '../../features/compliance/presentation/pages/compliance_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/farmers/presentation/pages/farmer_detail_page.dart';
@@ -26,7 +29,8 @@ class AppRouter {
           ),
           GoRoute(
             path: '/farmers/:id',
-            builder: (_, state) => FarmerDetailPage(id: state.pathParameters['id']!),
+            builder: (_, state) =>
+                FarmerDetailPage(id: state.pathParameters['id']!),
           ),
           StatefulShellRoute.indexedStack(
             builder: (context, state, navigationShell) {
@@ -59,6 +63,24 @@ class AppRouter {
               ]),
               StatefulShellBranch(routes: [
                 GoRoute(
+                  path: '/mfi',
+                  builder: (_, __) => const MfiPage(),
+                ),
+              ]),
+              StatefulShellBranch(routes: [
+                GoRoute(
+                  path: '/carbon',
+                  builder: (_, __) => const CarbonPage(),
+                ),
+              ]),
+              StatefulShellBranch(routes: [
+                GoRoute(
+                  path: '/compliance',
+                  builder: (_, __) => const CompliancePage(),
+                ),
+              ]),
+              StatefulShellBranch(routes: [
+                GoRoute(
                   path: '/profile',
                   builder: (_, __) => const ProfilePage(),
                 ),
@@ -80,11 +102,12 @@ class ScaffoldWithNavBar extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: (index) => navigationShell.goBranch(index),
+        height: 68,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+            label: 'Home',
           ),
           NavigationDestination(
             icon: Icon(Icons.people_outline),
@@ -100,6 +123,21 @@ class ScaffoldWithNavBar extends StatelessWidget {
             icon: Icon(Icons.savings_outlined),
             selectedIcon: Icon(Icons.savings),
             label: 'VSLA',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.account_balance_outlined),
+            selectedIcon: Icon(Icons.account_balance),
+            label: 'MFI',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.eco_outlined),
+            selectedIcon: Icon(Icons.eco),
+            label: 'Carbon',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.verified_user_outlined),
+            selectedIcon: Icon(Icons.verified_user),
+            label: 'Comply',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
