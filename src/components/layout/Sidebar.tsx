@@ -59,12 +59,12 @@ const ALL_MODULES: NavItem[] = [
   { key: 'nakivaale', label: 'Nakivaale', icon: Map, group: 'Programs' },
   // Admin
   { key: 'mfi', label: 'MFI / Bank Portal', icon: Landmark, group: 'Finance' },
+  { key: 'transport', label: 'Transport & Logistics', icon: Truck, group: 'Supply Chain' },
   { key: 'compliance', label: 'Compliance Hub', icon: Shield, group: 'Admin' },
   { key: 'companies', label: 'Companies', icon: Building2, group: 'Admin' },
   { key: 'users', label: 'User Management', icon: UserCheck, group: 'Admin' },
   { key: 'settings', label: 'Settings', icon: Settings, group: 'Admin' },
   { key: 'profile', label: 'Profile', icon: Stethoscope, group: 'Admin' },
-  { key: 'mfi', label: 'MFI / Bank Portal', icon: Landmark, group: 'Finance' },
 ]
 
 const MODULE_GROUPS: Record<string, NavItem[]> = {}

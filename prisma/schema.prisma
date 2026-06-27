@@ -101,6 +101,11 @@ model Tenant {
   vslaMeetings         VslaMeeting[]
   vslaAttendances      VslaAttendance[]
   exportJobs           ExportJob[]            @relation("TenantExportJob")
+  transporters         Transporter[]          @relation("TenantTransporters")
+  transportVehicles    TransportVehicle[]     @relation("TenantTransportVehicles")
+  transportRequests    TransportRequest[]     @relation("TenantTransportRequests")
+  transportTrips       TransportTrip[]        @relation("TenantTransportTrips")
+  transportCharges     TransportCharge[]      @relation("TenantTransportCharges")
 }
 
 // --- USERS & AUTH ---
@@ -2306,5 +2311,349 @@ model ExportJob {
   @@index([exportType])
   @@index([requestedBy])
   @@index([expiresAt])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// TRANSPORT & LOGISTICS — "Mini Uber for Transporters"
+// Eric's requirement: transporter onboarding, ride-request flow, real-time
+// tracking, exporter visibility, charges/commission.
+// ---------------------------------------------------------------------------
+
+// Vehicle types supported: MOTORBIKE, MINI_TRUCK, LORRY, TRAILER, PICKUP, VAN
+// Commodity scope: agricultural AND non-agricultural
+
+model Transporter {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantTransporters", fields: [tenantId], references: [id])
+
+  // Identity
+  transporterCode String   @unique              // "TRP-000001"
+  name            String                        // person or company name
+  type            String                        // INDIVIDUAL, COMPANY
+  contactName     String?                       // for companies: primary contact
+  phone           String
+  email           String?
+  nationalIdNo    String?                       // ID verification
+  photoUrl        String?                       // profile photo
+
+  // Business details
+  operatingRegions String?                      // JSON: list of regions/districts
+  commodityTypes   String?                      // JSON: ["MAIZE", "COFFEE", "GENERAL"] — what they transport
+  bankName        String?
+  bankAccountNo   String?
+  bankBranch      String?
+
+  // Status & verification
+  status          String   @default("PENDING")  // PENDING, VERIFIED, ACTIVE, SUSPENDED
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  isAvailable     Boolean  @default(true)       // accepting new requests
+  rating          Float?                        // 1-5 average rating
+  totalTrips      Int      @default(0)
+  totalEarnings   Float    @default(0)          // cumulative earnings
+  commissionRate  Float?                        // platform commission % for this transporter
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  vehicles        TransportVehicle[]
+  trips           TransportTrip[]
+  charges         TransportCharge[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([phone])
+  @@index([type])
+}
+
+model TransportVehicle {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantTransportVehicles", fields: [tenantId], references: [id])
+  transporterId   String
+  transporter     Transporter @relation(fields: [transporterId], references: [id], onDelete: Cascade)
+
+  // Vehicle details
+  plateNumber     String                        // registration plate
+  vehicleType     String                        // MOTORBIKE, MINI_TRUCK, PICKUP, LORRY, TRAILER, VAN
+  make            String?                       // Toyota, Honda, etc.
+  model           String?                       // Hilux, Canter, etc.
+  year            Int?
+  color           String?
+
+  // Capacity
+  capacityKg      Float?                        // max weight in kg
+  capacityVolume  Float?                        // cubic meters
+  palletSpaces    Int?
+
+  // Driver (may differ from transporter owner)
+  driverName      String
+  driverPhone     String
+  driverLicenseNo String?
+
+  // Documents
+  insuranceExpiry   DateTime?
+  inspectionExpiry  DateTime?
+  roadLicenseExpiry DateTime?
+
+  // Status
+  isActive        Boolean  @default(true)
+  isAvailable     Boolean  @default(true)       // currently available for trips
+  currentTripId   String?                       // if on a trip, link to active trip
+
+  // Location (last known)
+  lastLatitude    Float?
+  lastLongitude   Float?
+  lastLocationAt  DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  trips           TransportTrip[]
+
+  @@unique([tenantId, plateNumber])
+  @@index([tenantId])
+  @@index([transporterId])
+  @@index([vehicleType])
+  @@index([isAvailable])
+}
+
+model TransportRequest {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantTransportRequests", fields: [tenantId], references: [id])
+
+  // Request reference
+  requestCode     String   @unique              // "TREQ-000001"
+
+  // Who is requesting transport (shipper)
+  requestedBy     String                        // userId who created the request
+  requesterName   String
+  requesterPhone  String
+  requesterType   String                        // EXPORTER, COOPERATIVE, AGENT, FARMER, COMPANY
+
+  // Pickup details
+  pickupAddress   String
+  pickupLatitude  Float?
+  pickupLongitude Float?
+  pickupDistrict  String?
+
+  // Drop-off details
+  dropoffAddress  String
+  dropoffLatitude Float?
+  dropoffLongitude Float?
+  dropoffDistrict String?
+
+  // Cargo details
+  commodityType   String                        // MAIZE, COFFEE, GENERAL_GOODS, etc.
+  commodityCategory String                      // AGRICULTURAL, NON_AGRICULTURAL
+  weightKg        Float?
+  volumeM3        Float?
+  quantityBags    Int?
+  requiresRefrigeration Boolean @default(false)
+
+  // Vehicle preference
+  preferredVehicleType String?                  // MOTORBIKE, MINI_TRUCK, LORRY, TRAILER
+  vehicleTypeRequired  String?                  // strict requirement or preference
+
+  // Schedule
+  requestedPickupTime DateTime?                 // when they want pickup
+  isUrgent        Boolean  @default(false)
+
+  // Budget & pricing
+  proposedBudget  Float?                        // what shipper is willing to pay
+  estimatedCost   Float?                        // system-estimated cost
+  finalCost       Float?                        // agreed/negotiated cost
+
+  // Related entities (integration points)
+  relatedId       String?                       // e.g. consignmentId, orderId, contractId
+  relatedType     String?                       // CONSIGNMENT, PURCHASE, CONTRACT, MARKET_MATCH
+  eudrBatchId     String?                       // link to EUDR compliance batch
+
+  // Matching
+  matchedTransporterId String?
+  matchedVehicleId     String?
+
+  // Lifecycle: OPEN → MATCHING → MATCHED → ACCEPTED → PICKED_UP → IN_TRANSIT → DELIVERED → CANCELLED
+  status          String   @default("OPEN")
+
+  // Cancellation
+  cancelledBy     String?
+  cancelledAt     DateTime?
+  cancellationReason String?
+
+  // Completion
+  deliveredAt     DateTime?
+  deliveryNote    String?
+  podPhotoUrl     String?                       // proof of delivery photo
+  podSignedBy     String?
+
+  // Timestamps
+  acceptedAt      DateTime?
+  pickupAt        DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  trip            TransportTrip?
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([requestedBy])
+  @@index([requesterType])
+  @@index([commodityCategory])
+  @@index([matchedTransporterId])
+  @@index([createdAt])
+}
+
+model TransportTrip {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantTransportTrips", fields: [tenantId], references: [id])
+
+  // Trip reference
+  tripCode        String   @unique              // "TRP-TRIP-000001"
+
+  // Linked request
+  requestId       String   @unique
+  request         TransportRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  // Transporter & Vehicle
+  transporterId   String
+  transporter     Transporter @relation(fields: [transporterId], references: [id])
+  vehicleId       String
+  vehicle         TransportVehicle @relation(fields: [vehicleId], references: [id])
+
+  // Driver (at time of trip — snapshot)
+  driverName      String
+  driverPhone     String
+
+  // Route details
+  originAddress   String
+  originLatitude  Float?
+  originLongitude Float?
+  destinationAddress String
+  destinationLatitude  Float?
+  destinationLongitude Float?
+  estimatedDistanceKm  Float?                   // system-calculated
+  actualDistanceKm     Float?                   // calculated from GPS events
+  estimatedDurationMin Float?                  // system-calculated
+  actualDurationMin    Float?                   // pickup to delivery
+
+  // Cargo snapshot
+  commodityType   String
+  commodityCategory String
+  weightKg        Float?
+
+  // Financial
+  agreedCost      Float                         // negotiated/final cost
+  platformCommission Float                      // platform's cut
+  transporterEarnings Float                     // what transporter gets
+  paymentStatus   String   @default("UNPAID")  // UNPAID, PAID, PROCESSING
+  paidAt          DateTime?
+
+  // Lifecycle: ASSIGNED → PICKED_UP → IN_TRANSIT → ARRIVED → DELIVERED → CANCELLED
+  status          String   @default("ASSIGNED")
+
+  // Timestamps
+  assignedAt      DateTime @default(now())
+  pickedUpAt      DateTime?
+  departedAt      DateTime?                      // left pickup location
+  arrivedAt       DateTime?                      // arrived at destination
+  deliveredAt     DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
+
+  // EUDR chain-of-custody link
+  eudrComplianceId String?
+
+  // Tracking & events
+  trackingEvents  TripTrackingEvent[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  charges         TransportCharge[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([transporterId])
+  @@index([vehicleId])
+  @@index([driverPhone])
+  @@index([paymentStatus])
+  @@index([assignedAt])
+  @@index([createdAt])
+}
+
+model TripTrackingEvent {
+  id              String   @id @default(cuid())
+  tripId          String
+  trip            TransportTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  // GPS data
+  latitude        Float
+  longitude       Float
+  speedKmh        Float?                        // speed at this point
+  heading         Float?                        // direction in degrees
+  accuracyMeters  Float?                        // GPS accuracy
+
+  // Context
+  eventType       String                        // LOCATION_UPDATE, PICKUP, DEPARTURE, WAYPOINT, ARRIVAL, DELIVERY, STOP, IDLE
+  address         String?                       // reverse-geocoded address
+  district        String?
+  batteryLevel    Int?                          // device battery %
+  odometerKm      Float?                        // cumulative odometer reading
+
+  // Timestamp
+  recordedAt      DateTime @default(now())
+
+  @@index([tripId])
+  @@index([recordedAt])
+  @@index([eventType])
+  @@index([latitude, longitude])
+}
+
+model TransportCharge {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantTransportCharges", fields: [tenantId], references: [id])
+
+  // What trip/transporter this charge relates to
+  tripId          String?
+  trip            TransportTrip? @relation(fields: [tripId], references: [id])
+  transporterId   String?
+  transporter     Transporter? @relation(fields: [transporterId], references: [id])
+
+  // Charge details
+  chargeType      String                        // TRIP_FEE, COMMISSION, INSURANCE, PARKING, TOLL, PENALTY, BONUS, ADJUSTMENT
+  description     String?
+  amount          Float
+  currency        String   @default("UGX")
+
+  // Direction
+  direction       String                        // DEBIT (charge to transporter), CREDIT (pay to transporter)
+
+  // Payment
+  paymentStatus   String   @default("PENDING")  // PENDING, PAID, FAILED, WAIVED
+  paymentMethod   String?                       // MOBILE_MONEY, BANK, WALLET
+  paymentRef      String?
+  paidAt          DateTime?
+
+  // Accounting integration
+  journalEntryId  String?   @unique
+
+  // Period
+  periodStart     DateTime?
+  periodEnd       DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tripId])
+  @@index([transporterId])
+  @@index([chargeType])
+  @@index([paymentStatus])
   @@index([createdAt])
 }
