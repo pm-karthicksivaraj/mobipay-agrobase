@@ -725,6 +725,17 @@ async function main() {
   console.log(`   - EUDR/CBAM/Rainforest/GlobalG.A.P. compliance records seeded`)
   console.log(`   - Farm visits & impact assessments seeded`)
   console.log(`   - Channel simulator data (USSD/IVR/SMS) seeded`)
+
+  // ─── EXTENDED SEED ───────────────────────────────────────────
+  console.log('\n📦 Running extended seed (VSLA, Transport, Satellite, etc.)...')
+  const { seedExtended } = await import('./seed-extended')
+  await seedExtended({
+    ugTenant: { id: ugTenant.id },
+    ekibbo: { id: ekibbo.id },
+    users: users.map(u => ({ id: u.id })),
+    farmers: farmers.map(f => ({ id: f.id, firstName: f.firstName, lastName: f.lastName, phone: f.phone })),
+    vslaGroups: vslaGroups.map(g => ({ id: g.id })),
+  })
 }
 
 main()
