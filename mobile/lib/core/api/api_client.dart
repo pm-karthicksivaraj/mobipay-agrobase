@@ -5,8 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiClient {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://agrobase.mobipay.co.ug',
+    defaultValue: 'http://10.0.2.2:3000', // Android emulator → host localhost
   );
+
+  // For iOS simulator / physical device on same WiFi:
+  // Override with: flutter run --dart-define=API_BASE_URL=http://192.168.x.x:3000
 
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;

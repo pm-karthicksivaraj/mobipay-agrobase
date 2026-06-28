@@ -3,14 +3,16 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/farmers/presentation/pages/farmers_page.dart';
+import '../../features/farmers/presentation/pages/farmer_detail_page.dart';
 import '../../features/loans/presentation/pages/loans_page.dart';
 import '../../features/vsla/presentation/pages/vsla_page.dart';
 import '../../features/mfi/presentation/pages/mfi_page.dart';
 import '../../features/carbon/presentation/pages/carbon_page.dart';
 import '../../features/compliance/presentation/pages/compliance_page.dart';
+import '../../features/plots/presentation/pages/plots_page.dart';
+import '../../features/plots/presentation/pages/plot_detail_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
-import '../../features/farmers/presentation/pages/farmer_detail_page.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -32,6 +34,11 @@ class AppRouter {
             builder: (_, state) =>
                 FarmerDetailPage(id: state.pathParameters['id']!),
           ),
+          GoRoute(
+            path: '/plots/:id',
+            builder: (_, state) =>
+                PlotDetailPage(id: state.pathParameters['id']!),
+          ),
           StatefulShellRoute.indexedStack(
             builder: (context, state, navigationShell) {
               return ScaffoldWithNavBar(navigationShell: navigationShell);
@@ -41,6 +48,12 @@ class AppRouter {
                 GoRoute(
                   path: '/',
                   builder: (_, __) => const DashboardPage(),
+                ),
+              ]),
+              StatefulShellBranch(routes: [
+                GoRoute(
+                  path: '/plots',
+                  builder: (_, __) => const PlotsPage(),
                 ),
               ]),
               StatefulShellBranch(routes: [
@@ -108,6 +121,11 @@ class ScaffoldWithNavBar extends StatelessWidget {
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard),
             label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.map_outlined),
+            selectedIcon: Icon(Icons.map),
+            label: 'Plots',
           ),
           NavigationDestination(
             icon: Icon(Icons.people_outline),

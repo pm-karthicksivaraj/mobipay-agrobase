@@ -541,34 +541,174 @@ async function main() {
   if (plots.length >= 4) {
     await db.plotSeason.createMany({
       data: [
-        { plotId: plots[0].id, season: '2026A', cropType: 'ARABICA_COFFEE', variety: 'SL14', plantingDate: new Date('2026-03-01'), expectedHarvestDate: new Date('2026-10-01'), status: 'GROWING' },
-        { plotId: plots[1].id, season: '2025B', cropType: 'ROBUSTA_COFFEE', variety: 'KR3', plantingDate: new Date('2025-09-15'), expectedHarvestDate: new Date('2026-02-28'), status: 'HARVESTED', yieldKg: 1800, qualityGrade: 'GRADE_A' },
-        { plotId: plots[2].id, season: '2026A', cropType: 'MAIZE', variety: 'LONGE 6H', status: 'PLANNED' },
-        { plotId: plots[3].id, season: '2025B', cropType: 'MAIZE', variety: 'BAYOMBE', plantingDate: new Date('2025-08-01'), actualHarvestDate: new Date('2025-12-15'), yieldKg: 12000, qualityGrade: 'GRADE_B', status: 'COMPLETED', eudrCompliant: true },
-        { plotId: plots[3].id, season: '2026A', cropType: 'SOYBEAN', variety: 'MAKSOY 3N', plantingDate: new Date('2026-04-01'), status: 'GROWING' },
-        { plotId: plots[4].id, season: '2026A', cropType: 'COCOA', variety: 'AMAZONIAN', plantingDate: new Date('2025-11-01'), expectedHarvestDate: new Date('2026-11-01'), status: 'GROWING' },
+        { tenantId: ugTenant.id, plotId: plots[0].id, season: '2026A', cropType: 'ARABICA_COFFEE', variety: 'SL14', plantingDate: new Date('2026-03-01'), expectedHarvestDate: new Date('2026-10-01'), status: 'GROWING' },
+        { tenantId: ugTenant.id, plotId: plots[1].id, season: '2025B', cropType: 'ROBUSTA_COFFEE', variety: 'KR3', plantingDate: new Date('2025-09-15'), expectedHarvestDate: new Date('2026-02-28'), status: 'HARVESTED', yieldKg: 1800, qualityGrade: 'GRADE_A' },
+        { tenantId: ugTenant.id, plotId: plots[2].id, season: '2026A', cropType: 'MAIZE', variety: 'LONGE 6H', status: 'PLANNED' },
+        { tenantId: ugTenant.id, plotId: plots[3].id, season: '2025B', cropType: 'MAIZE', variety: 'BAYOMBE', plantingDate: new Date('2025-08-01'), actualHarvestDate: new Date('2025-12-15'), yieldKg: 12000, qualityGrade: 'GRADE_B', status: 'COMPLETED', eudrCompliant: true },
+        { tenantId: ugTenant.id, plotId: plots[3].id, season: '2026A', cropType: 'SOYBEAN', variety: 'MAKSOY 3N', plantingDate: new Date('2026-04-01'), status: 'GROWING' },
+        { tenantId: ugTenant.id, plotId: plots[4].id, season: '2026A', cropType: 'COCOA', variety: 'AMAZONIAN', plantingDate: new Date('2025-11-01'), expectedHarvestDate: new Date('2026-11-01'), status: 'GROWING' },
       ]
     })
 
     // Plot verifications
     await db.plotVerification.createMany({
       data: [
-        { plotId: plots[0].id, verificationType: 'GPS', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date(), boundaryMatchPercent: 92, accuracyMeters: 3.2, deforestCheckResult: 'CLEAR', notes: 'GPS boundary matches surveyed boundary within 3m tolerance' },
-        { plotId: plots[1].id, verificationType: 'SATELLITE', result: 'PASSED', verifiedBy: users[3]?.id, verifiedAt: new Date(), boundaryMatchPercent: 88, deforestCheckResult: 'CLEAR', notes: 'Sentinel-2 analysis: no land-use change detected since 2020' },
-        { plotId: plots[3].id, verificationType: 'GPS', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date('2025-06-10'), boundaryMatchPercent: 99, accuracyMeters: 1.1, deforestCheckResult: 'CLEAR' },
-        { plotId: plots[3].id, verificationType: 'SATELLITE', result: 'PASSED', verifiedBy: users[3]?.id, verifiedAt: new Date('2025-06-15'), deforestCheckResult: 'CLEAR', notes: 'Multi-date satellite analysis confirms no deforestation' },
-        { plotId: plots[3].id, verificationType: 'FIELD_AUDIT', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date('2025-07-01'), deforestCheckResult: 'CLEAR', notes: 'Physical verification confirms GPS and satellite data' },
-        { plotId: plots[4].id, verificationType: 'FIELD_AUDIT', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date(), boundaryMatchPercent: 75, deforestCheckResult: 'SUSPECTED', notes: 'Small vegetation change at plot edge — needs satellite follow-up' },
+        { tenantId: ugTenant.id, plotId: plots[0].id, verificationType: 'GPS', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date(), boundaryMatchPercent: 92, accuracyMeters: 3.2, deforestCheckResult: 'CLEAR', notes: 'GPS boundary matches surveyed boundary within 3m tolerance' },
+        { tenantId: ugTenant.id, plotId: plots[1].id, verificationType: 'SATELLITE', result: 'PASSED', verifiedBy: users[3]?.id, verifiedAt: new Date(), boundaryMatchPercent: 88, deforestCheckResult: 'CLEAR', notes: 'Sentinel-2 analysis: no land-use change detected since 2020' },
+        { tenantId: ugTenant.id, plotId: plots[3].id, verificationType: 'GPS', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date('2025-06-10'), boundaryMatchPercent: 99, accuracyMeters: 1.1, deforestCheckResult: 'CLEAR' },
+        { tenantId: ugTenant.id, plotId: plots[3].id, verificationType: 'SATELLITE', result: 'PASSED', verifiedBy: users[3]?.id, verifiedAt: new Date('2025-06-15'), deforestCheckResult: 'CLEAR', notes: 'Multi-date satellite analysis confirms no deforestation' },
+        { tenantId: ugTenant.id, plotId: plots[3].id, verificationType: 'FIELD_AUDIT', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date('2025-07-01'), deforestCheckResult: 'CLEAR', notes: 'Physical verification confirms GPS and satellite data' },
+        { tenantId: ugTenant.id, plotId: plots[4].id, verificationType: 'FIELD_AUDIT', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date(), boundaryMatchPercent: 75, deforestCheckResult: 'SUSPECTED', notes: 'Small vegetation change at plot edge — needs satellite follow-up' },
       ]
     })
 
     // Plot documents
     await db.plotDocument.createMany({
       data: [
-        { plotId: plots[0].id, docType: 'LAND_TITLE', title: 'Customary Land Certificate', issuedBy: 'Mbale District Land Office', issuedAt: new Date('2020-01-15') },
-        { plotId: plots[3].id, docType: 'EUDR_CERTIFICATE', title: 'EUDR Due Diligence Certificate', issuedBy: 'Agrobase Compliance', issuedAt: new Date('2025-07-02'), isVerified: true },
-        { plotId: plots[3].id, docType: 'SATELLITE_IMAGE', title: 'Sentinel-2 Composite 2025', issuedAt: new Date('2025-06-15') },
+        { tenantId: ugTenant.id, plotId: plots[0].id, docType: 'LAND_TITLE', title: 'Customary Land Certificate', issuedBy: 'Mbale District Land Office', issuedAt: new Date('2020-01-15') },
+        { tenantId: ugTenant.id, plotId: plots[3].id, docType: 'EUDR_CERTIFICATE', title: 'EUDR Due Diligence Certificate', issuedBy: 'Agrobase Compliance', issuedAt: new Date('2025-07-02'), isVerified: true },
+        { tenantId: ugTenant.id, plotId: plots[3].id, docType: 'SATELLITE_IMAGE', title: 'Sentinel-2 Composite 2025', issuedAt: new Date('2025-06-15') },
       ]
+    })
+  }
+
+  // ─── CARBON CREDITS ────────────────────────────────────────────
+  const carbonProjects = await Promise.all([
+    db.carbonProject.create({
+      data: {
+        tenantId: ugTenant.id, createdById: users[0].id,
+        name: 'Kibale Agroforestry Carbon Project',
+        description: 'Agroforestry-based carbon sequestration across 500 hectares in Kibale district',
+        standard: 'VERRA_VCS', methodologyCode: 'AR-ACM0003', methodologyVersion: 'v6.0',
+        projectType: 'AGROFORESTRY', region: 'Western Uganda', country: 'Uganda',
+        totalAreaHectares: 500, estimatedAnnualRemovals: 2500,
+        projectStartDate: new Date('2024-01-01'), projectEndDate: new Date('2034-12-31'),
+        creditingPeriodYears: 10, creditingPeriodStart: new Date('2024-01-01'),
+        creditingPeriodEnd: new Date('2033-12-31'),
+        proponentName: 'MobiPay AgroSys', proponentContact: 'carbon@agrobase.co',
+        vvbName: 'SGS Verification', status: 'ACTIVE', verraProjectId: 'VCS-2024-UG-001',
+      }
+    }),
+    db.carbonProject.create({
+      data: {
+        tenantId: ugTenant.id, createdById: users[0].id,
+        name: 'Mt. Elgon Soil Carbon Restoration',
+        description: 'Soil organic carbon restoration through conservation agriculture on smallholder farms',
+        standard: 'GOLD_STANDARD', methodologyCode: 'GS-SOC-001', methodologyVersion: 'v2.1',
+        projectType: 'SOIL_CARBON', region: 'Eastern Uganda', country: 'Uganda',
+        totalAreaHectares: 300, estimatedAnnualRemovals: 900,
+        projectStartDate: new Date('2025-01-01'), projectEndDate: new Date('2035-12-31'),
+        creditingPeriodYears: 10, creditingPeriodStart: new Date('2025-01-01'),
+        creditingPeriodEnd: new Date('2034-12-31'),
+        proponentName: 'Green Valley NGO', vvbName: 'Bureau Veritas', status: 'VALIDATED',
+      }
+    }),
+  ])
+
+  // Carbon credits
+  await db.carbonCredit.createMany({
+    data: [
+      { tenantId: ugTenant.id, projectId: carbonProjects[0].id, vintageYear: 2024, quantityTonnesCO2: 1250.5, unitPriceUsd: 12.50, status: 'ISSUED', issuanceDate: new Date('2025-01-15'), expiryDate: new Date('2024-12-31') },
+      { tenantId: ugTenant.id, projectId: carbonProjects[0].id, vintageYear: 2024, quantityTonnesCO2: 800.0, unitPriceUsd: 15.00, status: 'RETIRED', issuanceDate: new Date('2025-02-01'), retirementDate: new Date('2025-03-10'), retirementReason: 'VOLUNTARY', expiryDate: new Date('2024-12-31') },
+      { tenantId: ugTenant.id, projectId: carbonProjects[0].id, vintageYear: 2025, quantityTonnesCO2: 600.0, unitPriceUsd: 14.00, status: 'PENDING', expiryDate: new Date('2025-12-31') },
+      { tenantId: ugTenant.id, projectId: carbonProjects[1].id, vintageYear: 2025, quantityTonnesCO2: 450.0, unitPriceUsd: 18.00, status: 'VERIFIED', expiryDate: new Date('2025-12-31') },
+    ]
+  })
+
+  // Carbon verifications
+  await db.carbonVerification.createMany({
+    data: [
+      { tenantId: ugTenant.id, projectId: carbonProjects[0].id, type: 'VERIFICATION', status: 'COMPLETED', vvbName: 'SGS Verification', startDate: new Date('2025-01-05'), endDate: new Date('2025-01-10'), conclusion: 'POSITIVE', recommendation: 'ISSUE', findings: '{"creditsVerified": 1250.5}' },
+      { tenantId: ugTenant.id, projectId: carbonProjects[1].id, type: 'VERIFICATION', status: 'COMPLETED', vvbName: 'Bureau Veritas', startDate: new Date('2026-01-10'), endDate: new Date('2026-01-15'), conclusion: 'POSITIVE', recommendation: 'ISSUE', findings: '{"creditsVerified": 450.0}' },
+    ]
+  })
+
+  // ─── MFI PARTNERS & LOANS ─────────────────────────────────────
+  const mfiTenant = tenants[8] // Hope Microfinance
+  const mfiPartners = await Promise.all([
+    db.mfiPartner.create({
+      data: {
+        tenantId: mfiTenant.id, name: 'Pride Microfinance', partnerType: 'MFI', code: 'PRIDE',
+        contactName: 'Joseph Kiyimba', contactEmail: 'joseph@pride.co.ug', contactPhone: '+256312000001',
+        address: 'Kampala Road, Kampala', country: 'Uganda',
+        maxExposure: 500000000, currentExposure: 125000000, interestRateSpread: 0.0350,
+        isActive: true,
+      }
+    }),
+    db.mfiPartner.create({
+      data: {
+        tenantId: mfiTenant.id, name: 'Uganda Coffee Cooperative Union', partnerType: 'SACCO', code: 'UCCU',
+        contactName: 'Agnes Nandawula', contactEmail: 'agnes@uccu.co.ug', contactPhone: '+256312000002',
+        address: 'Jinja Road, Kampala', country: 'Uganda',
+        maxExposure: 200000000, currentExposure: 45000000, interestRateSpread: 0.0200,
+        isActive: true,
+      }
+    }),
+  ])
+
+  // MFI loan products
+  const mfiProducts = await Promise.all([
+    db.mfiLoanProduct.create({
+      data: {
+        tenantId: mfiTenant.id, partnerId: mfiPartners[0].id,
+        name: 'Coffee Farmer Input Loan',
+        interestRate: 18, maxAmount: 5000000, minAmount: 100000,
+        maxDurationMonths: 12, gracePeriodMonths: 3,
+        collateralRequired: true,
+        description: 'Seasonal input financing for coffee farmers via Pride MFI',
+        isActive: true,
+      }
+    }),
+    db.mfiLoanProduct.create({
+      data: {
+        tenantId: mfiTenant.id, partnerId: mfiPartners[1].id,
+        name: 'Cooperative Farm Development Loan',
+        interestRate: 14, maxAmount: 10000000, minAmount: 500000,
+        maxDurationMonths: 24, gracePeriodMonths: 6,
+        collateralRequired: false,
+        description: 'Long-term farm development through cooperative union',
+        isActive: true,
+      }
+    }),
+  ])
+
+  // MFI loans
+  const mfiLoans = await db.mfiLoan.createMany({
+    data: Array.from({ length: 8 }, (_, i) => ({
+      tenantId: mfiTenant.id,
+      partnerId: mfiPartners[i % 2].id,
+      loanProductId: mfiProducts[i % 2].id,
+      farmerId: farmers[i].id,
+      applicantName: `${farmers[i].firstName} ${farmers[i].lastName}`,
+      applicantPhone: farmers[i].phone,
+      amount: 200000 + Math.floor(Math.random() * 3000000),
+      interestRate: 14 + Math.random() * 8,
+      durationMonths: 6 + (i % 3) * 6,
+      gracePeriodMonths: 3,
+      status: ['PENDING', 'APPROVED', 'DISBURSED', 'DISBURSED', 'DISBURSED', 'DISBURSED', 'REPAID', 'OVERDUE'][i],
+      purpose: 'Coffee input financing for 2026 season',
+      disbursedAt: i >= 2 && i <= 6 ? new Date(Date.now() - (i * 30 * 86400000)) : null,
+    }))
+  })
+
+  // ─── PRODUCT BATCHES (Traceability) ───────────────────────────
+  const batchCommodities = [
+    { commodity: 'ARABICA_COFFEE', season: '2025B', quantityKg: 1800, status: 'IN_WAREHOUSE' },
+    { commodity: 'MAIZE', season: '2025B', quantityKg: 12000, status: 'PROCESSED' },
+    { commodity: 'ROBUSTA_COFFEE', season: '2025B', quantityKg: 3200, status: 'CERTIFIED' },
+    { commodity: 'COFFEE', season: '2025B', quantityKg: 5000, status: 'IN_TRANSIT' },
+  ]
+  if (plots.length >= 2) {
+    await db.productBatch.createMany({
+      data: batchCommodities.map((b, i) => ({
+        tenantId: ugTenant.id,
+        plotId: plots[i % plots.length].id,
+        batchId: `BAT-${String(i + 1).padStart(6, '0')}`,
+        commodity: b.commodity,
+        season: b.season,
+        quantityKg: b.quantityKg,
+        status: b.status,
+      }))
     })
   }
 
@@ -579,6 +719,9 @@ async function main() {
   console.log(`   - ${groups.length} farmer groups`)
   console.log(`   - ${vslaGroups.length} VSLA groups`)
   console.log(`   - ${seededPlots.count} plots seeded (plot-level traceability)`)
+  console.log(`   - ${carbonProjects.length} carbon projects + 4 credits`)
+  console.log(`   - ${mfiPartners.length} MFI partners + ${mfiProducts.length} products + ${mfiLoans.count} loans`)
+  console.log(`   - ${batchCommodities.length} product batches (traceability)`)
   console.log(`   - EUDR/CBAM/Rainforest/GlobalG.A.P. compliance records seeded`)
   console.log(`   - Farm visits & impact assessments seeded`)
   console.log(`   - Channel simulator data (USSD/IVR/SMS) seeded`)

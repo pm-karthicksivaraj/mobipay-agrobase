@@ -401,7 +401,7 @@ export class PlotEngine {
 
   static async updateSeason(tenantId: string, seasonId: string, data: {
     actualHarvestDate?: string; yieldKg?: number; qualityGrade?: string
-    status?: string; eudrCompliant?: boolean; complianceNotes?: string
+    status?: string; eudrCompliant?: boolean
   }): Promise<PlotSeasonDetail | null> {
     try {
       const season = await db.plotSeason.update({
@@ -412,7 +412,6 @@ export class PlotEngine {
           ...(data.qualityGrade ? { qualityGrade: data.qualityGrade } : {}),
           ...(data.status ? { status: data.status } : {}),
           ...(data.eudrCompliant !== undefined ? { eudrCompliant: data.eudrCompliant } : {}),
-          ...(data.complianceNotes ? { complianceNotes: data.complianceNotes } : {}),
         },
       })
       return {
