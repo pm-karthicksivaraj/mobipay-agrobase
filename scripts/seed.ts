@@ -691,6 +691,35 @@ async function main() {
     }))
   })
 
+  // MFI Loan Schedules (for the 4 DISBURSED loans — index 2,3,4,5)
+  const mfiDisbursed = await db.mfiLoan.findMany({
+    where: { tenantId: mfiTenant.id, status: 'DISBURSED' },
+    select: { id: true, amount: true, interestRate: true, durationMonths: true, gracePeriodMonths: true, disbursedAt: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  if (mfiDisbursed.length > 0) {
+    const scheduleRows: { tenantId: string; loanId: string; installmentNumber: number; dueDate: Date; principalDue: number; interestDue: number; penaltyDue: number; totalDue: number; principalPaid: number; interestPaid: number; penaltyPaid: number; totalPaid: number; status: string; paidAt?: Date }[] = []
+    for (const ml of mfiDisbursed) {
+      const m = ml.durationMonths ?? 6
+      const g = ml.gracePeriodMonths ?? 3
+      const rate = Number(ml.interestRate) / 100 / 12
+      const princ = Number(ml.amount)
+      const monthlyPrinc = princ / (m - g)
+      for (let inst = 1; inst <= m; inst++) {
+        const dd = new Date(ml.disbursedAt!); dd.setMonth(dd.getMonth() + inst); dd.setDate(15)
+        const inGrace = inst <= g
+        const pDue = inGrace ? 0 : Math.round(monthlyPrinc * 100) / 100
+        const rem = princ - monthlyPrinc * Math.max(0, inst - g - 1)
+        const iDue = Math.round(rem * rate * 100) / 100
+        const tot = pDue + iDue
+        const isPast = dd < new Date()
+        const isPaid = !inGrace && Math.random() > 0.4
+        scheduleRows.push({ tenantId: mfiTenant.id, loanId: ml.id, installmentNumber: inst, dueDate: dd, principalDue: pDue, interestDue: iDue, penaltyDue: 0, totalDue: tot, principalPaid: isPaid ? pDue : 0, interestPaid: isPaid ? iDue : 0, penaltyPaid: 0, totalPaid: isPaid ? tot : 0, status: isPaid ? 'PAID' : isPast ? 'OVERDUE' : 'PENDING', paidAt: isPaid ? new Date() : undefined })
+      }
+    }
+    await db.mfiLoanSchedule.createMany({ data: scheduleRows })
+  }
+
   // ─── PRODUCT BATCHES (Traceability) ───────────────────────────
   const batchCommodities = [
     { commodity: 'ARABICA_COFFEE', season: '2025B', quantityKg: 1800, status: 'IN_WAREHOUSE' },
@@ -720,7 +749,7 @@ async function main() {
   console.log(`   - ${vslaGroups.length} VSLA groups`)
   console.log(`   - ${seededPlots.count} plots seeded (plot-level traceability)`)
   console.log(`   - ${carbonProjects.length} carbon projects + 4 credits`)
-  console.log(`   - ${mfiPartners.length} MFI partners + ${mfiProducts.length} products + ${mfiLoans.count} loans`)
+  console.log(`   - ${mfiPartners.length} MFI partners + ${mfiProducts.length} products + ${mfiLoans.count} loans + schedule data`)
   console.log(`   - ${batchCommodities.length} product batches (traceability)`)
   console.log(`   - EUDR/CBAM/Rainforest/GlobalG.A.P. compliance records seeded`)
   console.log(`   - Farm visits & impact assessments seeded`)
