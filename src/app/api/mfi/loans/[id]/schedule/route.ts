@@ -36,11 +36,11 @@ export async function GET(
       return NextResponse.json({ error: 'Loan not found' }, { status: 404 })
     }
 
-    const totalPrincipalDue = schedule.reduce((s, r) => s + r.principalDue, 0)
-    const totalInterestDue = schedule.reduce((s, r) => s + r.interestDue, 0)
-    const totalPenaltyDue = schedule.reduce((s, r) => s + r.penaltyDue, 0)
-    const totalDue = schedule.reduce((s, r) => s + r.totalDue, 0)
-    const totalPaid = schedule.reduce((s, r) => s + r.totalPaid, 0)
+    const totalPrincipalDue = schedule.reduce((s, r) => s + Number(r.principalDue), 0)
+    const totalInterestDue = schedule.reduce((s, r) => s + Number(r.interestDue), 0)
+    const totalPenaltyDue = schedule.reduce((s, r) => s + Number(r.penaltyDue), 0)
+    const totalDue = schedule.reduce((s, r) => s + Number(r.totalDue), 0)
+    const totalPaid = schedule.reduce((s, r) => s + Number(r.totalPaid), 0)
 
     return NextResponse.json({
       data: {

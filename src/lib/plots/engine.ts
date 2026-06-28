@@ -123,7 +123,7 @@ export class PlotEngine {
         where,
         include: {
           farmer: { select: { firstName: true, lastName: true } },
-          _count: { select: { seasons: true, productBatches: true } },
+          _count: { select: { seasons: true, batches: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -133,7 +133,7 @@ export class PlotEngine {
     ])
 
     return {
-      plots: plots.map(p => toSummary({ ...p, _seasonCount: p._count.seasons, _batchCount: p._count.productBatches })),
+      plots: plots.map(p => toSummary({ ...p, _seasonCount: p._count.seasons, _batchCount: p._count.batches })),
       total,
       page,
       pageSize,
@@ -145,17 +145,16 @@ export class PlotEngine {
       where: { id: plotId, tenantId },
       include: {
         farmer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-        farmLand: { select: { id: true, name: true } },
         seasons: { orderBy: { createdAt: 'desc' }, take: 10 },
         verifications: { orderBy: { verifiedAt: 'desc' }, take: 5 },
         documents: { orderBy: { createdAt: 'desc' }, take: 10 },
-        _count: { select: { productBatches: true } },
+        _count: { select: { batches: true } },
       },
     })
     if (!plot) return null
 
     return {
-      ...toSummary({ ...plot, _seasonCount: plot.seasons.length, _batchCount: plot._count.productBatches }),
+      ...toSummary({ ...plot, _seasonCount: plot.seasons.length, _batchCount: plot._count.batches }),
       farmerId: plot.farmerId,
       farmLandId: plot.farmLandId,
       description: plot.description,
@@ -309,6 +308,7 @@ export class PlotEngine {
     const [verification, updatedPlot] = await db.$transaction([
       db.plotVerification.create({
         data: {
+          tenantId,
           plotId,
           verificationType: input.verificationType,
           result: input.result,
@@ -318,7 +318,6 @@ export class PlotEngine {
           boundaryMatchPercent: input.boundaryMatchPercent,
           accuracyMeters: input.accuracyMeters,
           deforestCheckResult: input.deforestCheckResult,
-          deforestCheckDate: input.deforestCheckResult ? new Date() : null,
           notes: input.notes,
         },
       }),
@@ -378,13 +377,11 @@ export class PlotEngine {
     try {
       const season = await db.plotSeason.create({
         data: {
+          tenantId,
           plotId, season: data.season, cropType: data.cropType, variety: data.variety,
-          seedSource: data.seedSource,
           plantingDate: data.plantingDate ? new Date(data.plantingDate) : null,
           expectedHarvestDate: data.expectedHarvestDate ? new Date(data.expectedHarvestDate) : null,
           areaPlantedHectares: data.areaPlantedHectares,
-          inputUsage: data.inputUsage ? JSON.stringify(data.inputUsage) : null,
-          notes: data.notes,
           status: data.plantingDate ? 'PLANTED' : 'PLANNED',
         },
       })
@@ -443,8 +440,9 @@ export class PlotEngine {
     try {
       const doc = await db.plotDocument.create({
         data: {
-          plotId, docType: data.docType, title: data.title, description: data.description,
-          fileUrl: data.fileUrl, fileSize: data.fileSize, mimeType: data.mimeType,
+          tenantId,
+          plotId, docType: data.docType, title: data.title,
+          fileUrl: data.fileUrl,
           issuedBy: data.issuedBy,
           issuedAt: data.issuedAt ? new Date(data.issuedAt) : null,
           expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
@@ -469,7 +467,7 @@ export class PlotEngine {
       include: {
         farmer: { select: { firstName: true, lastName: true } },
         seasons: { orderBy: { season: 'desc' } },
-        productBatches: {
+        batches: {
           include: { events: { orderBy: { timestamp: 'asc' } } },
           orderBy: { createdAt: 'desc' },
         },
@@ -478,11 +476,11 @@ export class PlotEngine {
     if (!plot) return null
 
     return {
-      plot: toSummary({ ...plot, _seasonCount: plot.seasons.length, _batchCount: plot.productBatches.length }),
+      plot: toSummary({ ...plot, _seasonCount: plot.seasons.length, _batchCount: plot.batches.length }),
       seasons: plot.seasons.map(season => ({
         season: season.season,
         cropType: season.cropType,
-        batches: plot.productBatches
+        batches: plot.batches
           .filter(b => b.season === season.season || b.commodity === season.cropType)
           .map(batch => ({
             batchId: batch.batchId, commodity: batch.commodity,

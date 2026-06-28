@@ -298,6 +298,7 @@ export class CarbonCreditsEngine {
     for (const param of methodology.defaultParameters) {
       await db.carbonProjectMethodology.create({
         data: {
+          tenantId,
           projectId: project.id,
           methodologyCode: data.methodologyCode,
           parameterName: param.name,
@@ -579,7 +580,7 @@ export class CarbonCreditsEngine {
       content: [
         `Estimated annual carbon removals: ${project.estimatedAnnualRemovals || 'Pending calculation'} tCO2e`,
         `Total crediting period: ${project.creditingPeriodYears} years`,
-        `Estimated total removals over crediting period: ${((project.estimatedAnnualRemovals || 0) * project.creditingPeriodYears).toFixed(2)} tCO2e`,
+        `Estimated total removals over crediting period: ${((project.estimatedAnnualRemovals || 0) * (project.creditingPeriodYears || 0)).toFixed(2)} tCO2e`,
         ``,
         `Calculation approach per ${methodology.code}:`,
         `  Net GHG removals = (Project scenario emissions) - (Baseline emissions) - Leakage`,
@@ -874,14 +875,14 @@ export class CarbonCreditsEngine {
     await db.carbonProject.update({
       where: { id: data.projectId },
       data: {
-        totalCreditsIssued: { increment: credit.quantityTonnesCO2 },
+        totalCreditsIssued: { increment: Number(credit.quantityTonnesCO2) },
       },
     })
 
     return {
       creditId: credit.id,
       serialNumber: credit.serialNumber ?? '',
-      quantity: credit.quantityTonnesCO2,
+      quantity: Number(credit.quantityTonnesCO2),
       vintageYear: data.vintageYear,
       status: 'ISSUED' as CreditStatus,
     }
@@ -910,12 +911,12 @@ export class CarbonCreditsEngine {
       throw new Error(`Credit must be ISSUED or VERIFIED to retire (current: ${credit.status})`)
     }
 
-    const retireQuantity = data.quantity ?? credit.quantityTonnesCO2
-    if (retireQuantity > credit.quantityTonnesCO2) {
+    const retireQuantity = data.quantity ?? Number(credit.quantityTonnesCO2)
+    if (retireQuantity > Number(credit.quantityTonnesCO2)) {
       throw new Error(`Cannot retire ${retireQuantity} tCO2 — only ${credit.quantityTonnesCO2} tCO2 available`)
     }
 
-    const remaining = credit.quantityTonnesCO2 - retireQuantity
+    const remaining = Number(credit.quantityTonnesCO2) - retireQuantity
     const newStatus = remaining <= 0.001 ? 'RETIRED' as CreditStatus : 'ISSUED' as CreditStatus
 
     await db.carbonCredit.update({
@@ -990,21 +991,21 @@ export class CarbonCreditsEngine {
       select: { id: true, name: true, standard: true, status: true, totalCreditsIssued: true, totalCreditsRetired: true, totalCreditsTransferred: true },
     })
 
-    const totalAvailable = credits.reduce((sum, c) => sum + c.quantityTonnesCO2, 0)
-    const totalValue = credits.reduce((sum, c) => sum + (c.unitPriceUsd ? c.quantityTonnesCO2 * c.unitPriceUsd : 0), 0)
-    const totalIssued = projects.reduce((sum, p) => sum + p.totalCreditsIssued, 0)
-    const totalRetired = projects.reduce((sum, p) => sum + p.totalCreditsRetired, 0)
+    const totalAvailable = credits.reduce((sum, c) => sum + Number(c.quantityTonnesCO2), 0)
+    const totalValue = credits.reduce((sum, c) => sum + (c.unitPriceUsd ? Number(c.quantityTonnesCO2) * Number(c.unitPriceUsd) : 0), 0)
+    const totalIssued = projects.reduce((sum, p) => sum + Number(p.totalCreditsIssued), 0)
+    const totalRetired = projects.reduce((sum, p) => sum + Number(p.totalCreditsRetired), 0)
 
     // By vintage year
     const byVintage: Record<number, number> = {}
     for (const c of credits) {
-      byVintage[c.vintageYear] = (byVintage[c.vintageYear] || 0) + c.quantityTonnesCO2
+      byVintage[c.vintageYear] = (byVintage[c.vintageYear] || 0) + Number(c.quantityTonnesCO2)
     }
 
     // By origin type
     const byOrigin: Record<string, number> = {}
     for (const c of credits) {
-      byOrigin[c.originType] = (byOrigin[c.originType] || 0) + c.quantityTonnesCO2
+      byOrigin[c.originType ?? 'UNKNOWN'] = (byOrigin[c.originType ?? 'UNKNOWN'] || 0) + Number(c.quantityTonnesCO2)
     }
 
     return {
@@ -1043,15 +1044,15 @@ export class CarbonCreditsEngine {
       throw new Error(`Credit must be ISSUED or VERIFIED to transfer (current: ${credit.status})`)
     }
 
-    const transferQuantity = data.quantity ?? credit.quantityTonnesCO2
-    if (transferQuantity > credit.quantityTonnesCO2) {
+    const transferQuantity = data.quantity ?? Number(credit.quantityTonnesCO2)
+    if (transferQuantity > Number(credit.quantityTonnesCO2)) {
       throw new Error(`Cannot transfer ${transferQuantity} tCO2 — only ${credit.quantityTonnesCO2} tCO2 available`)
     }
     if (transferQuantity <= 0) {
       throw new Error('Transfer quantity must be positive')
     }
 
-    const remaining = Math.round((credit.quantityTonnesCO2 - transferQuantity) * 1000) / 1000
+    const remaining = Math.round((Number(credit.quantityTonnesCO2) - transferQuantity) * 1000) / 1000
     const isFullTransfer = remaining <= 0.001
 
     await db.carbonCredit.update({
@@ -1157,6 +1158,7 @@ export class CarbonCreditsEngine {
           },
         },
         create: {
+          tenantId,
           projectId,
           methodologyCode: project.methodologyCode,
           parameterName: param.parameterName,

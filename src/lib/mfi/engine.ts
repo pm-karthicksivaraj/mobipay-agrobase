@@ -275,10 +275,10 @@ export class MfiEngine {
     if (!product) throw new Error(`MFI loan product ${data.loanProductId} not found or inactive`)
 
     // Validate amount within product limits
-    if (data.amount > product.maxAmount) {
+    if (Number(data.amount) > Number(product.maxAmount)) {
       throw new Error(`Amount ${data.amount} exceeds product maximum ${product.maxAmount}`)
     }
-    if (product.minAmount !== null && data.amount < product.minAmount) {
+    if (product.minAmount !== null && Number(data.amount) < Number(product.minAmount)) {
       throw new Error(`Amount ${data.amount} is below product minimum ${product.minAmount}`)
     }
 
@@ -445,8 +445,8 @@ export class MfiEngine {
 
     // Generate amortization schedule
     const scheduleRows = MfiEngine.generateAmortizationSchedule({
-      amount: disbursedAmount,
-      interestRate: loan.interestRate,
+      amount: Number(disbursedAmount),
+      interestRate: Number(loan.interestRate),
       durationMonths: loan.durationMonths,
       gracePeriodMonths: loan.gracePeriodMonths,
       interestRateType: loan.loanProduct.interestRateType,
@@ -477,6 +477,7 @@ export class MfiEngine {
       if (scheduleRows.length > 0) {
         await tx.mfiLoanSchedule.createMany({
           data: scheduleRows.map((row) => ({
+            tenantId: loan.tenantId,
             loanId,
             installmentNumber: row.installmentNumber,
             dueDate: row.dueDate,
@@ -741,9 +742,9 @@ export class MfiEngine {
       if (sched.status === 'PAID') continue
 
       // Calculate what's still owed
-      const interestOwed = round2(sched.interestDue - sched.interestPaid)
-      const penaltyOwed = round2(sched.penaltyDue - sched.penaltyPaid)
-      const principalOwed = round2(sched.principalDue - sched.principalPaid)
+      const interestOwed = round2(Number(sched.interestDue) - Number(sched.interestPaid))
+      const penaltyOwed = round2(Number(sched.penaltyDue) - Number(sched.penaltyPaid))
+      const principalOwed = round2(Number(sched.principalDue) - Number(sched.principalPaid))
 
       let interestPaid = 0
       let penaltyPaid = 0
@@ -792,11 +793,11 @@ export class MfiEngine {
       // Update each affected schedule item
       for (const alloc of paymentAllocations) {
         const sched = loan.schedule.find((s) => s.id === alloc.scheduleId)!
-        const newPrincipalPaid = round2(sched.principalPaid + alloc.principalPaid)
-        const newInterestPaid = round2(sched.interestPaid + alloc.interestPaid)
-        const newPenaltyPaid = round2(sched.penaltyPaid + alloc.penaltyPaid)
+        const newPrincipalPaid = round2(Number(sched.principalPaid) + alloc.principalPaid)
+        const newInterestPaid = round2(Number(sched.interestPaid) + alloc.interestPaid)
+        const newPenaltyPaid = round2(Number(sched.penaltyPaid) + alloc.penaltyPaid)
         const newTotalPaid = round2(newPrincipalPaid + newInterestPaid + newPenaltyPaid)
-        const totalDue = round2(sched.principalDue + sched.interestDue + sched.penaltyDue)
+        const totalDue = round2(Number(sched.principalDue) + Number(sched.interestDue) + Number(sched.penaltyDue))
         const isFullyPaid = newTotalPaid >= totalDue - 0.005
 
         await tx.mfiLoanSchedule.update({
@@ -818,9 +819,9 @@ export class MfiEngine {
         orderBy: { installmentNumber: 'asc' },
       })
 
-      const newTotalPaid = round2((loan.totalPaid ?? 0) + totalPaid)
-      const totalDisbursed = loan.approvedAmount ?? loan.amount
-      const newOutstandingBalance = round2(Math.max(0, totalDisbursed - totalPrincipal - (loan.totalPaid ?? 0) + totalInterest + (loan.totalPenalty ?? 0)))
+      const newTotalPaid = round2(Number(loan.totalPaid ?? 0) + totalPaid)
+      const totalDisbursed = Number(loan.approvedAmount ?? loan.amount)
+      const newOutstandingBalance = round2(Math.max(0, totalDisbursed - totalPrincipal - Number(loan.totalPaid ?? 0) + totalInterest + Number(loan.totalPenalty ?? 0)))
       // More accurate: outstanding = sum of remaining (principal + interest + penalty) across all unpaid schedules
       let calcOutstanding = 0
       let allPaid = true
@@ -830,9 +831,9 @@ export class MfiEngine {
       for (const sched of allSchedules) {
         if (sched.status !== 'PAID') {
           allPaid = false
-          const remainingPrincipal = round2(sched.principalDue - sched.principalPaid)
-          const remainingInterest = round2(sched.interestDue - sched.interestPaid)
-          const remainingPenalty = round2(sched.penaltyDue - sched.penaltyPaid)
+          const remainingPrincipal = round2(Number(sched.principalDue) - Number(sched.principalPaid))
+          const remainingInterest = round2(Number(sched.interestDue) - Number(sched.interestPaid))
+          const remainingPenalty = round2(Number(sched.penaltyDue) - Number(sched.penaltyPaid))
           calcOutstanding = round2(calcOutstanding + remainingPrincipal + remainingInterest + remainingPenalty)
 
           // Check if overdue (past due date and not paid)
@@ -868,7 +869,7 @@ export class MfiEngine {
         where: { id: data.loanId },
         data: {
           totalPaid: newTotalPaid,
-          totalPenalty: round2((loan.totalPenalty ?? 0) + totalPenalty),
+          totalPenalty: round2(Number(loan.totalPenalty ?? 0) + totalPenalty),
           outstandingBalance: calcOutstanding,
           status: newStatus,
           nextPaymentDate,
@@ -1026,10 +1027,10 @@ export class MfiEngine {
     let expectedRepayments = 0
 
     for (const loan of disbursedLoans) {
-      const disbursed = loan.approvedAmount ?? loan.amount
+      const disbursed = Number(loan.approvedAmount ?? loan.amount)
       totalDisbursed = round2(totalDisbursed + disbursed)
-      totalRepaid = round2(totalRepaid + (loan.totalPaid ?? 0))
-      totalInterestRate += loan.interestRate
+      totalRepaid = round2(totalRepaid + Number(loan.totalPaid ?? 0))
+      totalInterestRate += Number(loan.interestRate)
 
       if (loan.status === 'DISBURSED' || loan.status === 'OVERDUE') {
         activeLoans++
@@ -1041,9 +1042,9 @@ export class MfiEngine {
 
       for (const sched of loan.schedule) {
         if (sched.status !== 'PAID') {
-          const remPrincipal = round2(sched.principalDue - sched.principalPaid)
-          const remInterest = round2(sched.interestDue - sched.interestPaid)
-          const remPenalty = round2(sched.penaltyDue - sched.penaltyPaid)
+          const remPrincipal = round2(Number(sched.principalDue) - Number(sched.principalPaid))
+          const remInterest = round2(Number(sched.interestDue) - Number(sched.interestPaid))
+          const remPenalty = round2(Number(sched.penaltyDue) - Number(sched.penaltyPaid))
           const schedOutstanding = round2(remPrincipal + remInterest + remPenalty)
           loanOutstanding = round2(loanOutstanding + schedOutstanding)
 
@@ -1182,7 +1183,7 @@ export class MfiEngine {
     })
     if (!partner) throw new Error(`MFI partner ${partnerId} not found`)
 
-    const newExposure = round2(partner.currentExposure + delta)
+    const newExposure = round2(Number(partner.currentExposure) + delta)
     if (newExposure < 0) {
       throw new Error(
         `Cannot reduce exposure below zero. Current: ${partner.currentExposure}, Delta: ${delta}`,
@@ -1190,7 +1191,7 @@ export class MfiEngine {
     }
 
     // Check against max exposure
-    if (partner.maxExposure !== null && newExposure > partner.maxExposure) {
+    if (partner.maxExposure !== null && newExposure > Number(partner.maxExposure)) {
       throw new Error(
         `Exposure ${newExposure} would exceed maximum ${partner.maxExposure}`,
       )

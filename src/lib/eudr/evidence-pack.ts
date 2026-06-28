@@ -166,11 +166,10 @@ export class EvidencePackEngine {
       where: { id: plotId, tenantId },
       include: {
         farmer: { select: { id: true, firstName: true, lastName: true, tenant: { select: { country: true, name: true } } } },
-        farmLand: { select: { id: true, name: true, polygonPoints: { orderBy: { pointOrder: 'asc' }, take: 500 } } },
         seasons: { orderBy: { createdAt: 'desc' }, take: 10 },
         verifications: { orderBy: { verifiedAt: 'desc' }, take: 20 },
         documents: { orderBy: { createdAt: 'desc' }, take: 20 },
-        productBatches: {
+        batches: {
           include: { events: { orderBy: { timestamp: 'asc' }, take: 50 } },
           orderBy: { createdAt: 'desc' },
           take: 20,
