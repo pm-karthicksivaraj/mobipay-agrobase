@@ -21,6 +21,15 @@ import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import dynamic from 'next/dynamic'
+
+// Leaflet map — dynamically imported to avoid SSR issues
+const PlotMap = dynamic(() => import('@/components/plots/PlotMap'), { ssr: false, loading: () => (
+  <div className="bg-muted/30 rounded-lg border flex items-center justify-center" style={{ height: 500 }}>
+    <div className="flex flex-col items-center gap-2"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /><span className="text-sm text-muted-foreground">Loading map...</span></div>
+  </div>
+) })
+const EudrEvidencePanel = dynamic(() => import('@/components/plots/EudrEvidencePanel'), { ssr: false })
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -187,6 +196,7 @@ export function PlotsView() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="list">All Plots</TabsTrigger>
           <TabsTrigger value="map">Map View</TabsTrigger>
+          <TabsTrigger value="eudr">EUDR Evidence</TabsTrigger>
           <TabsTrigger value="verify">Verification</TabsTrigger>
         </TabsList>
 
@@ -454,37 +464,36 @@ export function PlotsView() {
 
         {/* ═══════ MAP TAB ═══════ */}
         <TabsContent value="map" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="w-5 h-5" /> Plot Map
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-muted/30 rounded-lg border border-dashed p-12 text-center">
-                <Globe className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-                <p className="text-lg font-medium text-muted-foreground">Interactive Map</p>
-                <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                  GPS-verified plot boundaries render here via Leaflet/Mapbox. 
-                  Use <code className="text-xs bg-muted px-1.5 py-0.5 rounded">/api/plots/geojson</code> to load plot polygons.
-                  Plots are color-coded by verification status and EUDR risk level.
-                </p>
-                <div className="flex flex-wrap justify-center gap-3 mt-4">
-                  {VERIFY_STEPS.map(step => (
-                    <div key={step.key} className="flex items-center gap-1.5 text-xs">
-                      <div className={cn('w-3 h-3 rounded-full',
-                        step.key === 'VERIFIED' ? 'bg-emerald-500' :
-                        step.key === 'FIELD_AUDITED' ? 'bg-amber-500' :
-                        step.key === 'SATELLITE_VERIFIED' ? 'bg-purple-500' :
-                        step.key === 'GPS_VERIFIED' ? 'bg-blue-500' : 'bg-gray-400'
-                      )} />
-                      {step.label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <PlotMap
+            onSelectPlot={(plotId) => fetchPlotDetail(plotId)}
+            height="calc(100vh - 220px)"
+          />
+        </TabsContent>
+
+        {/* ═══════ EUDR EVIDENCE TAB ═══════ */}
+        <TabsContent value="eudr" className="space-y-4">
+          {selectedPlot ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-blue-500" />
+                  {selectedPlot.plotCode} — EUDR Evidence Pack
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <EudrEvidencePanel plotId={selectedPlot.id} plotCode={selectedPlot.plotCode} />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="py-16 text-center">
+                <Shield className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
+                <p className="text-lg font-medium text-muted-foreground">Select a Plot</p>
+                <p className="text-sm text-muted-foreground mt-1">Click a plot from the list or map to view its EUDR evidence pack, risk assessment, and compliance status.</p>
+                <Button variant="outline" className="mt-4" onClick={() => setActiveTab('list')}>View All Plots</Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* ═══════ VERIFY TAB ═══════ */}

@@ -1,32 +1,68 @@
 ---
-Task ID: 1
+Task ID: 2
 Agent: Main
-Task: Fix schema.prisma merge conflicts and implement Plot-Level Traceability
+Task: Priority 1 — EUDR DDS Integration for Plot-Level Evidence Packs + Real Leaflet Map
 
 Work Log:
-- Resolved 6 git merge conflicts in prisma/schema.prisma using Python resolver script
-- Fixed corrupted TripTrackingEvent model (had TransportCharge fields)
-- Restored missing TransportCharge model with full fields
-- Validated schema (npx prisma validate)
-- Pushed schema to SQLite DB, generated Prisma client
-- Created 4 new Plot models: Plot, PlotSeason, PlotVerification, PlotDocument
-- Added plotId FK to ProductBatch and TraceEvent for plot-level traceability chain
-- Added Tenant relations (TenantPlots) and FarmerProfile relations (FarmerPlots) and FarmLand relations (PlotFarmLand)
-- Created src/lib/plots/types.ts with comprehensive type definitions
-- Created src/lib/plots/engine.ts with PlotEngine static class (CRUD, verification, seasons, documents, traceability chain, stats, GeoJSON)
-- Created 8 API routes: /api/plots, /[id], /[id]/verify, /[id]/seasons, /[id]/traceability, /[id]/documents, /stats, /geojson
-- Registered 'plots' module in store.ts, Sidebar.tsx, and page.tsx
-- Created PlotsView.tsx with 4 tabs: Overview (KPIs, verification pipeline, charts), All Plots (table with filters), Map View (placeholder), Verification (quick verify actions)
-- Added Plot seed data (6 plots, 6 seasons, 6 verifications, 3 documents)
-- Fixed missing bulk/schemas.ts file
-- Fixed SQLite incompatible `mode: 'insensitive' in carbon/calculator.ts
-- Fixed all missing tenantId in seed.ts across 12+ models
-- Final build: SUCCESS (180+ routes, zero errors)
+- Installed leaflet, react-leaflet, @types/leaflet packages
+- Created src/lib/eudr/evidence-pack.ts (796 lines) — EvidencePackEngine with:
+  - generateForPlot(): assembles 6-category evidence pack (Geolocation, Deforestation, Risk Assessment, Legal Documents, Traceability, Verification Audit)
+  - submitFromPlot(): bridges Plot → EUDR Engine for due diligence submission
+  - buildGeolocationEvidence(): extracts boundary, area, GPS accuracy from Plot + FarmLand
+  - buildDeforestationEvidence(): runs real Satellite NDVI analysis vs EUDR Dec 2020 baseline
+  - buildRiskAssessment(): runs 5-factor EUDR risk scoring (forest proximity, historical deforestation, country risk, plot size, documentation)
+  - Completeness scoring (0-100) with weighted categories
+  - Status determination (COMPLETE/PARTIAL/INCOMPLETE/NON_COMPLIANT)
+  - Actionable recommendations engine
+- Created src/app/api/plots/[id]/eudr-evidence/route.ts — GET (generate pack) + POST (submit to EUDR)
+- Created src/components/plots/PlotMap.tsx (357 lines) — Full Leaflet map component:
+  - OpenStreetMap tiles (free, no API key)
+  - GeoJSON polygon rendering from /api/plots/geojson
+  - Color modes: Verification Status + EUDR Risk Level
+  - Interactive popups with plot details, risk badges, area
+  - Hover highlighting, click-to-select
+  - Auto-fit bounds to all plots
+  - Legend overlay, plot count badge
+  - PlotMiniMap sub-component for detail panel
+- Created src/components/plots/EudrEvidencePanel.tsx (409 lines):
+  - Completeness score with progress bar
+  - 5 expandable evidence category accordions
+  - Risk factor breakdown bars (5 factors with scores and details)
+  - NDVI comparison cards (current vs baseline)
+  - Verification audit trail
+  - Recommendations list
+  - Submit to EUDR button + Export JSON download
+- Updated PlotsView.tsx:
+  - Replaced map placeholder with real PlotMap component (dynamic import, SSR-safe)
+  - Added 'EUDR Evidence' tab with evidence panel
+  - Plot selection from map click navigates to detail
 
 Stage Summary:
-- Plot-Level Traceability feature fully implemented
-- Schema: 144 models (added 4 Plot models + updated 2 existing)
-- API: 8 new routes for plot management
-- UI: PlotsView with overview dashboard, plot list, map placeholder, verification actions
-- Seed data: 6 plots across Uganda with full verification/compliance data
-- Build: Clean, zero errors
+- EUDR Evidence Pack engine fully bridges Plot ↔ EUDR Engine ↔ Satellite Orchestrator ↔ Risk Scoring
+- Real interactive Leaflet map replaces placeholder (OpenStreetMap, color-coded polygons)
+- EUDR Evidence tab shows comprehensive compliance data with actionable recommendations
+- Zero TypeScript errors, zero new lint errors
+
+---
+Task ID: 3
+Agent: Main
+Task: Priority 2 — Flutter Mobile Plot Screens + Mobile API Endpoints
+
+Work Log:
+- Created docs/mobile/plot-screens-spec.md (1,832 lines) — Comprehensive Flutter spec:
+  - 6 screen specifications (PlotList, PlotMap, PlotDetail, GpsCollection, Verification, EudrEvidence)
+  - Widget trees, data flow tables, Riverpod providers
+  - Navigation & routing with GoRouter
+  - Offline-first strategy with Hive
+  - API response examples for all endpoints
+  - Tech stack recommendations (flutter_map, geolocator, dio, riverpod)
+- Created 4 mobile-optimized API endpoints:
+  - GET/POST /api/mobile/plots — Lightweight list (shortened field names) + GPS creation with validation
+  - GET /api/mobile/plots/[id] — Full detail with sync metadata
+  - POST /api/mobile/plots/[id]/verify — Field verification with evidence
+  - GET/POST /api/mobile/plots/[id]/eudr-evidence — Evidence pack + EUDR submission
+
+Stage Summary:
+- Complete Flutter screens spec ready for mobile team handoff
+- Mobile API layer with lightweight payloads and sync metadata
+- All new endpoints TypeScript-verified (0 errors)
