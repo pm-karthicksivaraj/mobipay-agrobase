@@ -146,6 +146,7 @@ async function main() {
   for (let i = 0; i < 20; i++) {
     await db.marketProduct.create({
       data: {
+        tenantId: ugTenant.id,
         sellerId: farmers[i % 50].id,
         sellerName: `${farmers[i % 50].firstName} ${farmers[i % 50].lastName}`,
         commodity: commodities[i % commodities.length],
@@ -159,12 +160,12 @@ async function main() {
 
   // --- INPUT DEALERS ---
   const dealers = await Promise.all([
-    db.inputDealer.create({ data: { name: 'Uganda Seed Co.', phone: '+256700100001', location: 'Kampala' } }),
-    db.inputDealer.create({ data: { name: 'Green Agro Inputs', phone: '+256700100002', location: 'Gulu' } }),
-    db.inputDealer.create({ data: { name: 'Farmers Choice Ltd', phone: '+256700100003', location: 'Jinja' } }),
-    db.inputDealer.create({ data: { name: 'Agro Supply Center', phone: '+256700100004', location: 'Mbale' } }),
-    db.inputDealer.create({ data: { name: 'Coffee Inputs Uganda', phone: '+256700100005', location: 'Kibale' } }),
-    db.inputDealer.create({ data: { name: 'Tropical Fertilizers', phone: '+256700100006', location: 'Kampala' } }),
+    db.inputDealer.create({ data: { tenantId: ugTenant.id, name: 'Uganda Seed Co.', phone: '+256700100001', location: 'Kampala' } }),
+    db.inputDealer.create({ data: { tenantId: ugTenant.id, name: 'Green Agro Inputs', phone: '+256700100002', location: 'Gulu' } }),
+    db.inputDealer.create({ data: { tenantId: ugTenant.id, name: 'Farmers Choice Ltd', phone: '+256700100003', location: 'Jinja' } }),
+    db.inputDealer.create({ data: { tenantId: ugTenant.id, name: 'Agro Supply Center', phone: '+256700100004', location: 'Mbale' } }),
+    db.inputDealer.create({ data: { tenantId: ugTenant.id, name: 'Coffee Inputs Uganda', phone: '+256700100005', location: 'Kibale' } }),
+    db.inputDealer.create({ data: { tenantId: ugTenant.id, name: 'Tropical Fertilizers', phone: '+256700100006', location: 'Kampala' } }),
   ])
 
   const inputProducts = [
@@ -183,7 +184,7 @@ async function main() {
   ]
   for (let i = 0; i < inputProducts.length; i++) {
     await db.inputProduct.create({
-      data: { dealerId: dealers[i % dealers.length].id, name: inputProducts[i].name, category: inputProducts[i].category, unit: inputProducts[i].unit, unitPrice: inputProducts[i].price, isActive: true }
+      data: { tenantId: ugTenant.id, dealerId: dealers[i % dealers.length].id, name: inputProducts[i].name, category: inputProducts[i].category, unit: inputProducts[i].unit, unitPrice: inputProducts[i].price, isActive: true }
     })
   }
 
@@ -242,6 +243,7 @@ async function main() {
   for (let i = 0; i < 8; i++) {
     await db.consignment.create({
       data: {
+        tenantId: ugTenant.id,
         product: produceItems[i % produceItems.length],
         quantity: `${100 + Math.floor(Math.random() * 900)} Kg`,
         source: ['Kibale', 'Mbale', 'Gulu', 'Jinja'][i % 4],
@@ -256,6 +258,7 @@ async function main() {
   for (let i = 0; i < 10; i++) {
     await db.delivery.create({
       data: {
+        tenantId: ugTenant.id,
         relatedType: ['PURCHASE', 'CONSIGNMENT', 'INPUT_REQUEST'][i % 3],
         status: ['PENDING', 'IN_TRANSIT', 'DELIVERED'][i % 3],
         driverName: `Driver ${i + 1}`,
@@ -271,6 +274,7 @@ async function main() {
   for (let i = 0; i < 8; i++) {
     await db.training.create({
       data: {
+        tenantId: ugTenant.id,
         topic: trainingTopics[i % 5],
         description: `Training on ${trainingTopics[i % 5].toLowerCase()} for farmer groups`,
         date: new Date(Date.now() - (i * 7 * 86400000)),
@@ -319,6 +323,7 @@ async function main() {
   // --- SURVEYS ---
   const survey = await db.survey.create({
     data: {
+      tenantId: ugTenant.id,
       title: 'Farmer Impact Assessment 2026',
       description: 'Annual survey to measure Agrobase impact on farmer livelihoods',
       status: 'ACTIVE',
@@ -397,6 +402,7 @@ async function main() {
   for (let i = 0; i < 8; i++) {
     await db.rainforestCertification.create({
       data: {
+        tenantId: ugTenant.id,
         farmerId: farmers[i].id,
         certificateNo: `RA-${2024 + (i % 3)}-${String(1000 + i)}`,
         certificationLevel: ['RA Standard', 'RA Climate', 'RA/UTZ'][i % 3],
@@ -418,6 +424,7 @@ async function main() {
   for (let i = 0; i < 6; i++) {
     await db.globalGapCertification.create({
       data: {
+        tenantId: ugTenant.id,
         farmerId: farmers[i + 5].id,
         ggnNumber: `GGN-40-${String(500000 + i)}`,
         scope: 'Crops',
@@ -438,6 +445,7 @@ async function main() {
   for (let i = 0; i < 5; i++) {
     await db.cbamReport.create({
       data: {
+        tenantId: ugTenant.id,
         farmerId: farmers[i].id,
         reportingPeriod: `2026-Q${(i % 4) + 1}`,
         commodity: 'Coffee',
@@ -455,6 +463,7 @@ async function main() {
   for (let i = 0; i < 10; i++) {
     await db.feedback.create({
       data: {
+        tenantId: ugTenant.id,
         farmerId: farmers[i % 50].id,
         category: ['App Usage', 'Training', 'Payments', 'Marketplace', 'General'][i % 5],
         message: `Farmer feedback item ${i + 1}: Need better market price information and faster payment processing.`,
@@ -468,43 +477,100 @@ async function main() {
   // --- FILE ATTACHMENTS ---
   await db.fileAttachment.createMany({
     data: [
-      { relatedType: 'PAYMENT', fileName: 'attendance_form_march.pdf', fileType: 'application/pdf', fileSize: 245000, description: 'Attendance form for March transport refund' },
-      { relatedType: 'CONSENT_FORM', fileName: 'phone_change_consent.png', fileType: 'image/png', fileSize: 180000, description: 'Consent form for phone number change' },
-      { relatedType: 'TRAINING', fileName: 'training_materials.pdf', fileType: 'application/pdf', fileSize: 1250000, description: 'Training materials for soil management' },
+      { tenantId: ugTenant.id, relatedType: 'PAYMENT', fileName: 'attendance_form_march.pdf', fileType: 'application/pdf', fileSize: 245000, description: 'Attendance form for March transport refund' },
+      { tenantId: ugTenant.id, relatedType: 'CONSENT_FORM', fileName: 'phone_change_consent.png', fileType: 'image/png', fileSize: 180000, description: 'Consent form for phone number change' },
+      { tenantId: ugTenant.id, relatedType: 'TRAINING', fileName: 'training_materials.pdf', fileType: 'application/pdf', fileSize: 1250000, description: 'Training materials for soil management' },
     ]
   })
 
   // --- MESSAGES ---
   await db.message.createMany({
     data: [
-      { type: 'SMS', recipient: '+256700000020', content: 'Your loan of UGX 200,000 has been approved. Visit your VSLA group for disbursement.', status: 'DELIVERED', sentAt: new Date() },
-      { type: 'SMS', recipient: '+256700000021', content: 'Reminder: VSLA meeting tomorrow at 10:00 AM at Kibale Community Center.', status: 'DELIVERED', sentAt: new Date() },
-      { type: 'SMS', recipient: '+256700000022', content: 'Market price update: Coffee - UGX 8,500/kg, Maize - UGX 2,200/kg.', status: 'SENT', sentAt: new Date() },
+      { tenantId: ugTenant.id, type: 'SMS', recipient: '+256700000020', content: 'Your loan of UGX 200,000 has been approved. Visit your VSLA group for disbursement.', status: 'DELIVERED', sentAt: new Date() },
+      { tenantId: ugTenant.id, type: 'SMS', recipient: '+256700000021', content: 'Reminder: VSLA meeting tomorrow at 10:00 AM at Kibale Community Center.', status: 'DELIVERED', sentAt: new Date() },
+      { tenantId: ugTenant.id, type: 'SMS', recipient: '+256700000022', content: 'Market price update: Coffee - UGX 8,500/kg, Maize - UGX 2,200/kg.', status: 'SENT', sentAt: new Date() },
     ]
   })
 
   // --- CHANNEL SIMULATOR DATA ---
   await db.ussdSession.createMany({
     data: [
-      { sessionId: 'USSD-001', phoneNumber: '+256700000020', currentStep: 'MAIN_MENU', inputData: '{}', status: 'COMPLETED', completedAt: new Date() },
-      { sessionId: 'USSD-002', phoneNumber: '+256700000021', currentStep: 'BALANCE', inputData: '{}', status: 'ACTIVE' },
-      { sessionId: 'USSD-003', phoneNumber: '+256700000022', currentStep: 'MARKET', inputData: '{}', status: 'TIMEOUT' },
+      { tenantId: ugTenant.id, sessionId: 'USSD-001', phoneNumber: '+256700000020', currentStep: 'MAIN_MENU', inputData: '{}', status: 'COMPLETED', completedAt: new Date() },
+      { tenantId: ugTenant.id, sessionId: 'USSD-002', phoneNumber: '+256700000021', currentStep: 'BALANCE', inputData: '{}', status: 'ACTIVE' },
+      { tenantId: ugTenant.id, sessionId: 'USSD-003', phoneNumber: '+256700000022', currentStep: 'MARKET', inputData: '{}', status: 'TIMEOUT' },
     ]
   })
 
   await db.ivrCampaign.createMany({
     data: [
-      { name: 'Coffee Price Alert Q2', description: 'Weekly coffee price updates to all farmers', script: '{}', status: 'COMPLETED', totalCalls: 250, completedCalls: 230 },
-      { name: 'VSLA Training Reminder', description: 'Reminder calls for upcoming VSLA training sessions', script: '{}', status: 'SCHEDULED', totalCalls: 100, completedCalls: 0 },
+      { tenantId: ugTenant.id, name: 'Coffee Price Alert Q2', description: 'Weekly coffee price updates to all farmers', script: '{}', status: 'COMPLETED', totalCalls: 250, completedCalls: 230 },
+      { tenantId: ugTenant.id, name: 'VSLA Training Reminder', description: 'Reminder calls for upcoming VSLA training sessions', script: '{}', status: 'SCHEDULED', totalCalls: 100, completedCalls: 0 },
     ]
   })
 
   await db.smsBroadcast.createMany({
     data: [
-      { message: 'Agrobase V3 is here! New features include farm visits, impact assessment, and compliance tracking.', recipientCount: 500, status: 'SENT', sentAt: new Date() },
-      { message: 'Training on Post-Harvest Handling this Saturday at Kibale Center. All farmers welcome.', recipientCount: 120, status: 'DRAFT' },
+      { tenantId: ugTenant.id, message: 'Agrobase V3 is here! New features include farm visits, impact assessment, and compliance tracking.', recipientCount: 500, status: 'SENT', sentAt: new Date() },
+      { tenantId: ugTenant.id, message: 'Training on Post-Harvest Handling this Saturday at Kibale Center. All farmers welcome.', recipientCount: 120, status: 'DRAFT' },
     ]
   })
+
+  // ─── PLOT-LEVEL TRACEABILITY ──────────────────────────────────
+  const sampleBoundary = JSON.stringify({
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [[[0.3476, 0.5231], [0.3482, 0.5231], [0.3484, 0.5225], [0.3478, 0.5222], [0.3476, 0.5231]]]
+    },
+    properties: {}
+  })
+
+  const seededPlots = await db.plot.createMany({
+    data: [
+      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000001', farmerId: farmers[0]?.id, name: 'Mt. Elgon Block A', plotType: 'PRODUCTION', boundaryGeoJson: sampleBoundary, areaHectares: 2.5, centroidLat: 0.5228, centroidLng: 0.3479, soilType: 'VOLCANIC_LOAM', elevationM: 1800, slopePercent: 15, irrigationType: 'RAINFED', landOwnership: 'CUSTOMARY', verificationStatus: 'GPS_VERIFIED', eudrRiskLevel: 'LOW', deforestationFree: true, verificationScore: 92, verifiedBy: users[2]?.id, verifiedAt: new Date() },
+      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000002', farmerId: farmers[1]?.id, name: 'Bugisu Coffee Plot 3', plotType: 'PRODUCTION', boundaryGeoJson: sampleBoundary, areaHectares: 1.8, centroidLat: 1.0010, centroidLng: 34.2500, soilType: 'CLAY_LOAM', elevationM: 1600, irrigationType: 'RAINFED', landOwnership: 'OWNED', verificationStatus: 'SATELLITE_VERIFIED', eudrRiskLevel: 'LOW', deforestationFree: true, verificationScore: 88 },
+      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000003', farmerId: farmers[2]?.id, name: 'Kibale Mixed Farm', plotType: 'PRODUCTION', boundaryGeoJson: sampleBoundary, areaHectares: 3.2, centroidLat: 0.9500, centroidLng: 30.2500, soilType: 'SANDY_LOAM', elevationM: 1200, irrigationType: 'SPRINKLER', landOwnership: 'LEASED', verificationStatus: 'UNVERIFIED', eudrRiskLevel: 'UNKNOWN' },
+      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000004', farmerId: farmers[3]?.id, name: 'Gulu Maize Field', plotType: 'PRODUCTION', boundaryGeoJson: sampleBoundary, areaHectares: 5.0, centroidLat: 2.7740, centroidLng: 32.2990, soilType: 'LOAM', elevationM: 1050, irrigationType: 'RAINFED', landOwnership: 'CUSTOMARY', verificationStatus: 'VERIFIED', eudrRiskLevel: 'LOW', deforestationFree: true, verificationScore: 97, verifiedBy: users[2]?.id, verifiedAt: new Date() },
+      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000005', farmerId: farmers[4]?.id, name: 'Mbale Cocoa Block', plotType: 'PRODUCTION', boundaryGeoJson: sampleBoundary, areaHectares: 1.2, centroidLat: 1.0670, centroidLng: 34.1750, soilType: 'CLAY', elevationM: 1400, slopePercent: 25, irrigationType: 'DRIP', landOwnership: 'OWNED', verificationStatus: 'FIELD_AUDITED', eudrRiskLevel: 'MEDIUM', deforestationFree: true, verificationScore: 75 },
+      { tenantId: ekibbo.id, plotCode: 'PLT-UG-000006', farmerId: farmers[0]?.id, name: 'Ekibbo Demo Plot', plotType: 'DEMO', areaHectares: 0.5, verificationStatus: 'UNVERIFIED', eudrRiskLevel: 'UNKNOWN' },
+    ]
+  })
+
+  // Plot seasons
+  const plots = await db.plot.findMany({ where: { tenantId: ugTenant.id }, select: { id: true } })
+  if (plots.length >= 4) {
+    await db.plotSeason.createMany({
+      data: [
+        { plotId: plots[0].id, season: '2026A', cropType: 'ARABICA_COFFEE', variety: 'SL14', plantingDate: new Date('2026-03-01'), expectedHarvestDate: new Date('2026-10-01'), status: 'GROWING' },
+        { plotId: plots[1].id, season: '2025B', cropType: 'ROBUSTA_COFFEE', variety: 'KR3', plantingDate: new Date('2025-09-15'), expectedHarvestDate: new Date('2026-02-28'), status: 'HARVESTED', yieldKg: 1800, qualityGrade: 'GRADE_A' },
+        { plotId: plots[2].id, season: '2026A', cropType: 'MAIZE', variety: 'LONGE 6H', status: 'PLANNED' },
+        { plotId: plots[3].id, season: '2025B', cropType: 'MAIZE', variety: 'BAYOMBE', plantingDate: new Date('2025-08-01'), actualHarvestDate: new Date('2025-12-15'), yieldKg: 12000, qualityGrade: 'GRADE_B', status: 'COMPLETED', eudrCompliant: true },
+        { plotId: plots[3].id, season: '2026A', cropType: 'SOYBEAN', variety: 'MAKSOY 3N', plantingDate: new Date('2026-04-01'), status: 'GROWING' },
+        { plotId: plots[4].id, season: '2026A', cropType: 'COCOA', variety: 'AMAZONIAN', plantingDate: new Date('2025-11-01'), expectedHarvestDate: new Date('2026-11-01'), status: 'GROWING' },
+      ]
+    })
+
+    // Plot verifications
+    await db.plotVerification.createMany({
+      data: [
+        { plotId: plots[0].id, verificationType: 'GPS', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date(), boundaryMatchPercent: 92, accuracyMeters: 3.2, deforestCheckResult: 'CLEAR', notes: 'GPS boundary matches surveyed boundary within 3m tolerance' },
+        { plotId: plots[1].id, verificationType: 'SATELLITE', result: 'PASSED', verifiedBy: users[3]?.id, verifiedAt: new Date(), boundaryMatchPercent: 88, deforestCheckResult: 'CLEAR', notes: 'Sentinel-2 analysis: no land-use change detected since 2020' },
+        { plotId: plots[3].id, verificationType: 'GPS', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date('2025-06-10'), boundaryMatchPercent: 99, accuracyMeters: 1.1, deforestCheckResult: 'CLEAR' },
+        { plotId: plots[3].id, verificationType: 'SATELLITE', result: 'PASSED', verifiedBy: users[3]?.id, verifiedAt: new Date('2025-06-15'), deforestCheckResult: 'CLEAR', notes: 'Multi-date satellite analysis confirms no deforestation' },
+        { plotId: plots[3].id, verificationType: 'FIELD_AUDIT', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date('2025-07-01'), deforestCheckResult: 'CLEAR', notes: 'Physical verification confirms GPS and satellite data' },
+        { plotId: plots[4].id, verificationType: 'FIELD_AUDIT', result: 'PASSED', verifiedBy: users[2]?.id, verifiedAt: new Date(), boundaryMatchPercent: 75, deforestCheckResult: 'SUSPECTED', notes: 'Small vegetation change at plot edge — needs satellite follow-up' },
+      ]
+    })
+
+    // Plot documents
+    await db.plotDocument.createMany({
+      data: [
+        { plotId: plots[0].id, docType: 'LAND_TITLE', title: 'Customary Land Certificate', issuedBy: 'Mbale District Land Office', issuedAt: new Date('2020-01-15') },
+        { plotId: plots[3].id, docType: 'EUDR_CERTIFICATE', title: 'EUDR Due Diligence Certificate', issuedBy: 'Agrobase Compliance', issuedAt: new Date('2025-07-02'), isVerified: true },
+        { plotId: plots[3].id, docType: 'SATELLITE_IMAGE', title: 'Sentinel-2 Composite 2025', issuedAt: new Date('2025-06-15') },
+      ]
+    })
+  }
 
   console.log('✅ Seed completed successfully!')
   console.log(`   - ${tenants.length} tenants`)
@@ -512,6 +578,7 @@ async function main() {
   console.log(`   - ${farmers.length} farmers`)
   console.log(`   - ${groups.length} farmer groups`)
   console.log(`   - ${vslaGroups.length} VSLA groups`)
+  console.log(`   - ${seededPlots.count} plots seeded (plot-level traceability)`)
   console.log(`   - EUDR/CBAM/Rainforest/GlobalG.A.P. compliance records seeded`)
   console.log(`   - Farm visits & impact assessments seeded`)
   console.log(`   - Channel simulator data (USSD/IVR/SMS) seeded`)

@@ -44,6 +44,7 @@ const CohortsView = lazy(() => import('@/components/modules/CohortsView'))
 const ProgramsView = lazy(() => import('@/components/modules/ProgramsView'))
 const MfiPortalView = lazy(() => import('@/components/modules/MfiPortalView'))
 const TransportPortalView = lazy(() => import('@/components/modules/TransportPortalView'))
+const PlotsView = lazy(() => import('@/components/modules/PlotsView'))
 
 function ModuleLoader() {
   return (
@@ -105,6 +106,8 @@ function ModuleRouter() {
     // Finance
     case 'mfi': return <MfiPortalView />
     case 'transport': return <TransportPortalView />
+    // Plot-Level Traceability
+    case 'plots': return <PlotsView />
     default: return <DashboardView />
   }
 }

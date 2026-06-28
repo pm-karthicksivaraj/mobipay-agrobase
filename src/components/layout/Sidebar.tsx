@@ -9,7 +9,7 @@ import {
   Package, Truck, ClipboardCheck, Building2, UserCheck, Shield, Layers,
   Receipt, TrendingUp, Phone, Map, Radio, ShoppingCart,
   Sprout, PiggyBank, DollarSign, FileText, Leaf,
-  Stethoscope, Activity, Smartphone, TreePine, UsersRound, Landmark
+  Stethoscope, Activity, Smartphone, TreePine, UsersRound, Landmark, MapPin
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -42,6 +42,7 @@ const ALL_MODULES: NavItem[] = [
   { key: 'deliveries', label: 'Deliveries', icon: Truck, group: 'Supply Chain' },
   { key: 'consignments', label: 'Consignments', icon: Truck, group: 'Supply Chain' },
   { key: 'trace', label: 'Traceability', icon: Map, group: 'Supply Chain' },
+  { key: 'plots', label: 'Plot-Level Trace', icon: MapPin, group: 'Supply Chain' },
   // Intelligence
   { key: 'reports', label: 'Reports & Analytics', icon: BarChart3, group: 'Intelligence' },
   { key: 'agritrack', label: 'AgriTrack', icon: Target, group: 'Intelligence' },

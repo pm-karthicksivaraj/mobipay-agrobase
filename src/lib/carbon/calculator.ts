@@ -690,7 +690,7 @@ export class CarbonCalculator {
     // Look for active carbon credits in the system
     const credits = await db.cbamReport.findMany({
       where: {
-        commodity: { contains: commodity, mode: 'insensitive' },
+        commodity: { contains: commodity },
         status: 'VERIFIED',
         carbonCredits: { gt: 0 },
       },
