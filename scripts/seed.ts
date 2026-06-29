@@ -758,12 +758,58 @@ async function main() {
   // ─── EXTENDED SEED ───────────────────────────────────────────
   console.log('\n📦 Running extended seed (VSLA, Transport, Satellite, etc.)...')
   const { seedExtended } = await import('./seed-extended')
+  // Gather extra IDs needed by extended seed
+  const allPlots = await db.plot.findMany({ select: { id: true, plotCode: true } })
+  const allTrainings = await db.training.findMany({ select: { id: true } })
+  const allContracts = await db.contract.findMany({ select: { id: true } })
+  const allBatches = await db.productBatch.findMany({ select: { id: true, batchId: true } })
+  const allWarehouses = await db.warehouse.findMany({ select: { id: true } })
+  const allMarketProducts = await db.marketProduct.findMany({ select: { id: true } })
+  const allNotifications = await db.notification.findMany({ select: { id: true } })
+  const allTransportTrips = await db.transportTrip.findMany({ select: { id: true } })
+  const allVslaMeetings = await db.vslaMeeting.findMany({ select: { id: true } })
+  const allVslaLoans = await db.vslaLoan.findMany({ select: { id: true } })
+  const allMfiLoanSchedules = await db.mfiLoanSchedule.findMany({ select: { id: true, loanId: true, totalDue: true, totalPaid: true, status: true } })
+  const allMfiLoansList = await db.mfiLoan.findMany({ select: { id: true, status: true } })
+  const allEudrCompliances = await db.eudrCompliance.findMany({ select: { id: true, farmerId: true } })
+  const allReportTemplates = await db.reportTemplate.findMany({ select: { id: true } })
+  const allSettlements = await db.settlement.findMany({ select: { id: true } })
+
   await seedExtended({
     ugTenant: { id: ugTenant.id },
     ekibbo: { id: ekibbo.id },
     users: users.map(u => ({ id: u.id })),
     farmers: farmers.map(f => ({ id: f.id, firstName: f.firstName, lastName: f.lastName, phone: f.phone })),
     vslaGroups: vslaGroups.map(g => ({ id: g.id })),
+  })
+
+  console.log('\n📦 Running extended seed V2 (55 additional models)...')
+  const { seedExtendedV2 } = await import('./seed-extended-v2')
+  await seedExtendedV2({
+    ugTenant: { id: ugTenant.id },
+    ekibbo: { id: ekibbo.id },
+    mfiTenant: { id: mfiTenant.id },
+    users: users.map(u => ({ id: u.id, role: u.role })),
+    farmers: farmers.map(f => ({ id: f.id, firstName: f.firstName, lastName: f.lastName, phone: f.phone })),
+    vslaGroups: vslaGroups.map(g => ({ id: g.id })),
+    groups: groups.map(g => ({ id: g.id, name: g.name })),
+    plots: allPlots,
+    carbonProjects: carbonProjects.map(p => ({ id: p.id })),
+    trainings: allTrainings,
+    contracts: allContracts,
+    batches: allBatches,
+    warehouses: allWarehouses,
+    marketProducts: allMarketProducts,
+    notifications: allNotifications,
+    transportTrips: allTransportTrips,
+    vslaMeetings: allVslaMeetings,
+    vslaLoans: allVslaLoans,
+    mfiLoanSchedules: allMfiLoanSchedules,
+    mfiLoansList: allMfiLoansList,
+    eudrCompliances: allEudrCompliances,
+    reportTemplates: allReportTemplates,
+    settlements: allSettlements,
+    loans: loanProducts.map(l => ({ id: l.id })),
   })
 }
 
