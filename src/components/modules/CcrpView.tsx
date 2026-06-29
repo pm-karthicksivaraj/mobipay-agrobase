@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAppStore } from '@/lib/store'
 import {
   Leaf, CloudRain, Sun, Thermometer, TrendingUp, Users, Shield,
@@ -31,30 +31,35 @@ const PRACTICE_TYPES = [
 
 const REGIONS = ['Central', 'Eastern', 'Northern', 'Western', 'South-West'] as const
 
-const MOCK_ENROLLED = [
-  { id: '1', name: 'Okello John', region: 'Northern', district: 'Gulu', practices: 4, resilienceScore: 78, yieldStability: 'High', enrolledDate: '2024-01-15' },
-  { id: '2', name: 'Nakamya Grace', region: 'Central', district: 'Mukono', practices: 6, resilienceScore: 85, yieldStability: 'High', enrolledDate: '2024-02-10' },
-  { id: '3', name: 'Mugisha Peter', region: 'Western', district: 'Mbarara', practices: 3, resilienceScore: 62, yieldStability: 'Medium', enrolledDate: '2024-03-05' },
-  { id: '4', name: 'Achieng Sarah', region: 'Eastern', district: 'Jinja', practices: 5, resilienceScore: 71, yieldStability: 'Medium', enrolledDate: '2024-04-20' },
-  { id: '5', name: 'Tumusiime David', region: 'South-West', district: 'Kabale', practices: 7, resilienceScore: 92, yieldStability: 'High', enrolledDate: '2024-01-25' },
-  { id: '6', name: 'Apio Jennifer', region: 'Northern', district: 'Lira', practices: 2, resilienceScore: 45, yieldStability: 'Low', enrolledDate: '2024-05-12' },
-  { id: '7', name: 'Ssebaggala Robert', region: 'Central', district: 'Wakiso', practices: 5, resilienceScore: 76, yieldStability: 'Medium', enrolledDate: '2024-06-01' },
-  { id: '8', name: 'Chebet Agnes', region: 'Eastern', district: 'Mbale', practices: 4, resilienceScore: 68, yieldStability: 'Medium', enrolledDate: '2024-03-18' },
-]
-
-const MOCK_TREND = [
-  { month: 'Jan', droughtResistant: 12, irrigation: 8, agroforestry: 15, conservation: 10, diversification: 18 },
-  { month: 'Feb', droughtResistant: 15, irrigation: 12, agroforestry: 18, conservation: 14, diversification: 22 },
-  { month: 'Mar', droughtResistant: 20, irrigation: 18, agroforestry: 22, conservation: 18, diversification: 25 },
-  { month: 'Apr', droughtResistant: 25, irrigation: 22, agroforestry: 28, conservation: 22, diversification: 30 },
-  { month: 'May', droughtResistant: 30, irrigation: 28, agroforestry: 32, conservation: 28, diversification: 35 },
-  { month: 'Jun', droughtResistant: 35, irrigation: 32, agroforestry: 38, conservation: 34, diversification: 40 },
-]
-
 const STABILITY_COLORS: Record<string, string> = {
   High: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
   Medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
   Low: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+}
+
+const CHART_CONFIG: ChartConfig = {
+  droughtResistant: { label: 'Drought-Resistant', color: '#059669' },
+  irrigation: { label: 'Irrigation', color: '#10b981' },
+  agroforestry: { label: 'Agroforestry', color: '#34d399' },
+  conservation: { label: 'Conservation', color: '#6ee7b7' },
+  diversification: { label: 'Diversification', color: '#f59e0b' },
+}
+
+interface CcrpFarmer {
+  id: string; name: string; region: string; district: string
+  practices: number; resilienceScore: number; yieldStability: 'High' | 'Medium' | 'Low'
+  enrolledDate: string
+}
+
+interface CcrpTrend {
+  month: string; droughtResistant: number; irrigation: number
+  agroforestry: number; conservation: number; diversification: number
+}
+
+interface CcrpImpact {
+  droughtImpact: { severity: string; affectedPct: number; label: string }
+  floodRisk: { severity: string; affectedPct: number; label: string }
+  yieldStability: { severity: string; score: number; label: string }
 }
 
 export default function CcrpView() {
@@ -65,20 +70,23 @@ export default function CcrpView() {
   const [filterRegion, setFilterRegion] = useState('all')
   const [filterPractice, setFilterPractice] = useState('all')
 
-  const [farmers, setFarmers] = useState<any[]>([])
+  const [farmers, setFarmers] = useState<CcrpFarmer[]>([])
   const [stats, setStats] = useState({ totalEnrolled: 0, avgResilience: 0, practicesAdopted: 0, weatherEvents: 0 })
+  const [trend, setTrend] = useState<CcrpTrend[]>([])
+  const [impact, setImpact] = useState<CcrpImpact | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/ccrp/farmers')
-      if (res.ok) {
-        const data = await res.json()
-        setFarmers(data.farmers || [])
-      } else {
-        setFarmers(MOCK_ENROLLED)
-      }
-    } catch {
-      setFarmers(MOCK_ENROLLED)
+      const res = await fetch('/api/ccrp')
+      if (!res.ok) throw new Error('API error')
+      const data = await res.json()
+      setFarmers(data.farmers || [])
+      setStats(data.stats || { totalEnrolled: 0, avgResilience: 0, practicesAdopted: 0, weatherEvents: 0 })
+      setTrend(data.trend || [])
+      setImpact(data.impact || null)
+    } catch (err) {
+      console.error('CCRP fetch failed:', err)
+      toast.error('Failed to load CCRP data')
     } finally {
       setLoading(false)
     }
@@ -86,57 +94,65 @@ export default function CcrpView() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  useEffect(() => {
-    if (farmers.length > 0) {
-      const allPractices = farmers.reduce((s: number, f: any) => s + (f.practices || 0), 0)
-      const avgRes = Math.round(farmers.reduce((s: number, f: any) => s + (f.resilienceScore || 0), 0) / farmers.length)
-      setStats({
-        totalEnrolled: farmers.length,
-        avgResilience: avgRes,
-        practicesAdopted: allPractices,
-        weatherEvents: 3,
-      })
-    }
-  }, [farmers])
-
   const loadTab = (tab: string) => { setActiveTab(tab); setActiveSubTab(tab) }
 
-  const filteredFarmers = farmers.filter((f: any) => {
-    const matchSearch = f.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      f.district?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchRegion = filterRegion === 'all' || f.region === filterRegion
-    const matchPractice = filterPractice === 'all' || (f.practices || 0) >= Number(filterPractice)
-    return matchSearch && matchRegion && matchPractice
-  })
+  const filteredFarmers = useMemo(() =>
+    farmers.filter(f => {
+      const matchSearch = f.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        f.district?.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchRegion = filterRegion === 'all' || f.region === filterRegion
+      const matchPractice = filterPractice === 'all' || (f.practices || 0) >= Number(filterPractice)
+      return matchSearch && matchRegion && matchPractice
+    }),
+    [farmers, searchTerm, filterRegion, filterPractice],
+  )
 
-  // Practice adoption data
-  const practiceAdoptionData = PRACTICE_TYPES.map(p => ({
-    practice: p.length > 20 ? p.slice(0, 18) + '...' : p,
-    count: farmers.filter((f: any) => (f.practices || 0) >= Math.floor(Math.random() * 3) + 1).length,
-  }))
+  // Practice adoption: count how many farmers have >= each practice threshold, deterministic
+  const practiceAdoptionData = useMemo(() =>
+    PRACTICE_TYPES.map((p, idx) => {
+      const threshold = (idx % 3) + 1
+      const count = farmers.filter(f => (f.practices || 0) >= threshold).length
+      return { practice: p.length > 20 ? p.slice(0, 18) + '...' : p, count }
+    }),
+    [farmers],
+  )
 
-  // Resilience score distribution
-  const scoreDistribution = [
-    { range: '0-30', count: farmers.filter((f: any) => (f.resilienceScore || 0) <= 30).length },
-    { range: '31-50', count: farmers.filter((f: any) => (f.resilienceScore || 0) > 30 && (f.resilienceScore || 0) <= 50).length },
-    { range: '51-70', count: farmers.filter((f: any) => (f.resilienceScore || 0) > 50 && (f.resilienceScore || 0) <= 70).length },
-    { range: '71-85', count: farmers.filter((f: any) => (f.resilienceScore || 0) > 70 && (f.resilienceScore || 0) <= 85).length },
-    { range: '86-100', count: farmers.filter((f: any) => (f.resilienceScore || 0) > 85).length },
-  ]
+  // Resilience score distribution, deterministic
+  const scoreDistribution = useMemo(() => [
+    { range: '0-30', count: farmers.filter(f => f.resilienceScore <= 30).length },
+    { range: '31-50', count: farmers.filter(f => f.resilienceScore > 30 && f.resilienceScore <= 50).length },
+    { range: '51-70', count: farmers.filter(f => f.resilienceScore > 50 && f.resilienceScore <= 70).length },
+    { range: '71-85', count: farmers.filter(f => f.resilienceScore > 70 && f.resilienceScore <= 85).length },
+    { range: '86-100', count: farmers.filter(f => f.resilienceScore > 85).length },
+  ], [farmers])
 
-  // Region distribution
-  const regionData = REGIONS.map(r => ({
-    region: r,
-    count: farmers.filter((f: any) => f.region === r).length,
-    avgScore: Math.round(farmers.filter((f: any) => f.region === r).reduce((s: number, f: any) => s + (f.resilienceScore || 0), 0) / (farmers.filter((f: any) => f.region === r).length || 1)),
-  }))
+  // Region distribution, deterministic
+  const regionData = useMemo(() =>
+    REGIONS.map(r => {
+      const regionFarmers = farmers.filter(f => f.region === r)
+      const avgScore = regionFarmers.length > 0
+        ? Math.round(regionFarmers.reduce((s, f) => s + f.resilienceScore, 0) / regionFarmers.length)
+        : 0
+      return { region: r, count: regionFarmers.length, avgScore }
+    }),
+    [farmers],
+  )
 
-  const chartConfig: ChartConfig = {
-    droughtResistant: { label: 'Drought-Resistant', color: '#059669' },
-    irrigation: { label: 'Irrigation', color: '#10b981' },
-    agroforestry: { label: 'Agroforestry', color: '#34d399' },
-    conservation: { label: 'Conservation', color: '#6ee7b7' },
-    diversification: { label: 'Diversification', color: '#f59e0b' },
+  // Adaptation metrics — sum of practice counts, deterministic
+  const adaptationMetrics = useMemo(() =>
+    PRACTICE_TYPES.slice(0, 5).map((p, idx) => {
+      const threshold = idx + 1
+      const count = farmers.filter(f => (f.practices || 0) >= threshold).length
+      return { name: p, count, color: COLORS[idx] }
+    }),
+    [farmers],
+  )
+
+  // Impact severity color mapping
+  const severityColor = (severity: string) => {
+    if (severity === 'High' || severity === 'Declining') return 'text-red-600'
+    if (severity === 'Moderate') return 'text-amber-600'
+    return 'text-emerald-600'
   }
 
   if (loading) {
@@ -183,7 +199,7 @@ export default function CcrpView() {
             <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center">
               <CloudRain className="w-5 h-5 text-amber-600" />
             </div>
-            <div><p className="text-xs text-muted-foreground">Weather Events</p><p className="text-xl font-bold">{stats.weatherEvents}</p></div>
+            <div><p className="text-xs text-muted-foreground">Alert Events</p><p className="text-xl font-bold">{stats.weatherEvents}</p></div>
           </CardContent>
         </Card>
       </div>
@@ -207,8 +223,8 @@ export default function CcrpView() {
                 <CardDescription>Number of farmers adopting each practice type over time</CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                  <LineChart data={MOCK_TREND}>
+                <ChartContainer config={CHART_CONFIG} className="h-[300px] w-full">
+                  <LineChart data={trend.length > 0 ? trend : [{ month: 'No data' }]}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                     <YAxis />
@@ -269,7 +285,7 @@ export default function CcrpView() {
             </Card>
           </div>
 
-          {/* Climate Impact Metrics */}
+          {/* Climate Impact Metrics — from API */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -281,26 +297,32 @@ export default function CcrpView() {
                 <div className="space-y-2 p-4 rounded-lg bg-muted/30 border">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Drought Impact</span>
-                    <span className="font-bold text-amber-600">Moderate</span>
+                    <span className={`font-bold ${severityColor(impact?.droughtImpact?.severity || 'Low')}`}>
+                      {impact?.droughtImpact?.severity || 'Low'}
+                    </span>
                   </div>
-                  <Progress value={55} className="h-2" />
-                  <p className="text-xs text-muted-foreground">55% of farms affected in last season</p>
+                  <Progress value={impact?.droughtImpact?.affectedPct || 0} className="h-2" />
+                  <p className="text-xs text-muted-foreground">{impact?.droughtImpact?.label || 'No data'}</p>
                 </div>
                 <div className="space-y-2 p-4 rounded-lg bg-muted/30 border">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Flood Risk</span>
-                    <span className="font-bold text-red-600">High</span>
+                    <span className={`font-bold ${severityColor(impact?.floodRisk?.severity || 'Low')}`}>
+                      {impact?.floodRisk?.severity || 'Low'}
+                    </span>
                   </div>
-                  <Progress value={72} className="h-2" />
-                  <p className="text-xs text-muted-foreground">72% of low-lying areas at risk</p>
+                  <Progress value={impact?.floodRisk?.affectedPct || 0} className="h-2" />
+                  <p className="text-xs text-muted-foreground">{impact?.floodRisk?.label || 'No data'}</p>
                 </div>
                 <div className="space-y-2 p-4 rounded-lg bg-muted/30 border">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Yield Stability</span>
-                    <span className="font-bold text-emerald-600">Improving</span>
+                    <span className={`font-bold ${severityColor(impact?.yieldStability?.severity || 'Moderate')}`}>
+                      {impact?.yieldStability?.severity || 'Moderate'}
+                    </span>
                   </div>
-                  <Progress value={78} className="h-2" />
-                  <p className="text-xs text-muted-foreground">78% stability score across enrolled farmers</p>
+                  <Progress value={impact?.yieldStability?.score || 0} className="h-2" />
+                  <p className="text-xs text-muted-foreground">{impact?.yieldStability?.label || 'No data'}</p>
                 </div>
               </div>
             </CardContent>
@@ -354,7 +376,7 @@ export default function CcrpView() {
                           No farmers found
                         </TableCell>
                       </TableRow>
-                    ) : filteredFarmers.map((f: any) => (
+                    ) : filteredFarmers.map((f) => (
                       <TableRow key={f.id}>
                         <TableCell className="font-medium">{f.name}</TableCell>
                         <TableCell>
@@ -445,19 +467,16 @@ export default function CcrpView() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                  {PRACTICE_TYPES.slice(0, 5).map((p, idx) => {
-                    const count = Math.floor(Math.random() * 30) + 10
-                    return (
-                      <div key={p} className="p-4 rounded-lg bg-muted/30 border text-center space-y-2">
-                        <div className="w-10 h-10 rounded-full mx-auto flex items-center justify-center" style={{ backgroundColor: `${COLORS[idx]}20` }}>
-                          <Sprout className="w-5 h-5" style={{ color: COLORS[idx] }} />
-                        </div>
-                        <p className="text-xs font-medium leading-tight">{p}</p>
-                        <p className="text-lg font-bold" style={{ color: COLORS[idx] }}>{count}</p>
-                        <p className="text-xs text-muted-foreground">farmers</p>
+                  {adaptationMetrics.map(m => (
+                    <div key={m.name} className="p-4 rounded-lg bg-muted/30 border text-center space-y-2">
+                      <div className="w-10 h-10 rounded-full mx-auto flex items-center justify-center" style={{ backgroundColor: `${m.color}20` }}>
+                        <Sprout className="w-5 h-5" style={{ color: m.color }} />
                       </div>
-                    )
-                  })}
+                      <p className="text-xs font-medium leading-tight">{m.name}</p>
+                      <p className="text-lg font-bold" style={{ color: m.color }}>{m.count}</p>
+                      <p className="text-xs text-muted-foreground">farmers</p>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

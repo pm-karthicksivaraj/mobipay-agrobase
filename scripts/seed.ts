@@ -516,22 +516,49 @@ async function main() {
   })
 
   // ─── PLOT-LEVEL TRACEABILITY ──────────────────────────────────
-  const sampleBoundary = JSON.stringify({
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [[[0.3476, 0.5231], [0.3482, 0.5231], [0.3484, 0.5225], [0.3478, 0.5222], [0.3476, 0.5231]]]
-    },
-    properties: {}
-  })
+  // Deterministic, geographically-correct polygons per plot (no Math.random)
+  function plotGeoJson(coords: number[][]): string {
+    const ring = [...coords, coords[0]] // close the ring
+    return JSON.stringify({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] }, properties: {} })
+  }
+
+  const plotBoundaries: Record<string, string> = {
+    // Mt. Elgon — 7-vertex irregular polygon, ~2.5 ha
+    'PLT-UG-000001': plotGeoJson([
+      [32.2853, 1.3783], [32.2920, 1.3760], [32.2965, 1.3710],
+      [32.2940, 1.3690], [32.2880, 1.3685], [32.2830, 1.3720], [32.2840, 1.3765],
+    ]),
+    // Bugisu — 6-vertex polygon along ridge, ~1.8 ha
+    'PLT-UG-000002': plotGeoJson([
+      [34.2450, 1.0050], [34.2520, 1.0030], [34.2555, 0.9985],
+      [34.2510, 0.9960], [34.2460, 0.9975], [34.2435, 1.0020],
+    ]),
+    // Kibale — 8-vertex larger block near forest edge, ~3.2 ha
+    'PLT-UG-000003': plotGeoJson([
+      [30.2430, 0.9560], [30.2490, 0.9540], [30.2550, 0.9480],
+      [30.2580, 0.9440], [30.2550, 0.9420], [30.2490, 0.9430],
+      [30.2440, 0.9470], [30.2410, 0.9520],
+    ]),
+    // Gulu — 10-vertex large rectangular maize field, ~5.0 ha
+    'PLT-UG-000004': plotGeoJson([
+      [32.2900, 2.7790], [32.2950, 2.7800], [32.3010, 2.7785],
+      [32.3050, 2.7760], [32.3070, 2.7730], [32.3060, 2.7700],
+      [32.3020, 2.7685], [32.2960, 2.7690], [32.2920, 2.7710], [32.2890, 2.7745],
+    ]),
+    // Mbale — 5-vertex small cocoa plot on hillside, ~1.2 ha
+    'PLT-UG-000005': plotGeoJson([
+      [34.1715, 1.0695], [34.1760, 1.0685], [34.1780, 1.0655],
+      [34.1745, 1.0640], [34.1705, 1.0660],
+    ]),
+  }
 
   const seededPlots = await db.plot.createMany({
     data: [
-      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000001', farmerId: farmers[0]?.id, name: 'Mt. Elgon Block A', plotType: 'PRODUCTION', boundaryGeoJson: sampleBoundary, areaHectares: 2.5, centroidLat: 0.5228, centroidLng: 0.3479, soilType: 'VOLCANIC_LOAM', elevationM: 1800, slopePercent: 15, irrigationType: 'RAINFED', landOwnership: 'CUSTOMARY', verificationStatus: 'GPS_VERIFIED', eudrRiskLevel: 'LOW', deforestationFree: true, verificationScore: 92, verifiedBy: users[2]?.id, verifiedAt: new Date() },
-      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000002', farmerId: farmers[1]?.id, name: 'Bugisu Coffee Plot 3', plotType: 'PRODUCTION', boundaryGeoJson: sampleBoundary, areaHectares: 1.8, centroidLat: 1.0010, centroidLng: 34.2500, soilType: 'CLAY_LOAM', elevationM: 1600, irrigationType: 'RAINFED', landOwnership: 'OWNED', verificationStatus: 'SATELLITE_VERIFIED', eudrRiskLevel: 'LOW', deforestationFree: true, verificationScore: 88 },
-      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000003', farmerId: farmers[2]?.id, name: 'Kibale Mixed Farm', plotType: 'PRODUCTION', boundaryGeoJson: sampleBoundary, areaHectares: 3.2, centroidLat: 0.9500, centroidLng: 30.2500, soilType: 'SANDY_LOAM', elevationM: 1200, irrigationType: 'SPRINKLER', landOwnership: 'LEASED', verificationStatus: 'UNVERIFIED', eudrRiskLevel: 'UNKNOWN' },
-      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000004', farmerId: farmers[3]?.id, name: 'Gulu Maize Field', plotType: 'PRODUCTION', boundaryGeoJson: sampleBoundary, areaHectares: 5.0, centroidLat: 2.7740, centroidLng: 32.2990, soilType: 'LOAM', elevationM: 1050, irrigationType: 'RAINFED', landOwnership: 'CUSTOMARY', verificationStatus: 'VERIFIED', eudrRiskLevel: 'LOW', deforestationFree: true, verificationScore: 97, verifiedBy: users[2]?.id, verifiedAt: new Date() },
-      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000005', farmerId: farmers[4]?.id, name: 'Mbale Cocoa Block', plotType: 'PRODUCTION', boundaryGeoJson: sampleBoundary, areaHectares: 1.2, centroidLat: 1.0670, centroidLng: 34.1750, soilType: 'CLAY', elevationM: 1400, slopePercent: 25, irrigationType: 'DRIP', landOwnership: 'OWNED', verificationStatus: 'FIELD_AUDITED', eudrRiskLevel: 'MEDIUM', deforestationFree: true, verificationScore: 75 },
+      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000001', farmerId: farmers[0]?.id, name: 'Mt. Elgon Block A', plotType: 'PRODUCTION', boundaryGeoJson: plotBoundaries['PLT-UG-000001'], areaHectares: 2.5, centroidLat: 1.3733, centroidLng: 32.2903, soilType: 'VOLCANIC_LOAM', elevationM: 1800, slopePercent: 15, irrigationType: 'RAINFED', landOwnership: 'CUSTOMARY', verificationStatus: 'GPS_VERIFIED', eudrRiskLevel: 'LOW', deforestationFree: true, verificationScore: 92, verifiedBy: users[2]?.id, verifiedAt: new Date() },
+      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000002', farmerId: farmers[1]?.id, name: 'Bugisu Coffee Plot 3', plotType: 'PRODUCTION', boundaryGeoJson: plotBoundaries['PLT-UG-000002'], areaHectares: 1.8, centroidLat: 1.0010, centroidLng: 34.2500, soilType: 'CLAY_LOAM', elevationM: 1600, irrigationType: 'RAINFED', landOwnership: 'OWNED', verificationStatus: 'SATELLITE_VERIFIED', eudrRiskLevel: 'LOW', deforestationFree: true, verificationScore: 88 },
+      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000003', farmerId: farmers[2]?.id, name: 'Kibale Mixed Farm', plotType: 'PRODUCTION', boundaryGeoJson: plotBoundaries['PLT-UG-000003'], areaHectares: 3.2, centroidLat: 0.9500, centroidLng: 30.2500, soilType: 'SANDY_LOAM', elevationM: 1200, irrigationType: 'SPRINKLER', landOwnership: 'LEASED', verificationStatus: 'UNVERIFIED', eudrRiskLevel: 'UNKNOWN' },
+      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000004', farmerId: farmers[3]?.id, name: 'Gulu Maize Field', plotType: 'PRODUCTION', boundaryGeoJson: plotBoundaries['PLT-UG-000004'], areaHectares: 5.0, centroidLat: 2.7740, centroidLng: 32.2990, soilType: 'LOAM', elevationM: 1050, irrigationType: 'RAINFED', landOwnership: 'CUSTOMARY', verificationStatus: 'VERIFIED', eudrRiskLevel: 'LOW', deforestationFree: true, verificationScore: 97, verifiedBy: users[2]?.id, verifiedAt: new Date() },
+      { tenantId: ugTenant.id, plotCode: 'PLT-UG-000005', farmerId: farmers[4]?.id, name: 'Mbale Cocoa Block', plotType: 'PRODUCTION', boundaryGeoJson: plotBoundaries['PLT-UG-000005'], areaHectares: 1.2, centroidLat: 1.0670, centroidLng: 34.1750, soilType: 'CLAY', elevationM: 1400, slopePercent: 25, irrigationType: 'DRIP', landOwnership: 'OWNED', verificationStatus: 'FIELD_AUDITED', eudrRiskLevel: 'MEDIUM', deforestationFree: true, verificationScore: 75 },
       { tenantId: ekibbo.id, plotCode: 'PLT-UG-000006', farmerId: farmers[0]?.id, name: 'Ekibbo Demo Plot', plotType: 'DEMO', areaHectares: 0.5, verificationStatus: 'UNVERIFIED', eudrRiskLevel: 'UNKNOWN' },
     ]
   })

@@ -50,27 +50,7 @@ export async function seedExtended(
   const { ugTenant, ekibbo, users, farmers, vslaGroups } = ctx
   const u0 = users[0]?.id; const u2 = users[2]?.id; const u3 = users[3]?.id
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 1. PLOT GEOJSON — diverse real polygons per plot
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  console.log('  ↳ Updating plot boundaries with diverse polygons...')
-
-  const plotBoundaries = [
-    { code: 'PLT-UG-000001', lat: 1.3733, lng: 32.2903, r: 0.005, pts: 7 },  // Mt. Elgon area
-    { code: 'PLT-UG-000002', lat: 1.0010, lng: 34.2500, r: 0.004, pts: 6 },  // Bugisu
-    { code: 'PLT-UG-000003', lat: 0.9500, lng: 30.2500, r: 0.006, pts: 8 },  // Kibale
-    { code: 'PLT-UG-000004', lat: 2.7740, lng: 32.2990, r: 0.008, pts: 10 }, // Gulu (large maize)
-    { code: 'PLT-UG-000005', lat: 1.0670, lng: 34.1750, r: 0.003, pts: 5 },  // Mbale cocoa (small)
-  ]
-
-  for (const pb of plotBoundaries) {
-    const geo = makePolygon(pb.lat, pb.lng, pb.r, pb.pts)
-    await db.plot.updateMany({
-      where: { plotCode: pb.code },
-      data: { boundaryGeoJson: geo },
-    })
-  }
-
+  // Plot boundaries are now set deterministically in seed.ts — no random updates needed
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 2. VSLA — transactions, meetings, attendance, loans, repayments
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
