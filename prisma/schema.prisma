@@ -285,28 +285,71 @@ model FarmerProfile {
   nationalIdNo    String?
   photoUrl        String?
   isCertified     Boolean  @default(false)
-  certificationType String?
+  certificationType String?  // Individual, Group
   memberType      String   // General, Commercial
   status          String   @default("ACTIVE") // ACTIVE, INACTIVE
 
-  // Location
+  // ─── Enrollment (from Excel: Farmer Registration section) ───
+  enrollmentDate  DateTime @default(now())
+  enrollmentPlace String?  // At Farmer Place / At Cooperative / At Farmer Organization / At Warehouse
+  icsYear         String?  // Year of ICS (show when isCertified = true)
+  cooperativeId   String?  // linked cooperative (for FO users)
+
+  // ─── ID Proof ───
+  idProofPhotoUrl String?
+  guardianName    String?
+  email           String?
+
+  // ─── Location (from Excel: Contact Information section) ───
   villageId       String?
   village         Village? @relation(fields: [villageId], references: [id])
   gpsLatitude     Float?
   gpsLongitude    Float?
+  country         String?  // Uganda, Ghana, Kenya
+  province        String?  // Region/Province
+  district        String?
+  commune         String?  // Sub-county / Constituency
+  villageName     String?  // Village name (free text if no geo hierarchy)
+  zipCode         String?
 
-  // Family
+  // ─── Family (from Excel: Family Information section) ───
   familyMembers   Int?
   childrenUnder18 Int?
   schoolGoingChildren Int?
   spouseName      String?
+  childrenMaleUnder18  Int?
+  childrenFemaleUnder18 Int?
+  schoolGoingMale   Int?
+  schoolGoingFemale Int?
 
-  // Bank
+  // ─── Assets (from Excel: Asset Information section) ───
+  housingOwnership String?  // Owned, Rent, Lease
+  houseType        String?  // Brick house, Wooden house, Hut, Other
+  consumerElectronics String?  // JSON: ["TV","Washing Machine","Air Conditioner","Fridge"]
+  vehicle          String?  // JSON: ["Bike","Car","Boat"]
+
+  // ─── Finance (from Excel: Finance Information — multiple bank accounts) ───
   bankName        String?
   bankAccountNo   String?
   bankBranch      String?
+  bankAccounts    String?  // JSON array: [{accountType, accountNo, bankName, branch, sortCode}]
+  loanTakenLastYear Boolean @default(false)
+  loanTakenFrom   String?  // Bank, Relative, Friend, Farming contract, Other
+  loanAmount      Float?
+  loanPurpose     String?
+  loanInterestPct Float?
+  loanInterestPeriod String?  // Monthly, Yearly
+  loanHasSecurity Boolean  @default(false)
+  loanRepaymentAmount Float?
+  loanRepaymentDate DateTime?
 
-  // Farm
+  // ─── Insurance (from Excel: Insurance Information — multiple types) ───
+  insuranceData   String?  // JSON: { life: {provider,amount,enrolledDate,endDate}, health: {...}, crop: {...}, social: {...}, other: "..." }
+
+  // ─── Farm Equipment (from Excel: Farm Equipment — multiple items) ───
+  farmEquipment   String?  // JSON: [{item, count}]
+
+  // ─── Farm ───
   farmSize        Float?   // hectares
   farmOwnership   String?  // Owned, Rent, Lease
   mainCrops       String?  // JSON array of crop names
