@@ -121,6 +121,7 @@ model Tenant {
   transportTrips       TransportTrip[]        @relation("TenantTransportTrips")
   transportCharges     TransportCharge[]      @relation("TenantTransportCharges")
   ccrpEnrollments      CcrpEnrollment[]        @relation("TenantCcrpEnrollments")
+  sales                Sale[]                  @relation("TenantSales")
   // ─── Impact Engine (6-week sprint) ───
   impactBaselines      ImpactBaseline[]       @relation("TenantImpactBaselines")
   impactEvents         ImpactEvent[]          @relation("TenantImpactEvents")
@@ -369,7 +370,7 @@ model FarmerProfile {
   vslaAttendance  VslaAttendance[]
   trainings       TrainingAttendance[]
   purchases       Purchase[]
-  sales           Sale[]
+  sales           Sale[]     @relation("FarmerSales")
   vslaMemberships VslaMember[]
   farmVisits      FarmVisit[]      @relation("FarmerVisits")
   impactAssessments ImpactAssessment[] @relation("FarmerImpact")
@@ -838,6 +839,17 @@ model Payment {
   description     String?
   transactionRef  String?
   status          String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+
+  // EKIBBO: Extension officer can update farmer phone during payment
+  phoneUpdateRequested Boolean @default(false)
+  newPhoneNumber  String?  // new phone number requested by extension officer
+  consentFormUrl  String?  // consent form attachment (required if phoneUpdateRequested = true)
+
+  // EKIBBO: Charges and taxes visible to extension officers
+  charges         Float?
+  taxAmount       Float?
+  netAmount       Float?   // auto-calc: amount - charges - taxAmount
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -1037,15 +1049,25 @@ model RolePermission {
 
 model Sale {
   id              String   @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?  @relation("TenantSales", fields: [tenantId], references: [id])
   farmerId        String?
-  farmer          FarmerProfile? @relation(fields: [farmerId], references: [id])
+  farmer          FarmerProfile? @relation("FarmerSales", fields: [farmerId], references: [id])
   customerId      String?
   customerName    String?
   product         String
+  category        String   @default("PRODUCE")  // PRODUCE or INPUT (EKIBBO: inputs=fertilizer/tarpaulin/seedlings/saws; produce=hulled coffee/cocoa/cassava/avocado/vanilla/jackfruit)
   quantity        String
   unitPrice       Float?
   totalAmount     Float?
+  charges         Float?   // charges/fees (EKIBBO: visible to extension officers)
+  taxAmount       Float?   // tax (EKIBBO: visible to extension officers)
+  netAmount       Float?   // totalAmount - charges - taxAmount (auto-calc)
+  paymentMethod   String?  // MOBILE_MONEY, BANK, CASH, LOAN_DEDUCTION
+  loanDeducted    Float?   // amount deducted for loan repayment (EKIBBO: loan deduction from produce)
+  loanBalanceAfter Float?  // remaining loan balance after this sale deduction
   status          String   @default("COMPLETED")
+  approvedBy      String?  // extension officer who approved
   createdAt       DateTime @default(now())
 }
 
