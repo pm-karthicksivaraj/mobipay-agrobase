@@ -1,20 +1,30 @@
 /**
- * Agrobase V3 — Credit Scoring Engine
+ * Agrobase V3 — Credit Scoring Engine (Excel-aligned 4-factor model)
  *
- * Algorithmic credit scoring for smallholder farmers (0–1000 scale).
- * Uses multiple weighted factors to compute a holistic credit score.
+ * Based on the Credit Score Blueprint from the New Ecosystem Excel:
  *
- * Score breakdown:
- *   - Payment history     (30%): VSLA loan repayment timeliness
- *   - Farm productivity   (25%): Actual vs estimated yield ratio
- *   - Engagement          (20%): Training attendance, farm visit count
- *   - Savings behavior    (15%): VSLA savings consistency
- *   - Relationship length (10%): Months since first registration
+ * Factor                  Weight   Data Points                        Scoring (0-100)
+ * ─────────────────────── ─────── ─────────────────────────────────── ─────────────────────────────
+ * Demographics            15%      Age, Education, Marital, Family    (Age + Education + Marital + Family) / 4
+ * Asset Ownership         25%      Land, House, Equipment, Livestock  (Land + House + Equipment + Livestock) / 4
+ * Crop Performance        25%      Crop Type, Yield, Productivity     (Crop + Yield + Productivity) / 3
+ * Financial Discipline    35%      Loan, Repayment, Insurance          (Loan + Repayment + Insurance) / 3
+ *
+ * Total = Demographics×0.15 + Assets×0.25 + Crop×0.25 + Financial×0.35
+ * Scale: 0-1000 (multiply by 10)
  *
  * Risk categories:
  *   HIGH:   0 – 400
  *   MEDIUM: 401 – 700
  *   LOW:    701 – 1000
+ *
+ * Integration points:
+ *   - Farmer Registration → demographics + assets data
+ *   - Cultivation + Yield → crop performance data
+ *   - VSLA loans + repayment → financial discipline data
+ *   - Insurance data → financial discipline data
+ *   - MFI loan underwriting consumes the score
+ *   - Impact KPI I-04 (loan repayment) feeds back
  */
 
 import { db } from '@/lib/db'
@@ -22,468 +32,273 @@ import { db } from '@/lib/db'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface CreditScoreResult {
-  score: number
+  score: number                 // 0-1000
   riskCategory: 'LOW' | 'MEDIUM' | 'HIGH'
-  breakdown: Record<string, number>
+  demographicsScore: number     // 0-100
+  assetScore: number            // 0-100
+  cropScore: number             // 0-100
+  financialScore: number        // 0-100
+  totalScore: number            // 0-100 (before ×10)
+  breakdown: {
+    demographics: { age: number; education: number; marital: number; family: number }
+    assets: { land: number; house: number; equipment: number; livestock: number }
+    crop: { cropType: number; yield: number; productivity: number }
+    financial: { loan: number; repayment: number; insurance: number }
+  }
   recommendations: string[]
 }
 
-export interface ScoreSnapshot {
-  id: string
-  score: number
-  demographicsScore: number | null
-  assetScore: number | null
-  cropScore: number | null
-  financialScore: number | null
-  totalScore: number | null
-  scoreDate: Date
-  // Engine-computed breakdown (stored alongside as JSON in a real extension)
-  breakdown?: Record<string, number>
-}
-
-// ─── Scoring Weights ─────────────────────────────────────────────────────────
+// ─── Weights (from Excel: Credit Score Blue Print sheet) ────────────────────
 
 const WEIGHTS = {
-  PAYMENT_HISTORY: 0.30,
-  FARM_PRODUCTIVITY: 0.25,
-  ENGAGEMENT: 0.20,
-  SAVINGS_BEHAVIOR: 0.15,
-  RELATIONSHIP_LENGTH: 0.10,
+  DEMOGRAPHICS: 0.15,
+  ASSETS: 0.25,
+  CROP_PERFORMANCE: 0.25,
+  FINANCIAL_DISCIPLINE: 0.35,
 } as const
 
 // ─── Credit Scoring Engine ───────────────────────────────────────────────────
 
 export class CreditScoringEngine {
   /**
-   * Calculate a credit score for a farmer.
-   * Computes an algorithmic 0–1000 score based on 5 weighted factors.
+   * Calculate a credit score for a farmer using the Excel 4-factor model.
    *
    * @param farmerId - The farmer's profile ID
-   * @returns Full credit score result with breakdown and recommendations
+   * @returns Full credit score result with per-factor breakdown
    */
   async calculateScore(farmerId: string): Promise<CreditScoreResult> {
     const farmer = await db.farmerProfile.findUnique({
       where: { id: farmerId },
-      select: { id: true, createdAt: true, tenantId: true },
+      select: {
+        id: true, createdAt: true, tenantId: true,
+        dateOfBirth: true, education: true, maritalStatus: true,
+        familyMembers: true,
+        housingOwnership: true, houseType: true,
+        farmSize: true, farmOwnership: true,
+        farmEquipment: true, livestockTypes: true,
+        loanTakenLastYear: true, loanAmount: true, loanRepaymentAmount: true,
+        insuranceData: true,
+        mainCrops: true,
+      },
     })
 
     if (!farmer) {
       throw new Error(`Farmer ${farmerId} not found`)
     }
 
-    // Compute each factor (0–100 scale)
-    const [paymentScore, productivityScore, engagementScore, savingsScore, relationshipScore] =
-      await Promise.all([
-        this.computePaymentHistory(farmerId),
-        this.computeFarmProductivity(farmerId),
-        this.computeEngagement(farmerId),
-        this.computeSavingsBehavior(farmerId),
-        this.computeRelationshipLength(farmer.createdAt),
-      ])
+    // ─── Compute each factor (0-100 scale) ───────────────────
+    const demographics = await this.computeDemographics(farmer)
+    const assets = await this.computeAssets(farmer)
+    const crop = await this.computeCropPerformance(farmerId, farmer)
+    const financial = await this.computeFinancialDiscipline(farmerId, farmer)
 
-    // Weighted sum → 0–1000
-    const totalScore = Math.round(
-      paymentScore * WEIGHTS.PAYMENT_HISTORY * 10 +
-      productivityScore * WEIGHTS.FARM_PRODUCTIVITY * 10 +
-      engagementScore * WEIGHTS.ENGAGEMENT * 10 +
-      savingsScore * WEIGHTS.SAVINGS_BEHAVIOR * 10 +
-      relationshipScore * WEIGHTS.RELATIONSHIP_LENGTH * 10
-    )
+    // Weighted total (0-100)
+    const totalScore =
+      demographics.avg * WEIGHTS.DEMOGRAPHICS +
+      assets.avg * WEIGHTS.ASSETS +
+      crop.avg * WEIGHTS.CROP_PERFORMANCE +
+      financial.avg * WEIGHTS.FINANCIAL_DISCIPLINE
 
-    // Clamp to 0–1000
-    const clampedScore = Math.max(0, Math.min(1000, totalScore))
-    const riskCategory = this.getRiskCategory(clampedScore)
+    // Scale to 0-1000
+    const score = Math.round(totalScore * 10)
 
-    const breakdown: Record<string, number> = {
-      paymentHistory: Math.round(paymentScore * 10 * WEIGHTS.PAYMENT_HISTORY),
-      farmProductivity: Math.round(productivityScore * 10 * WEIGHTS.FARM_PRODUCTIVITY),
-      engagement: Math.round(engagementScore * 10 * WEIGHTS.ENGAGEMENT),
-      savingsBehavior: Math.round(savingsScore * 10 * WEIGHTS.SAVINGS_BEHAVIOR),
-      relationshipLength: Math.round(relationshipScore * 10 * WEIGHTS.RELATIONSHIP_LENGTH),
-    }
+    const riskCategory: CreditScoreResult['riskCategory'] =
+      score >= 701 ? 'LOW' : score >= 401 ? 'MEDIUM' : 'HIGH'
 
     const recommendations = this.generateRecommendations({
-      paymentScore,
-      productivityScore,
-      engagementScore,
-      savingsScore,
-      relationshipScore,
+      demographics: demographics.avg,
+      assets: assets.avg,
+      crop: crop.avg,
+      financial: financial.avg,
     }, riskCategory)
 
-    // Persist to the CreditScore model
-    await db.creditScore.create({
-      data: {
-        farmerId,
-        demographicsScore: relationshipScore, // reuse the relationship score
-        assetScore: savingsScore, // savings as a proxy for assets
-        cropScore: productivityScore,
-        financialScore: paymentScore,
-        totalScore: clampedScore,
-      },
-    })
-
     return {
-      score: clampedScore,
+      score,
       riskCategory,
-      breakdown,
+      demographicsScore: Math.round(demographics.avg),
+      assetScore: Math.round(assets.avg),
+      cropScore: Math.round(crop.avg),
+      financialScore: Math.round(financial.avg),
+      totalScore: Math.round(totalScore * 10) / 10,
+      breakdown: {
+        demographics: demographics.detail,
+        assets: assets.detail,
+        crop: crop.detail,
+        financial: financial.detail,
+      },
       recommendations,
     }
   }
 
-  /**
-   * Get historical credit scores for a farmer.
-   *
-   * @param farmerId - The farmer's profile ID
-   * @param months   - How many months of history to return (default 12)
-   * @returns Array of past score snapshots, newest first
-   */
-  async getScoreHistory(farmerId: string, months: number = 12): Promise<ScoreSnapshot[]> {
-    const since = new Date()
-    since.setMonth(since.getMonth() - months)
-
-    const scores = await db.creditScore.findMany({
-      where: {
-        farmerId,
-        scoreDate: { gte: since },
-      },
-      orderBy: { scoreDate: 'desc' },
-    })
-
-    return scores.map((s) => ({
-      id: s.id,
-      score: s.totalScore ?? 0,
-      demographicsScore: s.demographicsScore,
-      assetScore: s.assetScore,
-      cropScore: s.cropScore,
-      financialScore: s.financialScore,
-      totalScore: s.totalScore,
-      scoreDate: s.scoreDate,
-    }))
-  }
-
-  /**
-   * Determine the risk category from a numeric score.
-   *   0–400:   HIGH risk
-   *   401–700: MEDIUM risk
-   *   701–1000: LOW risk
-   */
-  getRiskCategory(score: number): 'LOW' | 'MEDIUM' | 'HIGH' {
-    if (score <= 400) return 'HIGH'
-    if (score <= 700) return 'MEDIUM'
-    return 'LOW'
-  }
-
-  // ─── Factor Computations ───────────────────────────────────────────────────
-
-  /**
-   * Payment History (30% weight)
-   *
-   * Measures VSLA loan repayment timeliness.
-   * Looks at all loans for this farmer:
-   *   - REPAID loans with amountRepaid >= totalRepayable → on-time (100 pts)
-   *   - OVERDUE loans → penalty
-   *   - Ratio of total repaid to total owed
-   *
-   * Returns 0–100.
-   */
-  private async computePaymentHistory(farmerId: string): Promise<number> {
-    const loans = await db.vslaLoan.findMany({
-      where: { farmerId },
-      select: {
-        amount: true,
-        totalRepayable: true,
-        amountRepaid: true,
-        status: true,
-        dueDate: true,
-      },
-    })
-
-    if (loans.length === 0) {
-      // No loan history — neutral score (50 out of 100)
-      return 50
+  // ─── Factor 1: Demographics (15%) ──────────────────────────
+  // Age: 25-50=100, 18-24=80, 51-65=70, >65=50
+  // Education: PG/UG=100, Secondary=70, Primary=50
+  // Marital: Married=100, Unmarried=80, Widow=60
+  // Family: ≤4=100, 5-6=80, >6=60
+  private async computeDemographics(farmer: any): Promise<{ avg: number; detail: { age: number; education: number; marital: number; family: number } }> {
+    // Age
+    let age = 50
+    if (farmer.dateOfBirth) {
+      const ageYears = Math.floor((Date.now() - farmer.dateOfBirth.getTime()) / (365.25 * 86400000))
+      if (ageYears >= 25 && ageYears <= 50) age = 100
+      else if (ageYears >= 18 && ageYears <= 24) age = 80
+      else if (ageYears >= 51 && ageYears <= 65) age = 70
+      else age = 50
     }
 
-    let totalOwed = 0
-    let totalRepaid = 0
-    let onTimeCount = 0
-    let overdueCount = 0
+    // Education
+    const educationScores: Record<string, number> = { PG: 100, UG: 100, Secondary: 70, Primary: 50, Other: 50 }
+    const education = educationScores[farmer.education] ?? 50
 
-    for (const loan of loans) {
-      totalOwed += loan.totalRepayable
-      totalRepaid += loan.amountRepaid
+    // Marital
+    const maritalScores: Record<string, number> = { Married: 100, 'Un-Married': 80, Unmarried: 80, Widow: 60 }
+    const marital = maritalScores[farmer.maritalStatus] ?? 60
 
-      if (loan.status === 'REPAID') {
-        onTimeCount++
-      } else if (loan.status === 'OVERDUE') {
-        overdueCount++
-      } else if (loan.dueDate && loan.dueDate < new Date() && loan.status === 'DISBURSED') {
-        overdueCount++
-      }
-    }
+    // Family size
+    const famSize = farmer.familyMembers || 0
+    const family = famSize <= 4 ? 100 : famSize <= 6 ? 80 : 60
 
-    if (totalOwed === 0) return 50
-
-    // Repayment ratio (0–100)
-    const repaymentRatio = Math.min(1, totalRepaid / totalOwed)
-
-    // On-time ratio (0–100)
-    const completedLoans = loans.filter((l) => ['REPAID', 'OVERDUE'].includes(l.status))
-    const onTimeRatio = completedLoans.length > 0
-      ? onTimeCount / completedLoans.length
-      : 0.5 // Neutral if no completed loans
-
-    // Overdue penalty
-    const overduePenalty = Math.min(0.3, overdueCount * 0.1)
-
-    // Weighted combination
-    const rawScore = (repaymentRatio * 0.6 + onTimeRatio * 0.4) * 100 - overduePenalty * 100
-    return Math.max(0, Math.min(100, Math.round(rawScore)))
+    const avg = (age + education + marital + family) / 4
+    return { avg, detail: { age, education, marital, family } }
   }
 
-  /**
-   * Farm Productivity (25% weight)
-   *
-   * Measures actual yield vs estimated yield across all cultivations.
-   * A ratio >= 1.0 (meeting or exceeding estimates) scores highest.
-   *
-   * Returns 0–100.
-   */
-  private async computeFarmProductivity(farmerId: string): Promise<number> {
-    // Get all farm lands for this farmer
-    const farmLands = await db.farmLand.findMany({
-      where: { farmerId, isActive: true },
-      select: { id: true },
-    })
+  // ─── Factor 2: Asset Ownership (25%) ───────────────────────
+  // Land: >5ha=100, 2-5=80, 1-2=60, <1=50
+  // House: Brick=100, Wooden=70, Hut=50
+  // Equipment: Tractor+Irrigation=100, one=70, none=50
+  // Livestock: >10=100, 5-10=80, <5=60
+  private async computeAssets(farmer: any): Promise<{ avg: number; detail: { land: number; house: number; equipment: number; livestock: number } }> {
+    // Land
+    const landHa = farmer.farmSize || 0
+    const land = landHa > 5 ? 100 : landHa >= 2 ? 80 : landHa >= 1 ? 60 : 50
 
-    if (farmLands.length === 0) {
-      // Check if the farmer has farmSize set on their profile
-      const farmer = await db.farmerProfile.findUnique({
-        where: { id: farmerId },
-        select: { farmSize: true, mainCrops: true },
-      })
-      if (farmer?.farmSize && farmer.farmSize > 0) {
-        return 50 // Has farm but no yield data — neutral
-      }
-      return 30 // No farm data at all
-    }
+    // House
+    const houseScores: Record<string, number> = { 'Brick house': 100, 'Wooden house': 70, Hut: 50, Other: 50 }
+    const house = houseScores[farmer.houseType] ?? 50
 
-    const farmIds = farmLands.map((f) => f.id)
+    // Equipment
+    let equipment = 50
+    try {
+      const equipmentList = farmer.farmEquipment ? JSON.parse(farmer.farmEquipment) : []
+      const hasTractor = equipmentList.some((e: any) => e.item?.toLowerCase().includes('tractor'))
+      const hasIrrigation = equipmentList.some((e: any) => e.item?.toLowerCase().includes('irrigation'))
+      if (hasTractor && hasIrrigation) equipment = 100
+      else if (hasTractor || hasIrrigation || equipmentList.length > 0) equipment = 70
+    } catch { /* default 50 */ }
 
-    // Get cultivations with both estimated and actual yield
+    // Livestock
+    let livestock = 60
+    try {
+      const livestockList = farmer.livestockTypes ? JSON.parse(farmer.livestockTypes) : []
+      livestock = livestockList.length > 3 ? 100 : livestockList.length >= 1 ? 80 : 60
+    } catch { /* default 60 */ }
+
+    const avg = (land + house + equipment + livestock) / 4
+    return { avg, detail: { land, house, equipment, livestock } }
+  }
+
+  // ─── Factor 3: Crop Performance (25%) ──────────────────────
+  // Crop: High-value=100, Staples=80, Others=60
+  // Yield: ≥90% of estimated=100, 70-89%=80, <70%=50
+  // Productivity: >5t/ha=100, 3-5=80, <3=50
+  private async computeCropPerformance(farmerId: string, farmer: any): Promise<{ avg: number; detail: { cropType: number; yield: number; productivity: number } }> {
+    // Fetch cultivations
     const cultivations = await db.cultivation.findMany({
-      where: {
-        farmId: { in: farmIds },
-        estimatedYield: { not: null, gt: 0 },
-        actualYield: { not: null },
-      },
-      select: { estimatedYield: true, actualYield: true },
+      where: { farm: { farmerId } },
+      select: { cropName: true, estimatedYield: true, actualYield: true, cultivationAreaHa: true },
+      take: 5,
+      orderBy: { createdAt: 'desc' },
     })
 
-    if (cultivations.length === 0) {
-      // Has farm lands but no yield data — slightly below neutral
-      return 45
+    // Crop type
+    const highValueCrops = ['Coffee', 'Cocoa', 'Vanilla', 'Tea', 'Avocado']
+    const stapleCrops = ['Maize', 'Rice', 'Beans', 'Cassava', 'Banana', 'Sorghum', 'Groundnuts']
+    let cropType = 60
+    if (cultivations.length > 0) {
+      const mainCrop = cultivations[0].cropName
+      if (highValueCrops.some(c => mainCrop.toLowerCase().includes(c.toLowerCase()))) cropType = 100
+      else if (stapleCrops.some(c => mainCrop.toLowerCase().includes(c.toLowerCase()))) cropType = 80
     }
 
-    // Compute average yield ratio (actual / estimated)
-    let totalRatio = 0
-    for (const c of cultivations) {
-      const ratio = c.actualYield! / c.estimatedYield!
-      // Cap at 2.0 to avoid over-rewarding outliers
-      totalRatio += Math.min(2.0, ratio)
+    // Yield ratio (actual / estimated)
+    let yieldScore = 50
+    if (cultivations.length > 0 && cultivations[0].estimatedYield && cultivations[0].actualYield) {
+      const ratio = cultivations[0].actualYield / cultivations[0].estimatedYield
+      if (ratio >= 0.9) yieldScore = 100
+      else if (ratio >= 0.7) yieldScore = 80
+      else yieldScore = 50
     }
-    const avgRatio = totalRatio / cultivations.length
 
-    // Convert ratio to 0–100 score
-    // ratio >= 1.0 → 100, ratio 0.5 → 50, ratio 0.0 → 0
-    const rawScore = Math.min(100, avgRatio * 100)
-    return Math.max(0, Math.min(100, Math.round(rawScore)))
+    // Productivity (yield per hectare)
+    let productivity = 50
+    if (cultivations.length > 0 && cultivations[0].actualYield && cultivations[0].cultivationAreaHa) {
+      const tPerHa = cultivations[0].actualYield / 1000 / cultivations[0].cultivationAreaHa // kg → tonnes
+      if (tPerHa > 5) productivity = 100
+      else if (tPerHa >= 3) productivity = 80
+      else productivity = 50
+    }
+
+    const avg = (cropType + yieldScore + productivity) / 3
+    return { avg, detail: { cropType, yield: yieldScore, productivity } }
   }
 
-  /**
-   * Engagement (20% weight)
-   *
-   * Measures farmer engagement through:
-   *   - Training attendance rate
-   *   - Number of farm visits received
-   *
-   * Returns 0–100.
-   */
-  private async computeEngagement(farmerId: string): Promise<number> {
-    // Training attendance
-    const trainings = await db.trainingAttendance.findMany({
+  // ─── Factor 4: Financial Discipline (35%) ──────────────────
+  // Loan: No loan=100, Yes <50% income=80, >50%=60
+  // Repayment: On-time=100, Late=70, Defaulted=50
+  // Insurance: Has insurance=100, No=60
+  private async computeFinancialDiscipline(farmerId: string, farmer: any): Promise<{ avg: number; detail: { loan: number; repayment: number; insurance: number } }> {
+    // Loan burden
+    let loan = 100
+    if (farmer.loanTakenLastYear && farmer.loanAmount) {
+      // Estimate: if loan amount > $500 (rough income threshold for smallholders)
+      loan = farmer.loanAmount > 500 ? 60 : 80
+    }
+
+    // Repayment timeliness (from VSLA loan history)
+    const vslaLoans = await db.vslaLoan.findMany({
       where: { farmerId },
-      select: { attended: true },
+      select: { status: true, amount: true },
     })
-
-    const trainingScore = trainings.length > 0
-      ? (trainings.filter((t) => t.attended).length / trainings.length) * 100
-      : 30 // No training record
-
-    // Farm visits
-    const visits = await db.farmVisit.findMany({
-      where: { farmerId },
-      select: { id: true },
-    })
-
-    // More visits = more engaged. Score based on visit count:
-    // 0 visits → 0, 1–2 → 50, 3–5 → 75, 6+ → 100
-    let visitScore: number
-    if (visits.length === 0) {
-      visitScore = 0
-    } else if (visits.length <= 2) {
-      visitScore = 50
-    } else if (visits.length <= 5) {
-      visitScore = 75
-    } else {
-      visitScore = 100
+    let repayment = 100
+    if (vslaLoans.length > 0) {
+      const defaulted = vslaLoans.filter(l => l.status === 'DEFAULTED').length
+      const overdue = vslaLoans.filter(l => l.status === 'OVERDUE').length
+      if (defaulted > 0) repayment = 50
+      else if (overdue > 0) repayment = 70
+      else repayment = 100
     }
 
-    // Weighted: training (60%) + visits (40%)
-    const rawScore = trainingScore * 0.6 + visitScore * 0.4
-    return Math.max(0, Math.min(100, Math.round(rawScore)))
+    // Insurance coverage
+    let insurance = 60
+    try {
+      const insData = farmer.insuranceData ? JSON.parse(farmer.insuranceData) : {}
+      const hasAny = insData.life || insData.health || insData.crop || insData.social
+      if (hasAny) insurance = 100
+    } catch { /* default 60 */ }
+
+    const avg = (loan + repayment + insurance) / 3
+    return { avg, detail: { loan, repayment, insurance } }
   }
 
-  /**
-   * Savings Behavior (15% weight)
-   *
-   * Measures VSLA savings consistency:
-   *   - Number of savings transactions
-   *   - Total amount saved
-   *   - Regularity (coefficient of variation of monthly savings)
-   *
-   * Returns 0–100.
-   */
-  private async computeSavingsBehavior(farmerId: string): Promise<number> {
-    const savings = await db.vslaSaving.findMany({
-      where: { farmerId, status: 'COMPLETED' },
-      select: { amount: true, createdAt: true },
-      orderBy: { createdAt: 'asc' },
-    })
-
-    if (savings.length === 0) {
-      return 25 // No savings history — low but not zero
-    }
-
-    // Factor 1: Volume of savings (0–40 points)
-    // Normalize total savings: 0 → 0, >100k UGX equivalent → 40
-    const totalSaved = savings.reduce((sum, s) => sum + s.amount, 0)
-    const volumeScore = Math.min(40, (totalSaved / 100000) * 40)
-
-    // Factor 2: Frequency (0–30 points)
-    // More savings transactions = more consistent
-    const frequencyScore = Math.min(30, savings.length * 5)
-
-    // Factor 3: Regularity (0–30 points)
-    // Group savings by month and check consistency
-    const monthlyTotals = new Map<string, number>()
-    for (const s of savings) {
-      const key = `${s.createdAt.getFullYear()}-${String(s.createdAt.getMonth() + 1).padStart(2, '0')}`
-      monthlyTotals.set(key, (monthlyTotals.get(key) || 0) + s.amount)
-    }
-
-    const monthlyAmounts = Array.from(monthlyTotals.values())
-    let regularityScore: number
-    if (monthlyAmounts.length < 2) {
-      regularityScore = 15 // Only 1 month of data — partial credit
-    } else {
-      const mean = monthlyAmounts.reduce((a, b) => a + b, 0) / monthlyAmounts.length
-      if (mean === 0) {
-        regularityScore = 0
-      } else {
-        const stdDev = Math.sqrt(
-          monthlyAmounts.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / monthlyAmounts.length
-        )
-        const cv = stdDev / mean // Coefficient of variation
-        // CV 0 → perfectly regular → 30, CV > 1 → irregular → 0
-        regularityScore = Math.max(0, 30 - cv * 30)
-      }
-    }
-
-    const rawScore = volumeScore + frequencyScore + regularityScore
-    return Math.max(0, Math.min(100, Math.round(rawScore)))
-  }
-
-  /**
-   * Relationship Length (10% weight)
-   *
-   * Measures how long the farmer has been on the platform.
-   * Capped at 36 months for full score.
-   *
-   * Returns 0–100.
-   */
-  private computeRelationshipLength(registeredAt: Date): number {
-    const now = new Date()
-    const monthsSinceRegistration =
-      (now.getFullYear() - registeredAt.getFullYear()) * 12 +
-      (now.getMonth() - registeredAt.getMonth())
-
-    // 0 months → 0, 36+ months → 100
-    const score = Math.min(100, (monthsSinceRegistration / 36) * 100)
-    return Math.max(0, Math.round(score))
-  }
-
-  // ─── Recommendations ───────────────────────────────────────────────────────
-
+  // ─── Recommendations ───────────────────────────────────────
   private generateRecommendations(
-    scores: {
-      paymentScore: number
-      productivityScore: number
-      engagementScore: number
-      savingsScore: number
-      relationshipScore: number
-    },
-    riskCategory: 'LOW' | 'MEDIUM' | 'HIGH',
+    scores: { demographics: number; assets: number; crop: number; financial: number },
+    risk: 'LOW' | 'MEDIUM' | 'HIGH',
   ): string[] {
-    const recommendations: string[] = []
+    const recs: string[] = []
 
-    if (scores.paymentScore < 50) {
-      recommendations.push(
-        'Improve loan repayment consistency. Consider setting up automatic deductions or reminders before due dates.'
-      )
-    }
+    if (scores.demographics < 60) recs.push('Improve demographics score: complete education level and family size data')
+    if (scores.assets < 60) recs.push('Asset score low: record farm equipment and livestock to improve score')
+    if (scores.crop < 60) recs.push('Crop performance low: track actual yields and update estimated yields')
+    if (scores.financial < 60) recs.push('Financial discipline low: enroll in crop insurance and maintain timely VSLA repayments')
 
-    if (scores.productivityScore < 40) {
-      recommendations.push(
-        'Actual yields are below estimates. Consider attending agronomy training and adopting improved farming practices.'
-      )
-    }
+    if (risk === 'HIGH') recs.push('HIGH RISK: Recommend financial literacy training before loan approval')
+    if (risk === 'MEDIUM') recs.push('MEDIUM RISK: Approve loans with collateral or guarantor')
+    if (risk === 'LOW') recs.push('LOW RISK: Eligible for prime loan rates')
 
-    if (scores.engagementScore < 40) {
-      recommendations.push(
-        'Increase engagement by attending training sessions and scheduling regular farm visits with extension officers.'
-      )
-    }
-
-    if (scores.savingsScore < 40) {
-      recommendations.push(
-        'Build a stronger savings history by making regular weekly or monthly contributions to your VSLA group.'
-      )
-    }
-
-    if (scores.relationshipScore < 30) {
-      recommendations.push(
-        'Credit history is limited. Continue using the platform to build a longer track record.'
-      )
-    }
-
-    if (riskCategory === 'LOW') {
-      recommendations.push(
-        'Excellent credit profile. This farmer qualifies for premium loan products with lower interest rates.'
-      )
-    } else if (riskCategory === 'HIGH') {
-      recommendations.push(
-        'High risk profile. Recommend smaller loan amounts with closer monitoring until credit behavior improves.'
-      )
-    }
-
-    // Ensure at least one recommendation
-    if (recommendations.length === 0) {
-      recommendations.push('Credit profile is solid. Continue current engagement and savings patterns.')
-    }
-
-    return recommendations
+    return recs
   }
 }
 
-/** Singleton instance for application-wide use */
+// ─── Export singleton ────────────────────────────────────────────────────────
 export const creditScoringEngine = new CreditScoringEngine()
