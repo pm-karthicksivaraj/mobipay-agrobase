@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 
 interface Dealer {
   id: string
@@ -77,36 +78,7 @@ const categoryColors: Record<string, string> = {
   Equipment: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
 }
 
-const mockDealers: Dealer[] = [
-  { id: 'd1', name: 'Uganda Seed Co.', phone: '+256 700 123456', location: 'Kampala', active: true, productsCount: 12, createdAt: '2024-01-15' },
-  { id: 'd2', name: 'Agro-Inputs Ltd', phone: '+256 772 345678', location: 'Jinja', active: true, productsCount: 8, createdAt: '2024-03-20' },
-  { id: 'd3', name: 'Greenfield Supplies', phone: '+254 712 456789', location: 'Nairobi', active: true, productsCount: 15, createdAt: '2024-02-10' },
-  { id: 'd4', name: 'Farmers Choice GH', phone: '+233 24 567890', location: 'Kumasi', active: false, productsCount: 5, createdAt: '2024-05-01' },
-  { id: 'd5', name: 'Tropical Agro Ltd', phone: '+256 783 234567', location: 'Mbale', active: true, productsCount: 10, createdAt: '2024-04-12' },
-]
-
-const mockProducts: InputProduct[] = [
-  { id: 'p1', name: 'Coffee Seedlings (Arabica)', category: 'Seeds', dealerName: 'Uganda Seed Co.', dealerId: 'd1', price: 500, unit: 'bag (100pcs)', inStock: true, stockQuantity: 500 },
-  { id: 'p2', name: 'NPK Fertilizer 17-17-17', category: 'Fertilizer', dealerName: 'Agro-Inputs Ltd', dealerId: 'd2', price: 85000, unit: '50kg bag', inStock: true, stockQuantity: 200 },
-  { id: 'p3', name: 'DAP Fertilizer', category: 'Fertilizer', dealerName: 'Greenfield Supplies', dealerId: 'd3', price: 92000, unit: '50kg bag', inStock: true, stockQuantity: 150 },
-  { id: 'p4', name: 'Cypermethrin 10% EC', category: 'Pesticide', dealerName: 'Agro-Inputs Ltd', dealerId: 'd2', price: 35000, unit: '1L bottle', inStock: true, stockQuantity: 300 },
-  { id: 'p5', name: 'Pruning Saw (Professional)', category: 'Equipment', dealerName: 'Tropical Agro Ltd', dealerId: 'd5', price: 45000, unit: 'piece', inStock: true, stockQuantity: 45 },
-  { id: 'p6', name: 'Tarpaulin 4m x 6m', category: 'Equipment', dealerName: 'Uganda Seed Co.', dealerId: 'd1', price: 120000, unit: 'piece', inStock: false, stockQuantity: 0 },
-  { id: 'p7', name: 'UREA 46% Nitrogen', category: 'Fertilizer', dealerName: 'Greenfield Supplies', dealerId: 'd3', price: 78000, unit: '50kg bag', inStock: true, stockQuantity: 100 },
-  { id: 'p8', name: 'Cocoa Seedlings (Hybrid)', category: 'Seeds', dealerName: 'Farmers Choice GH', dealerId: 'd4', price: 300, unit: 'seedling', inStock: true, stockQuantity: 2000 },
-  { id: 'p9', name: 'Mancozeb Fungicide', category: 'Pesticide', dealerName: 'Agro-Inputs Ltd', dealerId: 'd2', price: 28000, unit: '1kg pack', inStock: true, stockQuantity: 180 },
-  { id: 'p10', name: 'Cassava Cuttings (Improved)', category: 'Seeds', dealerName: 'Uganda Seed Co.', dealerId: 'd1', price: 100, unit: 'bundle (50)', inStock: true, stockQuantity: 800 },
-]
-
-const mockRequests: InputRequest[] = [
-  { id: 'ir1', farmerName: 'James Okello', farmerCode: 'FRM-001', productName: 'NPK Fertilizer 17-17-17', productId: 'p2', quantity: 3, unit: '50kg bag', status: 'CONFIRMED', requestedAt: '2024-11-15', totalCost: 255000 },
-  { id: 'ir2', farmerName: 'Grace Achieng', farmerCode: 'FRM-012', productName: 'Coffee Seedlings (Arabica)', productId: 'p1', quantity: 5, unit: 'bag (100pcs)', status: 'PENDING', requestedAt: '2024-11-18', totalCost: 2500 },
-  { id: 'ir3', farmerName: 'Sarah Nakamya', farmerCode: 'FRM-023', productName: 'Pruning Saw (Professional)', productId: 'p5', quantity: 1, unit: 'piece', status: 'DELIVERED', requestedAt: '2024-11-10', totalCost: 45000 },
-  { id: 'ir4', farmerName: 'Peter Ochieng', farmerCode: 'FRM-031', productName: 'Tarpaulin 4m x 6m', productId: 'p6', quantity: 2, unit: 'piece', status: 'PENDING', requestedAt: '2024-11-20', totalCost: 240000 },
-  { id: 'ir5', farmerName: 'Wangari Muthoni', farmerCode: 'FRM-045', productName: 'UREA 46% Nitrogen', productId: 'p7', quantity: 2, unit: '50kg bag', status: 'CANCELLED', requestedAt: '2024-11-08', totalCost: 156000 },
-  { id: 'ir6', farmerName: 'Kwame Asante', farmerCode: 'FRM-078', productName: 'Cocoa Seedlings (Hybrid)', productId: 'p8', quantity: 200, unit: 'seedling', status: 'DELIVERED', requestedAt: '2024-11-05', totalCost: 60000 },
-  { id: 'ir7', farmerName: 'James Okello', farmerCode: 'FRM-001', productName: 'Cypermethrin 10% EC', productId: 'p4', quantity: 2, unit: '1L bottle', status: 'CONFIRMED', requestedAt: '2024-11-22', totalCost: 70000 },
-]
+// NOTE: demo/mock data fallbacks removed — components show real empty states when the API returns no rows.
 
 export default function InputAggregationView() {
   const { } = useAppStore()
@@ -115,6 +87,7 @@ export default function InputAggregationView() {
   const [requests, setRequests] = useState<InputRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [showAddDealer, setShowAddDealer] = useState(false)
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [showAddRequest, setShowAddRequest] = useState(false)
@@ -122,21 +95,48 @@ export default function InputAggregationView() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/input-aggregation')
-      if (res.ok) {
-        const data = await res.json()
-        setDealers(data.dealers || [])
-        setProducts(data.products || [])
-        setRequests(data.requests || [])
-      } else {
-        setDealers(mockDealers)
-        setProducts(mockProducts)
-        setRequests(mockRequests)
-      }
+      const [dData, pData, rData] = await Promise.all([
+        safeFetch('/api/input-dealers'),
+        safeFetch('/api/input-products'),
+        safeFetch('/api/input-requests'),
+      ])
+      const rawDealers = extractArray(dData, 'data', 'dealers')
+      const rawProducts = extractArray(pData, 'data', 'products')
+      const rawRequests = extractArray(rData, 'data', 'requests')
+      setDealers(rawDealers.map((d: any) => ({
+        id: d.id,
+        name: d.name || '',
+        phone: d.phone || '',
+        location: d.location || '',
+        active: d.isActive ?? true,
+        productsCount: d._count?.products ?? 0,
+        createdAt: d.createdAt ? new Date(d.createdAt).toISOString().split('T')[0] : '',
+      })))
+      setProducts(rawProducts.map((p: any) => ({
+        id: p.id,
+        name: p.name || '',
+        category: (p.category || 'Seeds') as InputProduct['category'],
+        dealerName: p.dealer?.name || '',
+        dealerId: p.dealerId || '',
+        price: p.unitPrice || 0,
+        unit: p.unit || '',
+        inStock: p.isActive ?? true,
+        stockQuantity: 0,
+      })))
+      setRequests(rawRequests.map((r: any) => ({
+        id: r.id,
+        farmerName: r.farmerName || '',
+        farmerCode: r.farmerCode || '',
+        productName: r.product || '',
+        productId: r.productId || '',
+        quantity: r.quantity || 0,
+        unit: r.unit || '',
+        status: (r.status || 'PENDING') as InputRequest['status'],
+        requestedAt: r.createdAt ? new Date(r.createdAt).toISOString().split('T')[0] : '',
+        totalCost: r.totalPrice || 0,
+      })))
     } catch {
-      setDealers(mockDealers)
-      setProducts(mockProducts)
-      setRequests(mockRequests)
+      setDealers([]); setProducts([]); setRequests([])
     } finally {
       setLoading(false)
     }
@@ -330,7 +330,7 @@ export default function InputAggregationView() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Search requests..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <Select value="" onValueChange={v => setSearch(v === '_all' ? '' : v)}>
+            <Select value={statusFilter} onValueChange={v => setStatusFilter(v === '_all' ? '' : v)}>
               <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Filter Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="_all">All Status</SelectItem>
@@ -345,7 +345,7 @@ export default function InputAggregationView() {
             <CardContent className="p-0">
               {loading ? (
                 <div className="p-6 space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded" />)}</div>
-              ) : requests.filter(r => !search || r.farmerName.toLowerCase().includes(search.toLowerCase()) || r.productName.toLowerCase().includes(search.toLowerCase()) || r.status.toLowerCase().includes(search.toLowerCase())).length === 0 ? (
+              ) : requests.filter(r => (!search || r.farmerName.toLowerCase().includes(search.toLowerCase()) || r.productName.toLowerCase().includes(search.toLowerCase())) && (!statusFilter || r.status === statusFilter)).length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground"><ShoppingBag className="w-10 h-10 mx-auto mb-3 opacity-40" /><p className="font-medium">No requests found</p></div>
               ) : (
                 <div className="max-h-[450px] overflow-y-auto">
@@ -361,7 +361,7 @@ export default function InputAggregationView() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {requests.filter(r => !search || r.farmerName.toLowerCase().includes(search.toLowerCase()) || r.productName.toLowerCase().includes(search.toLowerCase()) || r.status.toLowerCase().includes(search.toLowerCase())).map(r => (
+                      {requests.filter(r => (!search || r.farmerName.toLowerCase().includes(search.toLowerCase()) || r.productName.toLowerCase().includes(search.toLowerCase())) && (!statusFilter || r.status === statusFilter)).map(r => (
                         <TableRow key={r.id} className="hover:bg-muted/50">
                           <TableCell>
                             <div>
@@ -422,11 +422,14 @@ function DealerForm({ onClose }: { onClose: () => void }) {
     if (!form.name || !form.phone) { toast.error('Name and phone are required'); return }
     setSaving(true)
     try {
-      const res = await fetch('/api/input-aggregation/dealers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
-      if (!res.ok) throw new Error()
+      const res = await fetch('/api/input-dealers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.error || 'Failed')
+      }
       toast.success('Dealer added successfully')
       onClose()
-    } catch { toast.error('Failed to add dealer') }
+    } catch (e: any) { toast.error(e?.message || 'Failed to add dealer') }
     finally { setSaving(false) }
   }
 
@@ -453,11 +456,25 @@ function ProductForm({ dealers, onClose }: { dealers: Dealer[]; onClose: () => v
     if (!form.name || !form.dealerId) { toast.error('Name and dealer are required'); return }
     setSaving(true)
     try {
-      const res = await fetch('/api/input-aggregation/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, price: Number(form.price), stockQuantity: Number(form.stockQuantity) }) })
-      if (!res.ok) throw new Error()
+      const res = await fetch('/api/input-products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dealerId: form.dealerId,
+          name: form.name,
+          category: form.category,
+          unit: form.unit,
+          unitPrice: Number(form.price),
+          isActive: true,
+        }),
+      })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.error || 'Failed')
+      }
       toast.success('Product added successfully')
       onClose()
-    } catch { toast.error('Failed to add product') }
+    } catch (e: any) { toast.error(e?.message || 'Failed to add product') }
     finally { setSaving(false) }
   }
 
@@ -505,11 +522,28 @@ function RequestForm({ products, onClose }: { products: InputProduct[]; onClose:
     if (!form.productId || !form.farmerName || !form.quantity) { toast.error('All fields are required'); return }
     setSaving(true)
     try {
-      const res = await fetch('/api/input-aggregation/requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, quantity: Number(form.quantity), totalCost: (selectedProduct?.price || 0) * Number(form.quantity) }) })
-      if (!res.ok) throw new Error()
+      const qty = Number(form.quantity)
+      const unitPrice = selectedProduct?.price || 0
+      const res = await fetch('/api/input-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          farmerName: form.farmerName,
+          farmerPhone: '',
+          product: selectedProduct?.name || form.productId,
+          quantity: qty,
+          unitPrice,
+          totalPrice: unitPrice * qty,
+          dealerId: selectedProduct?.dealerId || null,
+        }),
+      })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.error || 'Failed')
+      }
       toast.success('Request submitted successfully')
       onClose()
-    } catch { toast.error('Failed to submit request') }
+    } catch (e: any) { toast.error(e?.message || 'Failed to submit request') }
     finally { setSaving(false) }
   }
 

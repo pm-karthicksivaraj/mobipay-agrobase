@@ -5,7 +5,7 @@ import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import {
   Search, Plus, Eye, X, Loader2, Download, CheckCircle, XCircle, AlertCircle,
-  Clock, DollarSign, ShoppingCart, FileCheck, Filter, ChevronLeft, ChevronRight
+  Clock, DollarSign, ShoppingCart, FileCheck, Filter, ChevronLeft, ChevronRight, Trash2
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 
 interface Purchase {
   id: string
@@ -71,19 +72,39 @@ export default function PurchasesView() {
   const [commodityFilter, setCommodityFilter] = useState('')
   const [showDetail, setShowDetail] = useState<Purchase | null>(null)
   const [showConfirm, setShowConfirm] = useState<{ action: 'approve' | 'reject'; purchase: Purchase } | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+  const [showCreate, setShowCreate] = useState(false)
   const [page, setPage] = useState(1)
   const limit = 10
 
   const fetchPurchases = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/purchases')
-      if (res.ok) {
-        const data = await res.json()
-        setPurchases(data.purchases || data.data || [])
-      } else {
+      const data = await safeFetch('/api/purchases')
+      const arr = extractArray(data, 'purchases', 'data')
+      if (arr.length === 0) {
         setPurchases(mockPurchases)
+        return
       }
+      setPurchases(arr.map((p: any) => ({
+        id: p.id,
+        farmerName: p.farmer ? `${p.farmer.firstName || ''} ${p.farmer.lastName || ''}`.trim() : (p.farmerName || ''),
+        farmerCode: p.farmer?.farmerCode || '',
+        commodity: p.commodity || '',
+        variety: p.variety || '',
+        quantity: Number(p.quantity) || 0,
+        unit: p.unit || '',
+        unitPrice: p.unitPrice || 0,
+        totalAmount: p.totalAmount || 0,
+        charges: 0,
+        taxes: 0,
+        netAmount: p.totalAmount || 0,
+        status: (p.status || 'PENDING') as Purchase['status'],
+        date: p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : '',
+        reviewedBy: p.reviewedBy,
+        reviewedAt: p.updatedAt ? new Date(p.updatedAt).toISOString().split('T')[0] : '',
+        notes: p.notes,
+      })))
     } catch {
       setPurchases(mockPurchases)
     } finally {
@@ -122,11 +143,14 @@ export default function PurchasesView() {
     if (!showConfirm) return
     const purchase = showConfirm.purchase
     const newStatus = action === 'approve' ? (purchase.status === 'PENDING' ? 'REVIEWED' : 'APPROVED') : 'REJECTED'
+    const body = action === 'reject'
+      ? { status: 'REJECTED', rejectionReason: rejectReason }
+      : { status: newStatus }
     try {
       const res = await fetch(`/api/purchases/${purchase.id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error()
       toast.success(`Purchase ${action === 'approve' ? 'approved' : 'rejected'} successfully`)
@@ -135,6 +159,19 @@ export default function PurchasesView() {
       toast.error(`Failed to ${action} purchase`)
     }
     setShowConfirm(null)
+    setRejectReason('')
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this purchase? This action cannot be undone.')) return
+    try {
+      const res = await fetch(`/api/purchases/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      toast.success('Purchase deleted')
+      fetchPurchases()
+    } catch {
+      toast.error('Failed to delete purchase')
+    }
   }
 
   const paged = filtered.slice((page - 1) * limit, page * limit)
@@ -147,9 +184,14 @@ export default function PurchasesView() {
           <h3 className="text-lg font-semibold">Purchase Management</h3>
           <p className="text-sm text-muted-foreground">Review and manage farmer produce purchases</p>
         </div>
-        <Button variant="outline" className="gap-2" onClick={() => toast.info('Export feature coming soon')}>
-          <Download className="w-4 h-4" /> Export
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="default" className="gap-2" onClick={() => setShowCreate(true)}>
+            <Plus className="w-4 h-4" /> New Purchase
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => toast.info('Export feature coming soon')}>
+            <Download className="w-4 h-4" /> Export
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -248,11 +290,14 @@ export default function PurchasesView() {
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowConfirm({ action: 'approve', purchase: p })} title="Approve">
                                 <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowConfirm({ action: 'reject', purchase: p })} title="Reject">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setShowConfirm({ action: 'reject', purchase: p }); setRejectReason('') }} title="Reject">
                                 <XCircle className="w-3.5 h-3.5 text-red-500" />
                               </Button>
                             </>
                           )}
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => handleDelete(p.id)} title="Delete">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -355,7 +400,7 @@ export default function PurchasesView() {
               {showConfirm.action === 'reject' && (
                 <div className="space-y-1.5">
                   <Label>Rejection Reason</Label>
-                  <Input placeholder="Enter reason..." id="reject-reason" />
+                  <Input placeholder="Enter reason..." value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
                 </div>
               )}
               <DialogFooter className="gap-2">
@@ -373,6 +418,129 @@ export default function PurchasesView() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Create Purchase Dialog */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>New Purchase</DialogTitle></DialogHeader>
+          <NewPurchaseForm onClose={() => { setShowCreate(false); fetchPurchases() }} />
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+interface FarmerOption {
+  id: string
+  name: string
+  farmerCode: string
+}
+
+function NewPurchaseForm({ onClose }: { onClose: () => void }) {
+  const [saving, setSaving] = useState(false)
+  const [farmers, setFarmers] = useState<FarmerOption[]>([])
+  const [farmersLoading, setFarmersLoading] = useState(true)
+  const [form, setForm] = useState({
+    farmerId: '',
+    commodity: '',
+    variety: '',
+    quantity: '',
+    unit: 'kg',
+    unitPrice: '',
+    charges: '',
+    tax: '',
+  })
+
+  useEffect(() => {
+    safeFetch('/api/farmers?limit=100').then((data) => {
+      const arr = extractArray(data, 'farmers', 'data')
+      setFarmers(arr.map((f: any) => ({
+        id: f.id,
+        name: `${f.firstName || ''} ${f.lastName || ''}`.trim() || f.farmerCode || 'Unknown',
+        farmerCode: f.farmerCode || '',
+      })))
+      setFarmersLoading(false)
+    })
+  }, [])
+
+  const qty = Number(form.quantity) || 0
+  const price = Number(form.unitPrice) || 0
+  const charges = Number(form.charges) || 0
+  const tax = Number(form.tax) || 0
+  const totalAmount = qty * price
+  const netAmount = totalAmount - charges - tax
+
+  const update = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.farmerId || !form.commodity || !form.quantity) {
+      toast.error('Farmer, commodity and quantity are required')
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/purchases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          farmerId: form.farmerId,
+          commodity: form.commodity,
+          variety: form.variety || null,
+          quantity: String(form.quantity),
+          unitPrice: price,
+          totalAmount,
+          status: 'PENDING',
+        }),
+      })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.error || 'Failed')
+      }
+      toast.success('Purchase created successfully')
+      onClose()
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to create purchase')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Farmer *</Label>
+        <Select value={form.farmerId} onValueChange={v => update('farmerId', v)}>
+          <SelectTrigger><SelectValue placeholder={farmersLoading ? 'Loading farmers...' : 'Select farmer'} /></SelectTrigger>
+          <SelectContent>
+            {farmers.map(f => <SelectItem key={f.id} value={f.id}>{f.name} ({f.farmerCode})</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5"><Label>Commodity *</Label><Input value={form.commodity} onChange={e => update('commodity', e.target.value)} required /></div>
+        <div className="space-y-1.5"><Label>Variety</Label><Input value={form.variety} onChange={e => update('variety', e.target.value)} /></div>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="space-y-1.5"><Label>Quantity *</Label><Input type="number" value={form.quantity} onChange={e => update('quantity', e.target.value)} required /></div>
+        <div className="space-y-1.5"><Label>Unit</Label><Input value={form.unit} onChange={e => update('unit', e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>Unit Price (UGX)</Label><Input type="number" value={form.unitPrice} onChange={e => update('unitPrice', e.target.value)} /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5"><Label>Charges (UGX)</Label><Input type="number" value={form.charges} onChange={e => update('charges', e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>Tax (UGX)</Label><Input type="number" value={form.tax} onChange={e => update('tax', e.target.value)} /></div>
+      </div>
+      <div className="bg-muted/50 p-3 rounded-lg space-y-1 text-sm">
+        <div className="flex justify-between"><span className="text-muted-foreground">Gross Amount:</span><span className="font-medium">UGX {totalAmount.toLocaleString()}</span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Charges:</span><span className="text-amber-600">- UGX {charges.toLocaleString()}</span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Tax:</span><span className="text-red-600">- UGX {tax.toLocaleString()}</span></div>
+        <Separator className="my-2" />
+        <div className="flex justify-between font-bold"><span>Net Amount:</span><span className="text-emerald-700 dark:text-emerald-400">UGX {Math.max(0, netAmount).toLocaleString()}</span></div>
+      </div>
+      <DialogFooter className="gap-2">
+        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+        <Button type="submit" disabled={saving} className="gap-2">{saving && <Loader2 className="w-4 h-4 animate-spin" />} Create Purchase</Button>
+      </DialogFooter>
+    </form>
   )
 }

@@ -5,8 +5,9 @@ import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import {
   Search, X, Loader2, Filter, MessageSquare, CheckCircle, Clock,
-  AlertCircle, Eye, MessageCircle, Star, ChevronDown, TrendingUp
+  AlertCircle, Eye, MessageCircle, Star, ChevronDown, TrendingUp, Trash2
 } from 'lucide-react'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -91,14 +92,13 @@ export default function FeedbackView() {
       const params = new URLSearchParams()
       if (statusFilter) params.set('status', statusFilter)
       if (categoryFilter) params.set('category', categoryFilter)
-      const res = await fetch(`/api/modules?module=feedback&${params}`)
-      if (res.ok) {
-        const data = await res.json()
-        if (data.feedback && data.feedback.length > 0) {
-          setFeedback(data.feedback)
-          setLoading(false)
-          return
-        }
+      const url = `/api/feedback${params.toString() ? `?${params.toString()}` : ''}`
+      const data = await safeFetch(url)
+      const list = extractArray(data, 'feedback', 'data')
+      if (list.length > 0) {
+        setFeedback(list)
+        setLoading(false)
+        return
       }
       setFeedback(DEMO_FEEDBACK)
     } catch {
@@ -136,18 +136,53 @@ export default function FeedbackView() {
   const catPieConfig: ChartConfig = Object.fromEntries(catPieData.map((d, i) => [d.name, { label: d.name, color: PIE_COLORS[i % PIE_COLORS.length] }]))
   const CAT_PIE_COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6b7280']
 
-  const handleReview = (notes: string) => {
+  const handleReview = async (notes: string) => {
     if (!showReview) return
-    setFeedback(prev => prev.map(f => f.id === showReview.id ? { ...f, status: 'REVIEWED' as const, reviewNotes: notes, reviewedBy: 'Current User', reviewedAt: new Date().toISOString() } : f))
-    toast.success('Feedback marked as reviewed')
+    const id = showReview.id
+    // Optimistic local update
+    setFeedback(prev => prev.map(f => f.id === id ? { ...f, status: 'REVIEWED' as const, reviewNotes: notes, reviewedBy: 'Current User', reviewedAt: new Date().toISOString() } : f))
     setShowReview(null)
+    try {
+      const res = await fetch('/api/feedback/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'REVIEWED', reviewNotes: notes }),
+      })
+      if (!res.ok) throw new Error('Failed to review feedback')
+      toast.success('Feedback marked as reviewed')
+    } catch {
+      toast.error('Failed to persist review status to server')
+    }
   }
 
-  const handleResolve = (notes: string) => {
+  const handleResolve = async (notes: string) => {
     if (!showResolve) return
-    setFeedback(prev => prev.map(f => f.id === showResolve.id ? { ...f, status: 'RESOLVED' as const, reviewNotes: notes, resolvedAt: new Date().toISOString() } : f))
-    toast.success('Feedback marked as resolved')
+    const id = showResolve.id
+    // Optimistic local update
+    setFeedback(prev => prev.map(f => f.id === id ? { ...f, status: 'RESOLVED' as const, reviewNotes: notes, resolvedAt: new Date().toISOString() } : f))
     setShowResolve(null)
+    try {
+      const res = await fetch('/api/feedback/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'RESOLVED', resolutionNotes: notes }),
+      })
+      if (!res.ok) throw new Error('Failed to resolve feedback')
+      toast.success('Feedback marked as resolved')
+    } catch {
+      toast.error('Failed to persist resolution status to server')
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await fetch('/api/feedback/' + id, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete feedback')
+      toast.success('Feedback deleted')
+      fetchFeedback()
+    } catch {
+      toast.error('Failed to delete feedback')
+    }
   }
 
   return (
@@ -336,6 +371,9 @@ export default function FeedbackView() {
                               <MessageCircle className="w-3.5 h-3.5" />
                             </Button>
                           )}
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-50" title="Delete feedback" onClick={() => handleDelete(f.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

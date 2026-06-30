@@ -6,8 +6,9 @@ import { cn } from '@/lib/utils'
 import {
   ClipboardCheck, CheckCircle, XCircle, Clock, AlertTriangle,
   ShoppingCart, DollarSign, Package, Search, X, Loader2, Filter,
-  TrendingUp, ArrowUpDown, Eye
+  TrendingUp, ArrowUpDown, Eye, RefreshCw
 } from 'lucide-react'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -88,14 +89,12 @@ export default function ApprovalsView() {
   const fetchApprovals = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/modules?module=approvals')
-      if (res.ok) {
-        const data = await res.json()
-        if (data.approvals && data.approvals.length > 0) {
-          setApprovals(data.approvals)
-          setLoading(false)
-          return
-        }
+      const data = await safeFetch('/api/approvals')
+      const list = extractArray(data, 'data', 'approvals')
+      if (list.length > 0) {
+        setApprovals(list)
+        setLoading(false)
+        return
       }
       setApprovals(DEMO_APPROVALS)
     } catch {
@@ -123,20 +122,40 @@ export default function ApprovalsView() {
   const approvedToday = approvals.filter(a => a.status === 'APPROVED' && a.reviewedAt && new Date(a.reviewedAt).toDateString() === new Date().toDateString()).length
   const rejectedToday = approvals.filter(a => a.status === 'REJECTED' && a.reviewedAt && new Date(a.reviewedAt).toDateString() === new Date().toDateString()).length
 
-  // Avg approval time (demo calculation)
-  const reviewed = approvals.filter(a => a.reviewedAt && a.status !== 'PENDING')
-  const avgApprovalHours = reviewed.length > 0
-    ? (reviewed.reduce((sum, a) => sum + (Math.random() * 24 + 2), 0) / reviewed.length).toFixed(1)
-    : '—'
+  // Avg approval time (real calculation: average days since submission)
+  const reviewed = approvals.filter(a => a.submittedAt)
+  const avgApprovalDays = reviewed.length > 0
+    ? (reviewed.reduce((sum, a) => sum + Math.ceil((Date.now() - new Date(a.submittedAt).getTime()) / 86400000), 0) / reviewed.length).toFixed(1)
+    : '0'
 
-  const handleApprove = (item: ApprovalItem) => {
-    setApprovals(prev => prev.map(a => a.id === item.id ? { ...a, status: 'APPROVED' as const, reviewedAt: new Date().toISOString(), reviewedBy: 'Current User' } : a))
-    toast.success(`${item.reference} has been approved`)
+  const handleApprove = async (item: ApprovalItem) => {
+    try {
+      const res = await fetch('/api/approvals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, type: item.type, action: 'APPROVE' }),
+      })
+      if (!res.ok) throw new Error('Failed to approve')
+      toast.success(`${item.reference} has been approved`)
+      fetchApprovals()
+    } catch {
+      toast.error(`Failed to approve ${item.reference}`)
+    }
   }
 
-  const handleReject = (item: ApprovalItem) => {
-    setApprovals(prev => prev.map(a => a.id === item.id ? { ...a, status: 'REJECTED' as const, reviewedAt: new Date().toISOString(), reviewedBy: 'Current User' } : a))
-    toast.success(`${item.reference} has been rejected`)
+  const handleReject = async (item: ApprovalItem) => {
+    try {
+      const res = await fetch('/api/approvals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, type: item.type, action: 'REJECT' }),
+      })
+      if (!res.ok) throw new Error('Failed to reject')
+      toast.success(`${item.reference} has been rejected`)
+      fetchApprovals()
+    } catch {
+      toast.error(`Failed to reject ${item.reference}`)
+    }
   }
 
   const formatAmount = (amount: number, currency: string) => {
@@ -155,6 +174,9 @@ export default function ApprovalsView() {
           </h3>
           <p className="text-sm text-muted-foreground">Unified approval center for purchases, loans, and input requests</p>
         </div>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fetchApprovals()}>
+          <RefreshCw className="w-3.5 h-3.5" /> Refresh
+        </Button>
       </div>
 
       {/* Stats */}
@@ -199,7 +221,7 @@ export default function ApprovalsView() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Avg Approval</p>
-              <p className="text-xl font-bold">{avgApprovalHours}{avgApprovalHours !== '—' ? 'h' : ''}</p>
+              <p className="text-xl font-bold">{avgApprovalDays}d</p>
             </div>
           </CardContent>
         </Card>

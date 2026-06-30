@@ -6,7 +6,7 @@ import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import {
   Search, Plus, X, Loader2, Package, Truck, CheckCircle, Clock, DollarSign,
-  ArrowRight, MapPin, Eye, ChevronLeft, ChevronRight, AlertCircle
+  ArrowRight, MapPin, Eye, ChevronLeft, ChevronRight, AlertCircle, Pencil, Trash2
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -114,6 +114,7 @@ export default function ConsignmentsView() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [showAdd, setShowAdd] = useState(false)
+  const [editingConsignment, setEditingConsignment] = useState<Consignment | null>(null)
   const [showDetail, setShowDetail] = useState<Consignment | null>(null)
   const [page, setPage] = useState(1)
   const limit = 10
@@ -123,7 +124,25 @@ export default function ConsignmentsView() {
     try {
       const data = await safeFetch('/api/consignments')
       if (data) {
-        setConsignments(extractArray(data, 'consignments'))
+        const raw = extractArray(data, 'data', 'consignments')
+        // Normalize API rows to the Consignment interface
+        const normalized: Consignment[] = raw.map((c: any) => ({
+          id: c.id,
+          product: c.product || '',
+          quantity: Number(c.quantity) || 0,
+          unit: '',
+          source: c.source || '',
+          destination: c.destination || '',
+          totalValue: c.totalValue ?? 0,
+          status: (c.status || 'DRAFT') as Consignment['status'],
+          createdAt: c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : '',
+          updatedAt: c.updatedAt ? new Date(c.updatedAt).toISOString().split('T')[0] : '',
+          dispatchDate: undefined,
+          receiveDate: undefined,
+          notes: '',
+          items: [],
+        }))
+        setConsignments(normalized.length > 0 ? normalized : mockConsignments)
       } else {
         setConsignments(mockConsignments)
       }
@@ -133,6 +152,35 @@ export default function ConsignmentsView() {
       setLoading(false)
     }
   }, [])
+
+  const openEdit = (c: Consignment) => {
+    setEditingConsignment(c)
+    setShowAdd(false)
+  }
+
+  const openAdd = () => {
+    setEditingConsignment(null)
+    setShowAdd(true)
+  }
+
+  const closeFormDialog = () => {
+    setShowAdd(false)
+    setEditingConsignment(null)
+    fetchConsignments()
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this consignment?')) return
+    try {
+      const res = await fetch(`/api/consignments/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Consignment deleted')
+        fetchConsignments()
+      } else {
+        toast.error('Failed to delete consignment')
+      }
+    } catch { toast.error('Network error') }
+  }
 
   useEffect(() => { fetchConsignments() }, [fetchConsignments])
 
@@ -181,7 +229,7 @@ export default function ConsignmentsView() {
           <h3 className="text-lg font-semibold">Consignment Management</h3>
           <p className="text-sm text-muted-foreground">Track product consignments through the supply chain</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="w-4 h-4" /> New Consignment</Button>
+        <Button onClick={openAdd} className="gap-2"><Plus className="w-4 h-4" /> New Consignment</Button>
       </div>
 
       {/* Stats */}
@@ -231,7 +279,7 @@ export default function ConsignmentsView() {
                     <TableHead className="hidden lg:table-cell">Value</TableHead>
                     <TableHead>Pipeline</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-[70px]"></TableHead>
+                    <TableHead className="w-[120px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -263,9 +311,17 @@ export default function ConsignmentsView() {
                       </TableCell>
                       <TableCell><Badge className={cn('text-[10px]', consignmentStatusColor[c.status] || '')}>{c.status.replace('_', ' ')}</Badge></TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={e => { e.stopPropagation(); setShowDetail(c) }}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="View" onClick={e => { e.stopPropagation(); setShowDetail(c) }}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit" onClick={e => { e.stopPropagation(); openEdit(c) }}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40" title="Delete" onClick={e => { e.stopPropagation(); handleDelete(c.id) }}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -388,38 +444,62 @@ export default function ConsignmentsView() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Consignment Dialog */}
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+      {/* Add / Edit Consignment Dialog */}
+      <Dialog open={showAdd || !!editingConsignment} onOpenChange={open => { if (!open) closeFormDialog() }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>New Consignment</DialogTitle></DialogHeader>
-          <AddConsignmentForm onClose={() => { setShowAdd(false); fetchConsignments() }} />
+          <DialogHeader><DialogTitle>{editingConsignment ? 'Edit Consignment' : 'New Consignment'}</DialogTitle></DialogHeader>
+          <AddConsignmentForm onClose={closeFormDialog} initial={editingConsignment} />
         </DialogContent>
       </Dialog>
     </div>
   )
 }
 
-function AddConsignmentForm({ onClose }: { onClose: () => void }) {
+function AddConsignmentForm({ onClose, initial }: { onClose: () => void; initial?: Consignment | null }) {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    product: '', quantity: '', unit: 'kg', source: '', destination: '', notes: '',
+    product: initial?.product || '',
+    quantity: initial?.quantity?.toString() || '',
+    unit: initial?.unit || 'kg',
+    source: initial?.source || '',
+    destination: initial?.destination || '',
+    totalValue: initial?.totalValue?.toString() || '',
+    status: initial?.status || 'DRAFT',
+    notes: initial?.notes || '',
   })
   const update = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
+  const isEdit = !!initial
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.product || !form.source || !form.destination) { toast.error('Product, source, and destination are required'); return }
     setSaving(true)
     try {
-      const res = await fetch('/api/consignments', {
-        method: 'POST',
+      // Only send fields that exist on the Prisma Consignment model:
+      // (id, tenantId, product, quantity (String), source, destination, status, totalValue, createdAt, updatedAt)
+      // Extra fields like unit/notes/items are NOT in the schema and would break PUT.
+      const payload = {
+        product: form.product,
+        quantity: String(form.quantity || ''),
+        source: form.source,
+        destination: form.destination,
+        totalValue: Number(form.totalValue) || 0,
+        status: form.status || 'DRAFT',
+      }
+      const res = await fetch(isEdit ? `/api/consignments/${initial!.id}` : '/api/consignments', {
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, quantity: Number(form.quantity), status: 'DRAFT', items: [] }),
+        body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error()
-      toast.success('Consignment created successfully')
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.error || 'Request failed')
+      }
+      toast.success(isEdit ? 'Consignment updated successfully' : 'Consignment created successfully')
       onClose()
-    } catch { toast.error('Failed to create consignment') }
+    } catch (err: any) {
+      toast.error(err?.message || (isEdit ? 'Failed to update consignment' : 'Failed to create consignment'))
+    }
     finally { setSaving(false) }
   }
 
@@ -437,10 +517,20 @@ function AddConsignmentForm({ onClose }: { onClose: () => void }) {
       </div>
       <div className="space-y-1.5"><Label>Source *</Label><Input value={form.source} onChange={e => update('source', e.target.value)} placeholder="e.g., Kampala Warehouse" required /></div>
       <div className="space-y-1.5"><Label>Destination *</Label><Input value={form.destination} onChange={e => update('destination', e.target.value)} placeholder="e.g., Rotterdam, NL" required /></div>
-      <div className="space-y-1.5"><Label>Notes</Label><Input value={form.notes} onChange={e => update('notes', e.target.value)} /></div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5"><Label>Total Value (UGX)</Label><Input type="number" value={form.totalValue} onChange={e => update('totalValue', e.target.value)} placeholder="0" /></div>
+        <div className="space-y-1.5"><Label>Status</Label>
+          <Select value={form.status} onValueChange={v => update('status', v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {statusPipeline.map(s => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       <DialogFooter className="gap-2">
         <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-        <Button type="submit" disabled={saving} className="gap-2">{saving && <Loader2 className="w-4 h-4 animate-spin" />} Create Consignment</Button>
+        <Button type="submit" disabled={saving} className="gap-2">{saving && <Loader2 className="w-4 h-4 animate-spin" />} {isEdit ? 'Update Consignment' : 'Create Consignment'}</Button>
       </DialogFooter>
     </form>
   )

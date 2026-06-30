@@ -5,8 +5,10 @@ import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import {
   Search, Plus, X, Loader2, Filter, Layers, Droplets, Wind,
-  Package, Star, TrendingUp, Clock, CheckCircle, AlertCircle, BarChart3
+  Package, Star, TrendingUp, Clock, CheckCircle, AlertCircle, BarChart3,
+  Trash2
 } from 'lucide-react'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -106,24 +108,60 @@ export default function ProcessingView() {
   const fetchBatches = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/modules?module=processing')
-      if (res.ok) {
-        const data = await res.json()
-        if (data.batches && data.batches.length > 0) {
-          setBatches(data.batches)
-          setLoading(false)
-          return
-        }
+      const params = new URLSearchParams()
+      if (processFilter) params.set('processType', processFilter)
+      if (statusFilter) params.set('status', statusFilter)
+      if (commodityFilter) params.set('commodity', commodityFilter)
+      if (search) params.set('search', search)
+      const url = `/api/processing${params.toString() ? `?${params}` : ''}`
+      const data = await safeFetch(url)
+      const raw = extractArray(data, 'batches', 'data')
+      if (raw.length > 0) {
+        const mapped: ProcessingBatch[] = raw.map((b: any) => ({
+          id: b.id,
+          batchNumber: b.batchNumber || '',
+          inputCommodity: b.inputCommodity || '',
+          processType: b.processType || '',
+          outputProduct: b.outputProduct || '',
+          inputQuantity: Number(b.inputQuantity) || 0,
+          inputUnit: b.inputUnit || 'kg',
+          outputQuantity: Number(b.outputQuantity) || 0,
+          outputUnit: b.outputUnit || 'kg',
+          qualityGrade: b.qualityGrade || 'Grade 2',
+          qualityScore: Number(b.qualityScore) || 0,
+          status: b.status || 'PENDING',
+          facility: b.facility || '',
+          startDate: b.startDate || new Date().toISOString(),
+          endDate: b.endDate || undefined,
+          notes: b.notes || undefined,
+        }))
+        setBatches(mapped)
+      } else {
+        setBatches(DEMO_BATCHES)
       }
-      setBatches(DEMO_BATCHES)
     } catch {
       setBatches(DEMO_BATCHES)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [processFilter, statusFilter, commodityFilter, search])
 
   useEffect(() => { fetchBatches() }, [fetchBatches])
+
+  const handleDelete = async (id: string, batchNumber: string) => {
+    if (!confirm(`Delete batch "${batchNumber}"? This action cannot be undone.`)) return
+    try {
+      const res = await fetch(`/api/processing/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Batch deleted')
+        fetchBatches()
+      } else {
+        toast.error('Failed to delete batch')
+      }
+    } catch {
+      toast.error('Failed to delete batch')
+    }
+  }
 
   const filtered = batches.filter(b => {
     if (search && !b.batchNumber.toLowerCase().includes(search.toLowerCase()) && !b.inputCommodity.toLowerCase().includes(search.toLowerCase()) && !b.outputProduct.toLowerCase().includes(search.toLowerCase())) return false
@@ -327,6 +365,7 @@ export default function ProcessingView() {
                     <TableHead>Grade</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="hidden md:table-cell">Date</TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -378,6 +417,11 @@ export default function ProcessingView() {
                         <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
                           {new Date(b.startDate).toLocaleDateString()}
                         </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => handleDelete(b.id, b.batchNumber)} title="Delete batch">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     )
                   })}
@@ -426,20 +470,36 @@ function AddBatchForm({ onClose }: { onClose: () => void }) {
     }
     setSaving(true)
     try {
-      const res = await fetch('/api/modules', {
+      const res = await fetch('/api/processing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ module: 'processing', ...form, inputQuantity: parseFloat(form.inputQuantity), outputQuantity: form.outputQuantity ? parseFloat(form.outputQuantity) : 0 }),
+        body: JSON.stringify({
+          inputCommodity: form.inputCommodity,
+          processType: form.processType,
+          outputProduct: form.outputProduct,
+          inputQuantity: parseFloat(form.inputQuantity),
+          inputUnit: form.inputUnit,
+          outputQuantity: form.outputQuantity ? parseFloat(form.outputQuantity) : 0,
+          outputUnit: form.outputUnit,
+          qualityGrade: form.qualityGrade || 'Grade 2',
+          facility: form.facility,
+          startDate: form.startDate,
+          notes: form.notes,
+          status: 'PENDING',
+        }),
       })
       if (res.ok) {
         toast.success('Processing batch created successfully')
         onClose()
         return
       }
-    } catch { /* fallback */ }
-    toast.success('Processing batch created (demo mode)')
-    onClose()
-    setSaving(false)
+      const errBody = await res.json().catch(() => null)
+      toast.error(errBody?.error || 'Failed to create processing batch')
+    } catch {
+      toast.error('Failed to create processing batch')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

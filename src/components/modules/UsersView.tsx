@@ -5,8 +5,10 @@ import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import {
   Search, Plus, UserCheck, Phone, Mail, X, Loader2, Filter,
-  Eye, Shield, Key, ToggleLeft, ToggleRight, Users, ChevronLeft, ChevronRight, Clock
+  Eye, Shield, Key, ToggleLeft, ToggleRight, Users, ChevronLeft, ChevronRight, Clock,
+  Trash2
 } from 'lucide-react'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -105,17 +107,26 @@ export default function UsersView() {
       const params = new URLSearchParams()
       if (search) params.set('search', search)
       if (roleFilter) params.set('role', roleFilter)
-      if (statusFilter) params.set('status', statusFilter)
-      const res = await fetch(`/api/modules?module=users&${params}`)
-      if (res.ok) {
-        const data = await res.json()
-        if (data.users && data.users.length > 0) {
-          setUsers(data.users)
-          setLoading(false)
-          return
-        }
+      if (statusFilter) params.set('status', statusFilter === 'ACTIVE' ? 'active' : statusFilter === 'INACTIVE' ? 'inactive' : statusFilter.toLowerCase())
+      const url = `/api/users${params.toString() ? `?${params}` : ''}`
+      const data = await safeFetch(url)
+      const raw = extractArray(data, 'users', 'data')
+      if (raw.length > 0) {
+        const mapped: User[] = raw.map((u: any) => ({
+          id: u.id,
+          name: u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || u.phone,
+          role: u.role,
+          phone: u.phone || '',
+          email: u.email || '',
+          tenant: u.tenant ? (typeof u.tenant === 'string' ? u.tenant : (u.tenant.name || u.tenant.id || '')) : (u.tenantName || ''),
+          status: u.status || (u.isActive === false ? 'INACTIVE' : 'ACTIVE'),
+          lastLogin: u.lastLogin,
+          createdAt: u.createdAt || new Date().toISOString(),
+        }))
+        setUsers(mapped)
+      } else {
+        setUsers(DEMO_USERS)
       }
-      setUsers(DEMO_USERS)
     } catch {
       setUsers(DEMO_USERS)
     } finally {
@@ -151,14 +162,56 @@ export default function UsersView() {
   const pieData = Object.entries(roleCounts).map(([name, value]) => ({ name, value }))
   const pieConfig: ChartConfig = Object.fromEntries(pieData.map((d, i) => [d.name, { label: d.name, color: PIE_COLORS[i % PIE_COLORS.length] }]))
 
-  const handleToggleStatus = (user: User) => {
+  const handleToggleStatus = async (user: User) => {
     const newStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
-    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: newStatus } : u))
-    toast.success(`${user.name} is now ${newStatus.toLowerCase()}`)
+    const newIsActive = newStatus === 'ACTIVE'
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: newIsActive }),
+      })
+      if (res.ok) {
+        toast.success(`${user.name} is now ${newStatus.toLowerCase()}`)
+        fetchUsers()
+      } else {
+        toast.error('Failed to update user status')
+      }
+    } catch {
+      toast.error('Failed to update user status')
+    }
   }
 
-  const handleResetPassword = (user: User) => {
-    toast.success(`Password reset link sent to ${user.email}`)
+  const handleResetPassword = async (user: User) => {
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'password123' }),
+      })
+      if (res.ok) {
+        toast.success(`Password reset to password123 for ${user.email}`)
+      } else {
+        toast.error('Failed to reset password')
+      }
+    } catch {
+      toast.error('Failed to reset password')
+    }
+  }
+
+  const handleDelete = async (user: User) => {
+    if (!confirm(`Delete user "${user.name}"? This will deactivate the account.`)) return
+    try {
+      const res = await fetch(`/api/users/${user.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('User deleted')
+        fetchUsers()
+      } else {
+        toast.error('Failed to delete user')
+      }
+    } catch {
+      toast.error('Failed to delete user')
+    }
   }
 
   return (
@@ -364,12 +417,31 @@ export default function UsersView() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Reset Password</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Send a password reset link to <strong>{u.email}</strong>? The user will be prompted to set a new password on next login.
+                                    Reset the password for <strong>{u.email}</strong> to the default <code>password123</code>? The user should change it on next login.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleResetPassword(u)}>Send Reset Link</AlertDialogAction>
+                                  <AlertDialogAction onClick={() => handleResetPassword(u)}>Reset Password</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete user">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Delete <strong>{u.name}</strong>? This will permanently deactivate the account.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(u)}>Delete</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -419,22 +491,36 @@ function AddUserForm({ onClose }: { onClose: () => void }) {
       toast.error('Name, role, and email are required')
       return
     }
+    // Split the name into firstName/lastName for the API
+    const parts = form.name.trim().split(/\s+/)
+    const firstName = parts[0] || form.name
+    const lastName = parts.slice(1).join(' ') || firstName
     setSaving(true)
     try {
-      const res = await fetch('/api/modules', {
+      const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ module: 'users', ...form }),
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          role: form.role,
+          email: form.email || null,
+          phone: form.phone || form.email,
+          isActive: form.status !== 'INACTIVE' && form.status !== 'SUSPENDED',
+        }),
       })
       if (res.ok) {
         toast.success('User created successfully')
         onClose()
         return
       }
-    } catch { /* fallback */ }
-    toast.success('User created successfully (demo mode)')
-    onClose()
-    setSaving(false)
+      const errBody = await res.json().catch(() => null)
+      toast.error(errBody?.error || 'Failed to create user')
+    } catch {
+      toast.error('Failed to create user')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

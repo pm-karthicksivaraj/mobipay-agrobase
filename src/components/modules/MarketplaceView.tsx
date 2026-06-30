@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import {
   Store, Search, Plus, Filter, X, Eye, ShoppingCart, Truck,
-  Package, ArrowRight, Tag, MapPin, Phone, Loader2
+  Package, ArrowRight, Tag, MapPin, Phone, Loader2, Pencil, Trash2
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -39,29 +40,112 @@ export default function MarketplaceView() {
   const [inputRequests, setInputRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(activeSubTab || 'products')
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<any | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [form, setForm] = useState({
+    sellerName: '', commodity: '', variety: '', quantity: '',
+    unit: '', unitPrice: '', location: '', description: '',
+  })
 
   const loadData = useCallback(async () => {
-    try {
-      const [pRes, mRes, dRes, iRes] = await Promise.all([
-        fetch('/api/market/products').then(r => r.json()),
-        fetch('/api/market/matches').then(r => r.json()),
-        fetch('/api/inputs/dealers').then(r => r.json()),
-        fetch('/api/inputs/requests').then(r => r.json()),
-      ])
-      setProducts(pRes.products || pRes || [])
-      setMatches(mRes.matches || mRes || [])
-      setDealers(dRes.dealers || dRes || [])
-      setInputRequests(iRes.requests || iRes || [])
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
+    // safeFetch returns null on any per-request error, so one failing endpoint
+    // no longer breaks the whole view. extractArray(null, ...) yields [].
+    const [pData, mData, dData, iData] = await Promise.all([
+      safeFetch('/api/market/products'),
+      safeFetch('/api/market/matches'),
+      safeFetch('/api/inputs/dealers'),
+      safeFetch('/api/inputs/requests'),
+    ])
+    setProducts(extractArray(pData, 'products', 'data'))
+    setMatches(extractArray(mData, 'matches', 'data'))
+    setDealers(extractArray(dData, 'dealers', 'data'))
+    setInputRequests(extractArray(iData, 'requests', 'data'))
+    setLoading(false)
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
 
   const handleTabChange = (t: string) => { setActiveTab(t); setActiveSubTab(t) }
+
+  const updateField = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }))
+
+  const openAdd = () => {
+    setEditingProduct(null)
+    setForm({ sellerName: '', commodity: '', variety: '', quantity: '', unit: '', unitPrice: '', location: '', description: '' })
+    setDialogOpen(true)
+  }
+
+  const openEdit = (p: any) => {
+    setEditingProduct(p)
+    setForm({
+      sellerName: p.sellerName || '',
+      commodity: p.commodity || '',
+      variety: p.variety || '',
+      quantity: p.quantity || '',
+      unit: p.unit || '',
+      unitPrice: p.unitPrice != null ? String(p.unitPrice) : '',
+      location: p.location || '',
+      description: p.description || '',
+    })
+    setDialogOpen(true)
+  }
+
+  const handleSubmit = async () => {
+    if (!form.sellerName || !form.commodity) {
+      toast.error('Product name and commodity are required')
+      return
+    }
+    setSubmitting(true)
+    try {
+      // Schema-sanitised payload — only MarketProduct columns are transmitted.
+      // `unit` and `description` are kept in the form for UX but not persisted
+      // (the Prisma model has no such fields).
+      const payload: Record<string, unknown> = {
+        sellerName: form.sellerName,
+        commodity: form.commodity,
+        variety: form.variety || null,
+        quantity: form.quantity,
+        unitPrice: form.unitPrice ? Number(form.unitPrice) : null,
+        location: form.location || null,
+      }
+      const isEdit = !!editingProduct
+      const url = isEdit ? `/api/market/products/${editingProduct.id}` : '/api/market/products'
+      const method = isEdit ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        toast.success(isEdit ? 'Product updated' : 'Product listed')
+        setDialogOpen(false)
+        setEditingProduct(null)
+        loadData()
+      } else {
+        toast.error('Failed to save product')
+      }
+    } catch {
+      toast.error('Network error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this product listing?')) return
+    try {
+      const res = await fetch(`/api/market/products/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Product deleted')
+        loadData()
+      } else {
+        toast.error('Failed to delete product')
+      }
+    } catch {
+      toast.error('Network error')
+    }
+  }
 
   if (loading) return <MarketplaceSkeleton />
 
@@ -95,8 +179,20 @@ export default function MarketplaceView() {
         </TabsList>
 
         <TabsContent value="products" className="mt-4">
+          <div className="flex justify-end mb-3">
+            <Button onClick={openAdd} className="gap-2">
+              <Plus className="w-4 h-4" /> List Product
+            </Button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {products.map((p: any) => (
+            {products.length === 0 ? (
+              <Card className="md:col-span-2 xl:col-span-3">
+                <CardContent className="py-10 text-center text-muted-foreground">
+                  <Store className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  No product listings yet — click “List Product” to add one.
+                </CardContent>
+              </Card>
+            ) : products.map((p: any) => (
               <Card key={p.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-3">
@@ -115,6 +211,20 @@ export default function MarketplaceView() {
                     {p.location && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="w-3 h-3" />{p.location}</div>
                     )}
+                  </div>
+                  <div className="flex justify-end gap-1 pt-3 mt-3 border-t">
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(p)} aria-label="Edit product">
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                      onClick={() => handleDelete(p.id)}
+                      aria-label="Delete product"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -207,6 +317,96 @@ export default function MarketplaceView() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* List / Edit Product Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingProduct(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingProduct ? 'Edit Product' : 'List Product'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Product Name (Seller)</Label>
+              <Input
+                value={form.sellerName}
+                onChange={e => updateField('sellerName', e.target.value)}
+                placeholder="e.g. Jane’s Maize Stall"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Commodity</Label>
+                <Input
+                  value={form.commodity}
+                  onChange={e => updateField('commodity', e.target.value)}
+                  placeholder="Maize, Coffee..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Variety</Label>
+                <Input
+                  value={form.variety}
+                  onChange={e => updateField('variety', e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Quantity</Label>
+                <Input
+                  value={form.quantity}
+                  onChange={e => updateField('quantity', e.target.value)}
+                  placeholder="e.g. 100"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Unit</Label>
+                <Input
+                  value={form.unit}
+                  onChange={e => updateField('unit', e.target.value)}
+                  placeholder="kg, bags..."
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Unit Price (UGX)</Label>
+                <Input
+                  type="number"
+                  value={form.unitPrice}
+                  onChange={e => updateField('unitPrice', e.target.value)}
+                  placeholder="e.g. 1500"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Input
+                  value={form.location}
+                  onChange={e => updateField('location', e.target.value)}
+                  placeholder="District / town"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={form.description}
+                onChange={e => updateField('description', e.target.value)}
+                placeholder="Optional notes about quality, harvest date, etc."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+            <Button onClick={handleSubmit} disabled={submitting} className="gap-2">
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {editingProduct ? 'Update Product' : 'List Product'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -5,7 +5,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
 import {
   Tractor, Plus, Calendar, Clock, CheckCircle, XCircle, Search,
-  Loader2, MapPin, Eye, CalendarDays, BarChart3, User, ChevronLeft, ChevronRight
+  Loader2, MapPin, Eye, CalendarDays, BarChart3, User, ChevronLeft, ChevronRight,
+  Pencil, Trash2
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -44,6 +45,7 @@ export default function FarmVisitsView() {
   const [activeTab, setActiveTab] = useState(activeSubTab || 'visits')
   const [searchTerm, setSearchTerm] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingVisit, setEditingVisit] = useState<any>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedVisit, setSelectedVisit] = useState<any>(null)
   const [historyFarmer, setHistoryFarmer] = useState('')
@@ -94,32 +96,62 @@ export default function FarmVisitsView() {
     setFormObservations(''); setFormRecommendations(''); setFormFollowUp('')
   }
 
+  const openAdd = () => {
+    setEditingVisit(null)
+    resetForm()
+    setDialogOpen(true)
+  }
+
+  const openEdit = (v: any) => {
+    setEditingVisit(v)
+    setFormFarmer(v.farmerId || '')
+    setFormDate(v.visitDate ? new Date(v.visitDate).toISOString().slice(0, 10) : '')
+    setFormTopic(v.topic || '')
+    setFormObservations(v.observations || '')
+    setFormRecommendations(v.recommendations || '')
+    setFormFollowUp(v.followUpDate ? new Date(v.followUpDate).toISOString().slice(0, 10) : '')
+    setDialogOpen(true)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this farm visit?')) return
+    try {
+      const res = await fetch(`/api/farm-visits/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Farm visit deleted')
+        fetchVisits()
+      } else {
+        toast.error('Failed to delete visit')
+      }
+    } catch { toast.error('Network error') }
+  }
+
   const handleSubmit = async () => {
     if (!formFarmer) { toast.error('Please select a farmer'); return }
     if (!formDate) { toast.error('Please select a date'); return }
     if (!formTopic) { toast.error('Please select a topic'); return }
     setSubmitting(true)
     try {
-      const data = await safeFetch('/api/farm-visits', )
-      // POST: re-fetch after -- but safeFetch is GET-only
-      const res = await fetch('/api/farm-visits', {
-        method: 'POST',
+      const payload = {
+        farmerId: formFarmer,
+        visitDate: new Date(formDate).toISOString(),
+        topic: formTopic,
+        observations: formObservations,
+        recommendations: formRecommendations,
+        followUpDate: formFollowUp ? new Date(formFollowUp).toISOString() : null,
+        extensionOfficerId: user?.userId,
+        status: editingVisit?.status || 'SCHEDULED',
+      }
+      const isEdit = !!editingVisit
+      const res = await fetch(isEdit ? `/api/farm-visits/${editingVisit.id}` : '/api/farm-visits', {
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          farmerId: formFarmer,
-          visitDate: new Date(formDate).toISOString(),
-          topic: formTopic,
-          observations: formObservations,
-          recommendations: formRecommendations,
-          followUpDate: formFollowUp ? new Date(formFollowUp).toISOString() : null,
-          extensionOfficerId: user?.userId,
-          status: 'SCHEDULED',
-        }),
+        body: JSON.stringify(payload),
       })
       if (res.ok) {
-        toast.success('Farm visit scheduled successfully')
-        setDialogOpen(false); resetForm(); fetchVisits()
-      } else { toast.error('Failed to schedule visit') }
+        toast.success(isEdit ? 'Farm visit updated successfully' : 'Farm visit scheduled successfully')
+        setDialogOpen(false); resetForm(); setEditingVisit(null); fetchVisits()
+      } else { toast.error(isEdit ? 'Failed to update visit' : 'Failed to schedule visit') }
     } catch { toast.error('Network error') }
     finally { setSubmitting(false) }
   }
@@ -232,7 +264,7 @@ export default function FarmVisitsView() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Search visits..." className="pl-9" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
-            <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="gap-2">
+            <Button onClick={openAdd} className="gap-2">
               <Plus className="w-4 h-4" /> Schedule Visit
             </Button>
           </div>
@@ -289,7 +321,7 @@ export default function FarmVisitsView() {
                       <TableHead>Date</TableHead>
                       <TableHead>Topic</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-16"></TableHead>
+                      <TableHead className="w-28"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -310,9 +342,17 @@ export default function FarmVisitsView() {
                           <TableCell><Badge variant="outline">{v.topic}</Badge></TableCell>
                           <TableCell><Badge className={sc.class}>{sc.label}</Badge></TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedVisit(v); setDetailOpen(true) }}>
-                              <Eye className="w-4 h-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="sm" title="View" onClick={(e) => { e.stopPropagation(); setSelectedVisit(v); setDetailOpen(true) }}>
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" title="Edit" onClick={(e) => { e.stopPropagation(); openEdit(v) }}>
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" title="Delete" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40" onClick={(e) => { e.stopPropagation(); handleDelete(v.id) }}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )
@@ -480,6 +520,72 @@ export default function FarmVisitsView() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Schedule/Edit Visit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingVisit(null); resetForm() } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingVisit ? 'Edit Farm Visit' : 'Schedule Farm Visit'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Select Farmer</Label>
+                <Select value={formFarmer} onValueChange={setFormFarmer}>
+                  <SelectTrigger><SelectValue placeholder="Choose a farmer..." /></SelectTrigger>
+                  <SelectContent className="max-h-64 overflow-y-auto">
+                    {farmers.map((f: any) => (
+                      <SelectItem key={f.id} value={f.id}>{f.firstName} {f.lastName} — {f.phone || 'No phone'}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Visit Date</Label>
+                <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Topic</Label>
+                <Select value={formTopic} onValueChange={setFormTopic}>
+                  <SelectTrigger><SelectValue placeholder="Select topic..." /></SelectTrigger>
+                  <SelectContent>
+                    {VISIT_TOPICS.map(t => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Follow-up Date (optional)</Label>
+                <Input type="date" value={formFollowUp} onChange={e => setFormFollowUp(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Observations</Label>
+              <Textarea
+                placeholder="What did you observe during the visit? Soil condition, crop health, pest issues..."
+                value={formObservations} onChange={e => setFormObservations(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Recommendations</Label>
+              <Textarea
+                placeholder="What recommendations do you have for the farmer?"
+                value={formRecommendations} onChange={e => setFormRecommendations(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <DialogFooter className="gap-2">
+              <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+              <Button onClick={handleSubmit} disabled={submitting} className="gap-2">
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingVisit ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {submitting ? (editingVisit ? 'Updating...' : 'Scheduling...') : (editingVisit ? 'Update Visit' : 'Schedule Visit')}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Visit Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>

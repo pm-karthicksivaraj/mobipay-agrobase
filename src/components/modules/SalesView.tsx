@@ -3,9 +3,10 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import {
   Search, Plus, X, Loader2, DollarSign, ShoppingCart, TrendingUp, Award,
-  Eye, ChevronLeft, ChevronRight, BarChart3, Calendar
+  Eye, ChevronLeft, ChevronRight, BarChart3, Calendar, Pencil, Trash2
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +33,8 @@ interface Sale {
   unitPrice: number
   total: number
   totalAmount: number
+  charges?: number
+  taxAmount?: number
   date: string
   createdAt: string
 }
@@ -64,16 +67,34 @@ export default function SalesView() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [showAdd, setShowAdd] = useState(false)
+  const [editingSale, setEditingSale] = useState<Sale | null>(null)
   const [page, setPage] = useState(1)
   const limit = 10
 
   const fetchSales = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/sales')
-      if (res.ok) {
-        const data = await res.json()
-        setSales(data.sales || data.data || [])
+      const data = await safeFetch('/api/sales')
+      if (data) {
+        const raw = extractArray(data, 'data', 'sales')
+        // Normalize raw Prisma Sale rows to the Sale interface
+        const normalized: Sale[] = raw.map((s: any) => ({
+          id: s.id,
+          farmerName: s.farmer ? `${s.farmer.firstName ?? ''} ${s.farmer.lastName ?? ''}`.trim() : (s.customerName || 'Unknown'),
+          farmerCode: s.farmer?.farmerCode || '',
+          product: s.product || '',
+          category: s.category === 'INPUT' || s.category === 'Inputs' ? 'Inputs' : 'Produce',
+          quantity: Number(s.quantity) || 0,
+          unit: s.unit || '',
+          unitPrice: s.unitPrice ?? 0,
+          total: s.totalAmount ?? 0,
+          totalAmount: s.totalAmount ?? 0,
+          charges: s.charges ?? 0,
+          taxAmount: s.taxAmount ?? 0,
+          date: s.createdAt ? new Date(s.createdAt).toISOString().split('T')[0] : '',
+          createdAt: s.createdAt ? new Date(s.createdAt).toISOString().split('T')[0] : '',
+        }))
+        setSales(normalized.length > 0 ? normalized : mockSales)
       } else {
         setSales(mockSales)
       }
@@ -84,11 +105,40 @@ export default function SalesView() {
     }
   }, [])
 
+  const openEdit = (s: Sale) => {
+    setEditingSale(s)
+    setShowAdd(false)
+  }
+
+  const openAdd = () => {
+    setEditingSale(null)
+    setShowAdd(true)
+  }
+
+  const closeFormDialog = () => {
+    setShowAdd(false)
+    setEditingSale(null)
+    fetchSales()
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this sale?')) return
+    try {
+      const res = await fetch(`/api/sales/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Sale deleted')
+        fetchSales()
+      } else {
+        toast.error('Failed to delete sale')
+      }
+    } catch { toast.error('Network error') }
+  }
+
   useEffect(() => { fetchSales() }, [fetchSales])
 
   const filtered = sales.filter(s => {
     const matchSearch = !search || s.farmerName.toLowerCase().includes(search.toLowerCase()) || s.product.toLowerCase().includes(search.toLowerCase())
-    const matchCategory = !categoryFilter || s.category || "Produce" === categoryFilter
+    const matchCategory = !categoryFilter || (s.category || "Produce") === categoryFilter
     return matchSearch && matchCategory
   })
 
@@ -126,7 +176,7 @@ export default function SalesView() {
           <h3 className="text-lg font-semibold">Sales Management</h3>
           <p className="text-sm text-muted-foreground">Track farmer sales — produce and inputs</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="w-4 h-4" /> New Sale</Button>
+        <Button onClick={openAdd} className="gap-2"><Plus className="w-4 h-4" /> New Sale</Button>
       </div>
 
       {/* Stats */}
@@ -185,6 +235,7 @@ export default function SalesView() {
                         <TableHead>Unit Price</TableHead>
                         <TableHead>Total</TableHead>
                         <TableHead className="hidden sm:table-cell">Date</TableHead>
+                        <TableHead className="w-[120px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -206,6 +257,16 @@ export default function SalesView() {
                           <TableCell className="text-sm">UGX {s.unitPrice.toLocaleString()}</TableCell>
                           <TableCell className="text-sm font-medium text-emerald-700 dark:text-emerald-400">UGX {(s.totalAmount || 0).toLocaleString()}</TableCell>
                           <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{s.createdAt}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit" onClick={() => openEdit(s)}>
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40" title="Delete" onClick={() => handleDelete(s.id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -334,22 +395,30 @@ export default function SalesView() {
         </TabsContent>
       </Tabs>
 
-      {/* Add Sale Dialog */}
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Record New Sale</DialogTitle></DialogHeader>
-          <AddSaleForm onClose={() => { setShowAdd(false); fetchSales() }} />
+      {/* Add / Edit Sale Dialog */}
+      <Dialog open={showAdd || !!editingSale} onOpenChange={open => { if (!open) closeFormDialog() }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editingSale ? 'Edit Sale' : 'Record New Sale'}</DialogTitle></DialogHeader>
+          <AddSaleForm onClose={closeFormDialog} initial={editingSale} />
         </DialogContent>
       </Dialog>
     </div>
   )
 }
 
-function AddSaleForm({ onClose }: { onClose: () => void }) {
+function AddSaleForm({ onClose, initial }: { onClose: () => void; initial?: Sale | null }) {
   const [saving, setSaving] = useState(false)
-  const [category, setCategory] = useState<'Produce' | 'Inputs'>('Produce')
+  const isEdit = !!initial
+  const [category, setCategory] = useState<'Produce' | 'Inputs'>(initial?.category === 'Inputs' ? 'Inputs' : 'Produce')
   const [form, setForm] = useState({
-    farmerName: '', farmerCode: '', product: '', quantity: '', unitPrice: '', unit: 'kg',
+    farmerName: initial?.farmerName || '',
+    farmerCode: initial?.farmerCode || '',
+    product: initial?.product || '',
+    quantity: initial?.quantity?.toString() || '',
+    unitPrice: initial?.unitPrice?.toString() || '',
+    unit: initial?.unit || 'kg',
+    charges: initial?.charges?.toString() || '',
+    tax: initial?.taxAmount?.toString() || '',
   })
   const update = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
 
@@ -357,33 +426,93 @@ function AddSaleForm({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.farmerName || !form.product || !form.quantity || !form.unitPrice) {
-      toast.error('All required fields must be filled')
+    if (!form.product || !form.quantity || !form.unitPrice) {
+      toast.error('Product, quantity, and unit price are required')
       return
     }
     setSaving(true)
     try {
-      const res = await fetch('/api/sales', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
+      const qty = Number(form.quantity)
+      const price = Number(form.unitPrice)
+      const charges = Number(form.charges) || 0
+      const tax = Number(form.tax) || 0
+      const totalAmount = qty * price
+      const netAmount = totalAmount - charges - tax
+      if (isEdit) {
+        // PUT — only send fields on the Prisma Sale model.
+        // Sale has: product, category, quantity (String), unitPrice, totalAmount,
+        // charges, taxAmount, netAmount, status (and tenant/farmer relations).
+        // farmerName / farmerCode / unit / total / date are NOT columns and would break PUT.
+        const payload = {
+          product: form.product,
           category,
-          quantity: Number(form.quantity),
-          unitPrice: Number(form.unitPrice),
-          total: Number(form.quantity) * Number(form.unitPrice),
+          quantity: String(qty),
+          unitPrice: price,
+          totalAmount,
+          charges,
+          taxAmount: tax,
+          netAmount,
+        }
+        const res = await fetch(`/api/sales/${initial!.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}))
+          throw new Error(errBody.error || 'Request failed')
+        }
+        toast.success('Sale updated successfully')
+      } else {
+        // POST — the API cherry-picks: farmerId, customerId, customerName, product,
+        // quantity, unitPrice, totalAmount, status. Other fields are ignored.
+        const payload = {
+          farmerName: form.farmerName,
+          farmerCode: form.farmerCode,
+          product: form.product,
+          quantity: String(qty),
+          unitPrice: price,
+          unit: form.unit,
+          total: totalAmount,
+          totalAmount,
+          category,
+          charges,
+          taxAmount: tax,
           date: new Date().toISOString().split('T')[0],
-        }),
-      })
-      if (!res.ok) throw new Error()
-      toast.success('Sale recorded successfully')
+          status: 'COMPLETED',
+        }
+        const res = await fetch('/api/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}))
+          throw new Error(errBody.error || 'Request failed')
+        }
+        toast.success('Sale recorded successfully')
+      }
       onClose()
-    } catch { toast.error('Failed to record sale') }
+    } catch (err: any) {
+      toast.error(err?.message || (isEdit ? 'Failed to update sale' : 'Failed to record sale'))
+    }
     finally { setSaving(false) }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {isEdit ? (
+        <div className="space-y-1.5">
+          <Label>Farmer</Label>
+          <Input value={form.farmerName} disabled className="bg-muted/50" />
+          <p className="text-[10px] text-muted-foreground">Farmer cannot be reassigned from this form.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5"><Label>Farmer Name *</Label><Input value={form.farmerName} onChange={e => update('farmerName', e.target.value)} required /></div>
+          <div className="space-y-1.5"><Label>Farmer Code</Label><Input value={form.farmerCode} onChange={e => update('farmerCode', e.target.value)} placeholder="FRM-XXX" /></div>
+        </div>
+      )}
       <div className="space-y-1.5"><Label>Category *</Label>
         <Select value={category} onValueChange={v => { setCategory(v as 'Produce' | 'Inputs'); update('product', '') }}>
           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -393,11 +522,7 @@ function AddSaleForm({ onClose }: { onClose: () => void }) {
           </SelectContent>
         </Select>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5"><Label>Farmer Name *</Label><Input value={form.farmerName} onChange={e => update('farmerName', e.target.value)} required /></div>
-        <div className="space-y-1.5"><Label>Farmer Code</Label><Input value={form.farmerCode} onChange={e => update('farmerCode', e.target.value)} placeholder="FRM-XXX" /></div>
-      </div>
-      <div className="space-y-1.5"><Label>Product *</Label>
+      <div className="space-y-1.5"><Label>Commodity / Product *</Label>
         <Select value={form.product} onValueChange={v => update('product', v)}>
           <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
           <SelectContent>
@@ -421,14 +546,21 @@ function AddSaleForm({ onClose }: { onClose: () => void }) {
         </div>
         <div className="space-y-1.5"><Label>Unit Price (UGX) *</Label><Input type="number" value={form.unitPrice} onChange={e => update('unitPrice', e.target.value)} required /></div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5"><Label>Charges (UGX)</Label><Input type="number" value={form.charges} onChange={e => update('charges', e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>Tax (UGX)</Label><Input type="number" value={form.tax} onChange={e => update('tax', e.target.value)} /></div>
+      </div>
       {form.quantity && form.unitPrice && (
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg">
-          <p className="text-sm text-muted-foreground">Total: <span className="font-bold text-emerald-700 dark:text-emerald-400">UGX {(Number(form.quantity) * Number(form.unitPrice)).toLocaleString()}</span></p>
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg space-y-1">
+          <p className="text-sm text-muted-foreground">Gross: <span className="font-bold text-emerald-700 dark:text-emerald-400">UGX {(Number(form.quantity) * Number(form.unitPrice)).toLocaleString()}</span></p>
+          {(form.charges || form.tax) && (
+            <p className="text-sm text-muted-foreground">Net: <span className="font-bold text-emerald-700 dark:text-emerald-400">UGX {(Number(form.quantity) * Number(form.unitPrice) - (Number(form.charges) || 0) - (Number(form.tax) || 0)).toLocaleString()}</span></p>
+          )}
         </div>
       )}
       <DialogFooter className="gap-2">
         <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-        <Button type="submit" disabled={saving} className="gap-2">{saving && <Loader2 className="w-4 h-4 animate-spin" />} Record Sale</Button>
+        <Button type="submit" disabled={saving} className="gap-2">{saving && <Loader2 className="w-4 h-4 animate-spin" />} {isEdit ? 'Update Sale' : 'Record Sale'}</Button>
       </DialogFooter>
     </form>
   )

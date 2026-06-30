@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import {
   MessageSquare, Send, Inbox, Radio, Mail, Phone, Smartphone,
-  Plus, Search, Users, Megaphone, FileText, Loader2, Clock, AlertCircle
+  Plus, Search, Users, Megaphone, FileText, Loader2, Clock, AlertCircle, Trash2
 } from 'lucide-react'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -49,15 +50,66 @@ export default function CommunicationView() {
   const [activeTab, setActiveTab] = useState(activeSubTab || 'compose')
   const [showCompose, setShowCompose] = useState(true)
   const [sending, setSending] = useState(false)
+  const [messages, setMessages] = useState(MOCK_MESSAGES)
+  const [channel, setChannel] = useState('SMS')
+  const [recipient, setRecipient] = useState('')
+  const [subject, setSubject] = useState('')
+  const [body, setBody] = useState('')
 
   const handleTabChange = (t: string) => { setActiveTab(t); setActiveSubTab(t) }
 
+  const fetchMessages = useCallback(async () => {
+    const data = await safeFetch('/api/messages')
+    const arr = extractArray(data, 'data', 'messages')
+    if (arr.length === 0) {
+      setMessages(MOCK_MESSAGES)
+      return
+    }
+    setMessages(arr.map((m: any) => ({
+      id: m.id,
+      type: m.type || 'SMS',
+      recipient: m.recipient || '',
+      content: m.content || '',
+      status: m.status || 'PENDING',
+      sentAt: m.sentAt || m.createdAt || new Date().toISOString(),
+    })))
+  }, [])
+
+  useEffect(() => { fetchMessages() }, [fetchMessages])
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!recipient.trim() || !body.trim()) {
+      toast.error('Recipient and message are required')
+      return
+    }
     setSending(true)
-    await new Promise(r => setTimeout(r, 1000))
-    toast.success('Message sent successfully')
-    setSending(false)
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel, recipient, subject, body, type: channel, content: body }),
+      })
+      if (!res.ok) throw new Error('Failed to send')
+      toast.success('Message sent successfully')
+      setRecipient(''); setSubject(''); setBody('')
+      fetchMessages()
+    } catch {
+      toast.error('Failed to send message')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await fetch(`/api/messages/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete')
+      toast.success('Message deleted')
+      fetchMessages()
+    } catch {
+      toast.error('Failed to delete message')
+    }
   }
 
   return (
@@ -65,19 +117,19 @@ export default function CommunicationView() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center"><Send className="w-5 h-5 text-emerald-600" /></div>
-          <div><p className="text-xs text-muted-foreground">Total Sent</p><p className="text-xl font-bold">{MOCK_MESSAGES.length}</p></div>
+          <div><p className="text-xs text-muted-foreground">Total Sent</p><p className="text-xl font-bold">{messages.length}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-950/40 flex items-center justify-center"><Inbox className="w-5 h-5 text-green-600" /></div>
-          <div><p className="text-xs text-muted-foreground">Delivered</p><p className="text-xl font-bold">{MOCK_MESSAGES.filter(m => m.status === 'DELIVERED').length}</p></div>
+          <div><p className="text-xs text-muted-foreground">Delivered</p><p className="text-xl font-bold">{messages.filter(m => m.status === 'DELIVERED').length}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center"><Clock className="w-5 h-5 text-amber-600" /></div>
-          <div><p className="text-xs text-muted-foreground">Pending</p><p className="text-xl font-bold">{MOCK_MESSAGES.filter(m => m.status === 'PENDING').length}</p></div>
+          <div><p className="text-xs text-muted-foreground">Pending</p><p className="text-xl font-bold">{messages.filter(m => m.status === 'PENDING').length}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/40 flex items-center justify-center"><AlertCircle className="w-5 h-5 text-red-600" /></div>
-          <div><p className="text-xs text-muted-foreground">Failed</p><p className="text-xl font-bold">{MOCK_MESSAGES.filter(m => m.status === 'FAILED').length}</p></div>
+          <div><p className="text-xs text-muted-foreground">Failed</p><p className="text-xl font-bold">{messages.filter(m => m.status === 'FAILED').length}</p></div>
         </CardContent></Card>
       </div>
 
@@ -98,7 +150,7 @@ export default function CommunicationView() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Channel</Label>
-                    <Select defaultValue="SMS">
+                    <Select value={channel} onValueChange={setChannel}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="SMS">SMS</SelectItem>
@@ -109,12 +161,16 @@ export default function CommunicationView() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Recipient</Label>
-                    <Input placeholder="Phone number or email..." />
+                    <Input placeholder="Phone number or email..." value={recipient} onChange={e => setRecipient(e.target.value)} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
+                  <Label>Subject</Label>
+                  <Input placeholder="Subject (optional)..." value={subject} onChange={e => setSubject(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
                   <Label>Message</Label>
-                  <Textarea rows={4} placeholder="Type your message here..." />
+                  <Textarea rows={4} placeholder="Type your message here..." value={body} onChange={e => setBody(e.target.value)} />
                 </div>
                 <div className="flex items-center gap-2">
                   <Button type="submit" disabled={sending} className="gap-2">
@@ -141,16 +197,22 @@ export default function CommunicationView() {
                     <TableHead className="hidden md:table-cell">Message</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="hidden sm:table-cell">Date</TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MOCK_MESSAGES.map(m => (
+                  {messages.map(m => (
                     <TableRow key={m.id}>
                       <TableCell><Badge className={cn('text-[10px]', msgTypeColor[m.type] || '')}>{m.type}</Badge></TableCell>
                       <TableCell className="font-medium text-sm">{m.recipient}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-[250px] truncate">{m.content}</TableCell>
                       <TableCell><Badge className={cn('text-[10px]', msgStatusColor[m.status] || '')}>{m.status}</Badge></TableCell>
                       <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{new Date(m.sentAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => handleDelete(m.id)} title="Delete message">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

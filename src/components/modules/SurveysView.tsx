@@ -5,7 +5,7 @@ import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import {
   Search, Plus, FileText, Users, Calendar, CheckCircle, Clock, X, Loader2,
-  Eye, Trash2, AlertCircle, ChevronDown, ChevronUp, ListChecks, ClipboardList
+  Eye, Trash2, Pencil, AlertCircle, ChevronDown, ChevronUp, ListChecks, ClipboardList
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,6 +21,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
+
+const safeJsonParse = (str: string): any => {
+  try { return JSON.parse(str) } catch { return {} }
+}
 
 interface SurveyQuestion {
   id: string
@@ -120,50 +125,85 @@ export default function SurveysView() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [showCreateSurvey, setShowCreateSurvey] = useState(false)
+  const [editingSurvey, setEditingSurvey] = useState<Survey | null>(null)
   const [selectedResponse, setSelectedResponse] = useState<SurveyResponse | null>(null)
+  const [viewResponsesFor, setViewResponsesFor] = useState<Survey | null>(null)
+  const [responsesForSurvey, setResponsesForSurvey] = useState<SurveyResponse[]>([])
+  const [loadingResponses, setLoadingResponses] = useState(false)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [sRes, rRes] = await Promise.all([
-        fetch('/api/surveys'),
-        fetch('/api/surveys/[id]/responses').catch(() => null), // may 404; that's OK
-      ])
-      if (sRes.ok) {
-        const sData = await sRes.json()
-        // API returns { data: [...] } with _count instead of questions array.
-        // Normalize to the shape the view expects.
-        const rawSurveys = sData.surveys || sData.data || []
+      const sData = await safeFetch('/api/surveys')
+      const rawSurveys = extractArray(sData, 'data', 'surveys')
+      if (rawSurveys.length === 0) {
+        setSurveys(mockSurveys)
+      } else {
         const normalized: Survey[] = rawSurveys.map((s: any) => ({
           id: s.id,
           title: s.title || 'Untitled',
           description: s.description || '',
           status: s.status || 'DRAFT',
-          questions: Array.isArray(s.questions) ? s.questions : [],
+          questions: Array.isArray(s.questions) ? s.questions.map((q: any) => ({
+            id: q.id,
+            text: q.question || q.text || '',
+            type: q.type || 'TEXT',
+            options: q.options ? (typeof q.options === 'string' ? safeJsonParse(q.options) : q.options) : [],
+            required: q.required ?? false,
+          })) : [],
           responseCount: s._count?.responses ?? s.responseCount ?? 0,
           createdAt: s.createdAt ? new Date(s.createdAt).toISOString().split('T')[0] : '',
-          updatedAt: s.updatedAt ? new Date(s.updatedAt).toISOString().split('T')[0] : '',
+          updatedAt: s.createdAt ? new Date(s.createdAt).toISOString().split('T')[0] : '',
           _count: s._count,
         }))
-        setSurveys(normalized.length > 0 ? normalized : mockSurveys)
-      } else {
-        setSurveys(mockSurveys)
+        setSurveys(normalized)
       }
-      if (rRes && rRes.ok) {
-        const rData = await rRes.json()
-        setResponses(rData.responses || rData.data || [])
-      } else {
-        setResponses(mockResponses)
-      }
+      // Responses are no longer fetched up-front — see per-survey "View Responses" button.
+      setResponses([])
     } catch {
       setSurveys(mockSurveys)
-      setResponses(mockResponses)
+      setResponses([])
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this survey? This action cannot be undone.')) return
+    try {
+      const res = await fetch(`/api/surveys/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      toast.success('Survey deleted')
+      fetchData()
+    } catch {
+      toast.error('Failed to delete survey')
+    }
+  }
+
+  const handleViewResponses = async (survey: Survey) => {
+    setViewResponsesFor(survey)
+    setLoadingResponses(true)
+    setResponsesForSurvey([])
+    try {
+      const data = await safeFetch(`/api/surveys/${survey.id}/responses`)
+      const arr = extractArray(data, 'data', 'responses')
+      setResponsesForSurvey(arr.map((r: any) => ({
+        id: r.id,
+        surveyId: r.surveyId,
+        surveyTitle: survey.title,
+        farmerName: r.respondentId || 'Anonymous',
+        farmerCode: '',
+        answers: typeof r.answers === 'string' ? safeJsonParse(r.answers) : (r.answers || {}),
+        submittedAt: r.createdAt ? new Date(r.createdAt).toISOString().split('T')[0] : '',
+      })))
+    } catch {
+      setResponsesForSurvey([])
+    } finally {
+      setLoadingResponses(false)
+    }
+  }
 
   const filteredSurveys = surveys.filter(s => {
     const matchSearch = !search || (s.title || '').toLowerCase().includes(search.toLowerCase()) || (s.description || '').toLowerCase().includes(search.toLowerCase())
@@ -273,6 +313,17 @@ export default function SurveysView() {
                       {(survey.questions.length === 0 && survey._count?.questions) ? (
                         <Badge variant="outline" className="text-[10px]">{survey._count.questions} questions</Badge>
                       ) : null}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      <Button variant="outline" size="sm" onClick={() => handleViewResponses(survey)} className="gap-1 h-7">
+                        <Eye className="w-3.5 h-3.5" /> View Responses
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => { setEditingSurvey(survey); setShowCreateSurvey(false) }} className="gap-1 h-7">
+                        <Pencil className="w-3.5 h-3.5" /> Edit
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(survey.id)} className="gap-1 h-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -403,25 +454,74 @@ export default function SurveysView() {
       </Tabs>
 
       {/* Quick create dialog */}
-      <Dialog open={showCreateSurvey} onOpenChange={setShowCreateSurvey}>
+      <Dialog open={showCreateSurvey || !!editingSurvey} onOpenChange={(open) => { if (!open) { setShowCreateSurvey(false); setEditingSurvey(null) } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create New Survey</DialogTitle>
+            <DialogTitle>{editingSurvey ? 'Edit Survey' : 'Create New Survey'}</DialogTitle>
           </DialogHeader>
-          <CreateSurveyForm onSave={() => { setShowCreateSurvey(false); fetchData(); toast.success('Survey created successfully') }} />
+          <CreateSurveyForm
+            initial={editingSurvey}
+            onSave={() => { setShowCreateSurvey(false); setEditingSurvey(null); fetchData() }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* View Responses dialog */}
+      <Dialog open={!!viewResponsesFor} onOpenChange={(open) => { if (!open) { setViewResponsesFor(null); setResponsesForSurvey([]) } }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Responses: {viewResponsesFor?.title}</DialogTitle>
+          </DialogHeader>
+          {loadingResponses ? (
+            <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded" />)}</div>
+          ) : responsesForSurvey.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="w-10 h-10 mx-auto mb-2 opacity-40" />
+              <p>No responses yet for this survey</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {responsesForSurvey.map(r => (
+                <Card key={r.id}>
+                  <CardContent className="p-3">
+                    <div className="flex justify-between mb-2">
+                      <p className="font-medium text-sm">{r.farmerName}</p>
+                      <p className="text-xs text-muted-foreground">{r.submittedAt}</p>
+                    </div>
+                    <div className="space-y-1">
+                      {Object.entries(r.answers).map(([key, value]) => (
+                        <div key={key} className="text-xs">
+                          <span className="text-muted-foreground">{key}:</span>{' '}
+                          <span>{Array.isArray(value) ? value.join(', ') : String(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
   )
 }
 
-function CreateSurveyForm({ onSave }: { onSave: () => void }) {
+function CreateSurveyForm({ initial, onSave }: { initial?: Survey | null; onSave: () => void }) {
   const [saving, setSaving] = useState(false)
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [questions, setQuestions] = useState<SurveyQuestion[]>([
-    { id: 'q_new_1', text: '', type: 'TEXT', options: [], required: false }
-  ])
+  const [title, setTitle] = useState(initial?.title || '')
+  const [description, setDescription] = useState(initial?.description || '')
+  const [questions, setQuestions] = useState<SurveyQuestion[]>(
+    initial?.questions && initial.questions.length > 0
+      ? initial.questions.map(q => ({
+          id: q.id,
+          text: q.text,
+          type: q.type,
+          options: q.options ? [...q.options] : [],
+          required: q.required,
+        }))
+      : [{ id: 'q_new_1', text: '', type: 'TEXT', options: [], required: false }]
+  )
 
   const addQuestion = () => {
     const newId = `q_new_${Date.now()}`
@@ -470,20 +570,33 @@ function CreateSurveyForm({ onSave }: { onSave: () => void }) {
     e.preventDefault()
     if (!title.trim()) { toast.error('Survey title is required'); return }
     const validQuestions = questions.filter(q => q.text.trim())
-    if (validQuestions.length === 0) { toast.error('Add at least one question'); return }
+    if (!initial && validQuestions.length === 0) { toast.error('Add at least one question'); return }
 
     setSaving(true)
     try {
-      const res = await fetch('/api/surveys', {
-        method: 'POST',
+      const url = initial ? `/api/surveys/${initial.id}` : '/api/surveys'
+      const method = initial ? 'PUT' : 'POST'
+      const body = initial
+        ? { title, description, status: initial.status || 'DRAFT' }
+        : {
+            title,
+            description,
+            questions: validQuestions.map(q => ({
+              question: q.text,
+              type: q.type,
+              options: q.options && q.options.length > 0 ? q.options : undefined,
+            })),
+          }
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, questions: validQuestions, status: 'DRAFT' }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error()
-      toast.success('Survey created successfully')
+      toast.success(initial ? 'Survey updated successfully' : 'Survey created successfully')
       onSave()
     } catch {
-      toast.error('Failed to create survey')
+      toast.error(initial ? 'Failed to update survey' : 'Failed to create survey')
     } finally {
       setSaving(false)
     }

@@ -3,9 +3,10 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import {
   Search, Plus, X, Loader2, Truck, Package, CheckCircle, Clock, MapPin,
-  ChevronLeft, ChevronRight, Eye, User, Calendar, Navigation
+  ChevronLeft, ChevronRight, Eye, User, Calendar, Navigation, Trash2
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -160,10 +161,31 @@ export default function DeliveriesView() {
   const fetchDeliveries = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/deliveries')
-      if (res.ok) {
-        const data = await res.json()
-        setDeliveries(data.deliveries || data.data || [])
+      const data = await safeFetch('/api/deliveries')
+      if (data) {
+        const raw = extractArray(data, 'data', 'deliveries')
+        // Normalize API rows to the Delivery interface
+        const normalized: Delivery[] = raw.map((d: any) => ({
+          id: d.id,
+          relatedType: (d.relatedType as RelatedType) || 'PURCHASE',
+          relatedId: d.relatedId || '',
+          relatedRef: '',
+          status: (d.status as DeliveryStatus) || 'PENDING',
+          driverName: d.driverName || '',
+          driverPhone: '',
+          vehicleReg: d.vehicleReg || '',
+          product: '',
+          quantity: 0,
+          unit: '',
+          source: '',
+          destination: '',
+          dispatchDate: d.dispatchedAt ? new Date(d.dispatchedAt).toISOString().split('T')[0] : undefined,
+          deliveryDate: d.deliveredAt ? new Date(d.deliveredAt).toISOString().split('T')[0] : undefined,
+          estimatedDays: 0,
+          createdAt: d.createdAt ? new Date(d.createdAt).toISOString().split('T')[0] : '',
+          timeline: [],
+        }))
+        setDeliveries(normalized.length > 0 ? normalized : mockDeliveries)
       } else {
         setDeliveries(mockDeliveries)
       }
@@ -173,6 +195,35 @@ export default function DeliveriesView() {
       setLoading(false)
     }
   }, [])
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/deliveries/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (res.ok) {
+        toast.success('Delivery status updated')
+        fetchDeliveries()
+      } else {
+        toast.error('Failed to update status')
+      }
+    } catch { toast.error('Network error') }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this delivery?')) return
+    try {
+      const res = await fetch(`/api/deliveries/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Delivery deleted')
+        fetchDeliveries()
+      } else {
+        toast.error('Failed to delete delivery')
+      }
+    } catch { toast.error('Network error') }
+  }
 
   useEffect(() => { fetchDeliveries() }, [fetchDeliveries])
 
@@ -288,7 +339,7 @@ export default function DeliveriesView() {
                     <TableHead className="hidden lg:table-cell">Vehicle</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="hidden sm:table-cell">Pipeline</TableHead>
-                    <TableHead className="w-[70px]"></TableHead>
+                    <TableHead className="w-[160px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -322,7 +373,20 @@ export default function DeliveriesView() {
                         </div>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-sm font-mono">{d.vehicleReg || <span className="text-muted-foreground">—</span>}</TableCell>
-                      <TableCell>{d.status ? <Badge className={cn('text-[10px]', deliveryStatusColor[d.status] || '')}>{d.status.replace('_', ' ')}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}>
+                        {d.status ? (
+                          <Select value={d.status} onValueChange={(v) => handleStatusChange(d.id, v)}>
+                            <SelectTrigger className={cn('h-7 w-[130px] text-[10px] font-medium border-0 hover:opacity-80', deliveryStatusColor[d.status] || '')}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="PENDING">Pending</SelectItem>
+                              <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
+                              <SelectItem value="DELIVERED">Delivered</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : <span className="text-xs text-muted-foreground">—</span>}
+                      </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-0.5">
                           {statusPipeline.map((s, i) => (
@@ -334,9 +398,14 @@ export default function DeliveriesView() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={e => { e.stopPropagation(); setShowDetail(d) }}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="View" onClick={e => { e.stopPropagation(); setShowDetail(d) }}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40" title="Delete" onClick={e => { e.stopPropagation(); handleDelete(d.id) }}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

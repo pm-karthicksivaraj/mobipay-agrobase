@@ -7,9 +7,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const ctx = await getTenantContext(req)
   const tf = buildTenantFilter(ctx, 'tenantId') as any
   const body = await req.json()
-  const existing = await db.delivery.findFirst({ where: { id, ...tf } })
+  const existing = await db.feedback.findFirst({ where: { id, ...tf } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  const updated = await db.delivery.update({ where: { id }, data: { ...body } })
+  const updated = await db.feedback.update({ where: { id }, data: { ...body } })
   return NextResponse.json({ data: updated })
 }
 
@@ -17,8 +17,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params
   const ctx = await getTenantContext(req)
   const tf = buildTenantFilter(ctx, 'tenantId') as any
-  const existing = await db.delivery.findFirst({ where: { id, ...tf } })
+  const existing = await db.feedback.findFirst({ where: { id, ...tf } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  await db.delivery.delete({ where: { id } })
+  await db.feedback.delete({ where: { id } })
   return NextResponse.json({ message: 'Deleted' })
 }

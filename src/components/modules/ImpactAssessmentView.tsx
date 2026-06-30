@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
 import {
   ClipboardCheck, BarChart3, Plus, TrendingUp, Award, Users, Calendar,
-  Loader2, Search, Lightbulb, Target
+  Loader2, Search, Lightbulb, Target, Pencil, Trash2
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -102,7 +102,6 @@ export default function ImpactAssessmentView() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(activeSubTab || 'assessments')
   const [searchTerm, setSearchTerm] = useState('')
-  const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>('Income')
   const [selectedFarmer, setSelectedFarmer] = useState('')
   const [answers, setAnswers] = useState<Record<string, string | number>>({})
@@ -110,6 +109,7 @@ export default function ImpactAssessmentView() {
   const [submitting, setSubmitting] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedAssessment, setSelectedAssessment] = useState<any>(null)
+  const [editingAssessment, setEditingAssessment] = useState<any | null>(null)
 
   const fetchAssessments = useCallback(async () => {
     try {
@@ -152,6 +152,46 @@ export default function ImpactAssessmentView() {
     setSelectedCategory('Income')
     setAnswers({})
     setAutoScore(0)
+    setEditingAssessment(null)
+  }
+
+  const openAdd = () => {
+    setEditingAssessment(null)
+    setSelectedFarmer('')
+    setSelectedCategory('Income')
+    setAnswers({})
+    setAutoScore(0)
+    loadTab('new')
+  }
+
+  const openEdit = (a: any) => {
+    setEditingAssessment(a)
+    setSelectedFarmer(a.farmerId || '')
+    setSelectedCategory(a.category || 'Income')
+    let parsedAnswers: Record<string, string | number> = {}
+    try {
+      parsedAnswers = typeof a.response === 'string' ? JSON.parse(a.response) : (a.response || {})
+    } catch {
+      parsedAnswers = {}
+    }
+    setAnswers(parsedAnswers)
+    setAutoScore(a.score || 0)
+    loadTab('new')
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this impact assessment?')) return
+    try {
+      const res = await fetch(`/api/impact-assessments/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Assessment deleted')
+        fetchAssessments()
+      } else {
+        toast.error('Failed to delete assessment')
+      }
+    } catch {
+      toast.error('Network error')
+    }
   }
 
   const handleSubmit = async () => {
@@ -159,24 +199,28 @@ export default function ImpactAssessmentView() {
     if (Object.keys(answers).length < 3) { toast.error('Please answer at least 3 questions'); return }
     setSubmitting(true)
     try {
-      const res = await fetch('/api/impact-assessments', {
-        method: 'POST',
+      const payload = {
+        farmerId: selectedFarmer,
+        category: selectedCategory,
+        response: JSON.stringify(answers),
+        score: autoScore,
+        conductedBy: user?.name || user?.userId,
+      }
+      const isEdit = !!editingAssessment
+      const url = isEdit ? `/api/impact-assessments/${editingAssessment.id}` : '/api/impact-assessments'
+      const method = isEdit ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          farmerId: selectedFarmer,
-          category: selectedCategory,
-          response: JSON.stringify(answers),
-          score: autoScore,
-          conductedBy: user?.name || user?.userId,
-        }),
+        body: JSON.stringify(payload),
       })
       if (res.ok) {
-        toast.success('Impact assessment saved successfully')
-        setDialogOpen(false)
+        toast.success(isEdit ? 'Impact assessment updated' : 'Impact assessment saved successfully')
         resetForm()
+        loadTab('assessments')
         fetchAssessments()
       } else {
-        toast.error('Failed to save assessment')
+        toast.error(isEdit ? 'Failed to update assessment' : 'Failed to save assessment')
       }
     } catch {
       toast.error('Network error')
@@ -329,7 +373,7 @@ export default function ImpactAssessmentView() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Search by farmer or category..." className="pl-9" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
-            <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="gap-2">
+            <Button onClick={openAdd} className="gap-2">
               <Plus className="w-4 h-4" /> New Assessment
             </Button>
           </div>
@@ -345,7 +389,7 @@ export default function ImpactAssessmentView() {
                       <TableHead>Score</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Conducted By</TableHead>
-                      <TableHead className="w-16"></TableHead>
+                      <TableHead className="w-32"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -370,9 +414,23 @@ export default function ImpactAssessmentView() {
                           <TableCell className="text-sm text-muted-foreground">{new Date(a.assessmentDate || a.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell className="text-sm">{a.conductedBy || '-'}</TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); viewDetail(a) }}>
-                              <BarChart3 className="w-4 h-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); viewDetail(a) }} aria-label="View detail">
+                                <BarChart3 className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(a) }} aria-label="Edit assessment">
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                onClick={(e) => { e.stopPropagation(); handleDelete(a.id) }}
+                                aria-label="Delete assessment"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )
@@ -384,12 +442,16 @@ export default function ImpactAssessmentView() {
           </Card>
         </TabsContent>
 
-        {/* Tab 2: New Assessment Form */}
+        {/* Tab 2: New / Edit Assessment Form */}
         <TabsContent value="new" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Create New Impact Assessment</CardTitle>
-              <CardDescription>Select a farmer, choose a category, and answer the questions below.</CardDescription>
+              <CardTitle>{editingAssessment ? 'Edit Impact Assessment' : 'Create New Impact Assessment'}</CardTitle>
+              <CardDescription>
+                {editingAssessment
+                  ? 'Update the farmer, category, or answers below. Changes will overwrite this assessment.'
+                  : 'Select a farmer, choose a category, and answer the questions below.'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -463,7 +525,7 @@ export default function ImpactAssessmentView() {
 
               <Button onClick={handleSubmit} disabled={submitting} className="w-full sm:w-auto gap-2">
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
-                {submitting ? 'Saving...' : 'Submit Assessment'}
+                {submitting ? 'Saving...' : editingAssessment ? 'Update Assessment' : 'Submit Assessment'}
               </Button>
             </CardContent>
           </Card>

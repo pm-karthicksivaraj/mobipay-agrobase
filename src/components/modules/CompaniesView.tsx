@@ -5,8 +5,10 @@ import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import {
   Search, Plus, Building2, Phone, Mail, Users, X, Loader2,
-  Filter, Eye, MapPin, Globe, ChevronLeft, ChevronRight, Landmark, Truck
+  Filter, Eye, MapPin, Globe, ChevronLeft, ChevronRight, Landmark, Truck,
+  Pencil, Trash2
 } from 'lucide-react'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -81,6 +83,7 @@ export default function CompaniesView() {
   const [typeFilter, setTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [showAdd, setShowAdd] = useState(false)
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null)
   const [showDetail, setShowDetail] = useState<Company | null>(null)
 
   const fetchCompanies = useCallback(async () => {
@@ -90,17 +93,27 @@ export default function CompaniesView() {
       if (search) params.set('search', search)
       if (typeFilter) params.set('type', typeFilter)
       if (statusFilter) params.set('status', statusFilter)
-      const res = await fetch(`/api/modules?module=companies&${params}`)
-      if (res.ok) {
-        const data = await res.json()
-        if (data.companies && data.companies.length > 0) {
-          setCompanies(data.companies)
-          setLoading(false)
-          return
-        }
+      const url = `/api/companies${params.toString() ? `?${params}` : ''}`
+      const data = await safeFetch(url)
+      const raw = extractArray(data, 'companies', 'data')
+      if (raw.length > 0) {
+        const mapped: Company[] = raw.map((c: any) => ({
+          id: c.id,
+          name: c.name || '',
+          type: c.type || 'Other',
+          contactPerson: c.contactPerson || '',
+          phone: c.phone || '',
+          email: c.email || '',
+          status: c.status || (c.isActive === false ? 'INACTIVE' : 'ACTIVE'),
+          address: c.address || undefined,
+          website: c.website || undefined,
+          farmerGroupCount: c.farmerGroupCount ?? c._count?.farmerGroups ?? 0,
+          createdAt: c.createdAt || new Date().toISOString(),
+        }))
+        setCompanies(mapped)
+      } else {
+        setCompanies(DEMO_COMPANIES)
       }
-      // Fallback to demo data
-      setCompanies(DEMO_COMPANIES)
     } catch {
       setCompanies(DEMO_COMPANIES)
     } finally {
@@ -109,6 +122,31 @@ export default function CompaniesView() {
   }, [search, typeFilter, statusFilter])
 
   useEffect(() => { fetchCompanies() }, [fetchCompanies])
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Delete "${name}"? This action cannot be undone.`)) return
+    try {
+      const res = await fetch(`/api/companies/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Company deleted')
+        fetchCompanies()
+      } else {
+        toast.error('Failed to delete company')
+      }
+    } catch {
+      toast.error('Failed to delete company')
+    }
+  }
+
+  const openEdit = (company: Company) => {
+    setEditingCompany(company)
+    setShowAdd(true)
+  }
+
+  const openAdd = () => {
+    setEditingCompany(null)
+    setShowAdd(true)
+  }
 
   // Filter data client-side for demo data
   const filtered = companies.filter(c => {
@@ -135,7 +173,7 @@ export default function CompaniesView() {
           </h3>
           <p className="text-sm text-muted-foreground">{totalCompanies} companies registered · {totalFarmerGroups} farmer groups served</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="gap-2">
+        <Button onClick={openAdd} className="gap-2">
           <Plus className="w-4 h-4" /> Add Company
         </Button>
       </div>
@@ -261,7 +299,7 @@ export default function CompaniesView() {
                     <TableHead className="hidden xl:table-cell">Email</TableHead>
                     <TableHead className="hidden md:table-cell">Farmer Groups</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-[60px]"></TableHead>
+                    <TableHead className="w-[120px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -291,9 +329,17 @@ export default function CompaniesView() {
                         <Badge className={cn('text-[10px]', statusColor[c.status] || '')}>{c.status}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setShowDetail(c) }}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setShowDetail(c) }} title="View details">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(c) }} title="Edit">
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={(e) => { e.stopPropagation(); handleDelete(c.id, c.name) }} title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -309,16 +355,19 @@ export default function CompaniesView() {
         )}
       </Card>
 
-      {/* Add Company Dialog */}
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+      {/* Add/Edit Company Dialog */}
+      <Dialog open={showAdd} onOpenChange={(open) => { setShowAdd(open); if (!open) setEditingCompany(null) }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="w-5 h-5 text-emerald-600" />
-              Add New Company
+              {editingCompany ? 'Edit Company' : 'Add New Company'}
             </DialogTitle>
           </DialogHeader>
-          <AddCompanyForm onClose={() => { setShowAdd(false); fetchCompanies() }} />
+          <AddCompanyForm
+            initial={editingCompany}
+            onClose={() => { setShowAdd(false); setEditingCompany(null); fetchCompanies() }}
+          />
         </DialogContent>
       </Dialog>
 
@@ -370,10 +419,17 @@ function DetailItem({ icon, label, value }: { icon: React.ReactNode; label: stri
   )
 }
 
-function AddCompanyForm({ onClose }: { onClose: () => void }) {
+function AddCompanyForm({ initial, onClose }: { initial: Company | null; onClose: () => void }) {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    name: '', type: '', contactPerson: '', phone: '', email: '', address: '', website: '', status: 'PENDING',
+    name: initial?.name || '',
+    type: initial?.type || '',
+    contactPerson: initial?.contactPerson || '',
+    phone: initial?.phone || '',
+    email: initial?.email || '',
+    address: initial?.address || '',
+    website: initial?.website || '',
+    status: initial?.status || 'PENDING',
   })
 
   const update = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
@@ -386,22 +442,36 @@ function AddCompanyForm({ onClose }: { onClose: () => void }) {
     }
     setSaving(true)
     try {
-      const res = await fetch('/api/modules', {
-        method: 'POST',
+      const isEdit = !!initial
+      const url = isEdit ? `/api/companies/${initial!.id}` : '/api/companies'
+      const method = isEdit ? 'PUT' : 'POST'
+      // Map UI status (ACTIVE/INACTIVE/...) to isActive boolean for the API
+      const payload: Record<string, unknown> = {
+        name: form.name,
+        type: form.type,
+        contactPerson: form.contactPerson,
+        phone: form.phone || null,
+        email: form.email || null,
+        address: form.address || null,
+        isActive: form.status !== 'INACTIVE' && form.status !== 'SUSPENDED',
+      }
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ module: 'companies', ...form }),
+        body: JSON.stringify(payload),
       })
       if (res.ok) {
-        toast.success('Company added successfully')
+        toast.success(isEdit ? 'Company updated successfully' : 'Company added successfully')
         onClose()
         return
       }
+      const errBody = await res.json().catch(() => null)
+      toast.error(errBody?.error || `Failed to ${isEdit ? 'update' : 'create'} company`)
     } catch {
-      // Silently fall through to demo toast
+      toast.error(`Failed to ${initial ? 'update' : 'create'} company`)
+    } finally {
+      setSaving(false)
     }
-    toast.success('Company added successfully (demo mode)')
-    onClose()
-    setSaving(false)
   }
 
   return (

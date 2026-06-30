@@ -74,3 +74,36 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch approvals' }, { status: 500 })
   }
 }
+
+/**
+ * POST /api/approvals
+ *   Approve or reject a pending item.
+ *   Body: { id, type, action: 'APPROVE' | 'REJECT', reason? }
+ */
+export async function POST(request: Request) {
+  try {
+    const ctx = await getTenantContext()
+    const body = await request.json()
+    const { id, type, action, reason } = body
+
+    if (!id || !type || !action) {
+      return NextResponse.json({ error: 'id, type, and action are required' }, { status: 400 })
+    }
+
+    const newStatus = action === 'APPROVE' ? 'APPROVED' : 'REJECTED'
+
+    if (type === 'PURCHASE') {
+      await db.purchase.update({ where: { id }, data: { status: newStatus } })
+    } else if (type === 'LOAN') {
+      await db.loanApplication.update({ where: { id }, data: { status: newStatus } })
+    } else if (type === 'INPUT_REQUEST') {
+      await db.inputRequest.update({ where: { id }, data: { status: newStatus } })
+    } else {
+      return NextResponse.json({ error: 'Unknown type' }, { status: 400 })
+    }
+
+    return NextResponse.json({ message: `${type} ${newStatus.toLowerCase()}` })
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to process approval' }, { status: 500 })
+  }
+}
