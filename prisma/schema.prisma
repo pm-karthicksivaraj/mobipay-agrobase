@@ -120,6 +120,12 @@ model Tenant {
   transportTrips       TransportTrip[]        @relation("TenantTransportTrips")
   transportCharges     TransportCharge[]      @relation("TenantTransportCharges")
   ccrpEnrollments      CcrpEnrollment[]        @relation("TenantCcrpEnrollments")
+  // ─── Impact Engine (6-week sprint) ───
+  impactBaselines      ImpactBaseline[]       @relation("TenantImpactBaselines")
+  impactEvents         ImpactEvent[]          @relation("TenantImpactEvents")
+  impactKpiSnapshots   ImpactKpiSnapshot[]    @relation("TenantImpactKpiSnapshots")
+  practiceAdoptions    PracticeAdoption[]     @relation("TenantPracticeAdoptions")
+  climateResilienceScores ClimateResilienceScore[] @relation("TenantClimateResilienceScores")
 }
 
 // --- USERS & AUTH ---
@@ -331,6 +337,12 @@ model FarmerProfile {
   farmPassport         FarmPassport?          @relation("FarmerPassport")
   plots                Plot[]                 @relation("FarmerPlots")
   ccrpEnrollments      CcrpEnrollment[]        @relation("FarmerCcrpEnrollments")
+  // ─── Impact Engine (6-week sprint) ───
+  impactBaseline       ImpactBaseline?         @relation("FarmerImpactBaseline")
+  impactEvents         ImpactEvent[]           @relation("FarmerImpactEvents")
+  impactKpiSnapshots   ImpactKpiSnapshot[]     @relation("FarmerImpactKpiSnapshots")
+  practiceAdoptions    PracticeAdoption[]      @relation("FarmerPracticeAdoptions")
+  climateResilienceScores ClimateResilienceScore[] @relation("FarmerClimateResilienceScores")
 }
 
 model ChildProfile {
@@ -3138,4 +3150,216 @@ model CcrpEnrollmentHistory {
 
   @@index([enrollmentId])
   @@index([action])
+}
+// ════════════════════════════════════════════════════════════
+// IMPACT ENGINE (6-week sprint — Agrobase V3 Strategy)
+//
+// 5 new models that turn Agrobase from "operations platform" into
+// "impact-native platform". Every transaction writes impact data.
+//
+//   ImpactBaseline        — captured once at enrolment, the comparison anchor
+//   ImpactEvent           — hash-chained event ledger (Impact Passport)
+//   ImpactKpiSnapshot     — nightly KPI computation per farmer (all 32 KPIs)
+//   PracticeAdoption      — Farm5x practice adoption events (1M5C/M/K/T/D)
+//   ClimateResilienceScore — 4-factor 0-100 score per farmer per month
+// ════════════════════════════════════════════════════════════
+
+model ImpactBaseline {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation("TenantImpactBaselines", fields: [tenantId], references: [id])
+  farmerId          String   @unique
+  farmer            FarmerProfile @relation("FarmerImpactBaseline", fields: [farmerId], references: [id], onDelete: Cascade)
+
+  // Captured by extension officer at enrolment (12-question Flutter form)
+  capturedAt        DateTime @default(now())
+  capturedBy        String?
+  captureMethod     String   @default("FLUTTER_FORM")  // FLUTTER_FORM | USSD | FIELD_OFFICER | IMPORTED
+
+  // Income baseline (USD per year)
+  baselineIncomeUsd      Float?
+  baselineIncomeSources  String?  // JSON array: ["coffee", "maize", "vsla"]
+
+  // Yield baseline (kg/ha for primary crop)
+  baselineYieldKgHa      Float?
+  baselineCrop           String?
+
+  // Practice baseline (JSON array of practices already adopted)
+  baselinePractices      String   @default("[]")  // JSON: ["shade_trees","no_till"]
+  practiceCountBaseline  Int      @default(0)
+
+  // Plot + household baseline
+  plotCountBaseline      Int      @default(0)
+  totalAreaHectares      Float?
+  householdSize          Int?
+  womenInLeadership      Boolean  @default(false)
+
+  // Financial baseline
+  hasBankAccount         Boolean  @default(false)
+  hasMobileMoney         Boolean  @default(false)
+  savingsBalanceUsd      Float?
+  outstandingLoanUsd     Float?
+
+  // Climate baseline
+  climateRiskExposure    String?  // LOW | MEDIUM | HIGH | CRITICAL
+  deforestationRisk      Boolean  @default(false)
+
+  notes                  String?
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([capturedAt])
+}
+
+model ImpactEvent {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation("TenantImpactEvents", fields: [tenantId], references: [id])
+  farmerId          String
+  farmer            FarmerProfile @relation("FarmerImpactEvents", fields: [farmerId], references: [id], onDelete: Cascade)
+
+  // Event type: HARVEST, PRACTICE_ADOPTED, TRAINING_COMPLETED, PAYMENT_RECEIVED,
+  // PLOT_VERIFIED, CERTIFICATION_ISSUED, LOAN_DISBURSED, LOAN_REPAID, ETC.
+  eventType         String
+  eventData         String   // JSON: event-specific payload
+
+  // SHA-256 hash chain — each event hash = SHA256(prevHash + eventData + timestamp)
+  // This makes the ledger tamper-evident. Anyone can verify the chain with a script.
+  prevHash          String?
+  hash              String   @unique
+
+  // Optional links to other records
+  relatedId         String?
+  relatedType       String?  // PLOT | TRAINING | PAYMENT | CERTIFICATION | LOAN | PRACTICE
+
+  // Actor (who triggered the event)
+  actorId           String?
+  actorName         String?
+  actorType         String?  // FARMER | EXTENSION_OFFICER | SYSTEM | COOPERATIVE_MANAGER
+
+  // Location (optional, for geo-tagged events)
+  latitude          Float?
+  longitude         Float?
+
+  timestamp         DateTime @default(now())
+  createdAt         DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([farmerId])
+  @@index([eventType])
+  @@index([timestamp])
+}
+
+model ImpactKpiSnapshot {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation("TenantImpactKpiSnapshots", fields: [tenantId], references: [id])
+  farmerId          String
+  farmer            FarmerProfile @relation("FarmerImpactKpiSnapshots", fields: [farmerId], references: [id], onDelete: Cascade)
+
+  // KPI code (I-01 through CP-05 — see strategy brief)
+  kpiCode           String   // e.g. "I-01", "Y-02", "C-04"
+  pillar            String   // INCOME | YIELD | CLIMATE | INCLUSION | COMPLIANCE
+
+  // Computed value
+  value             Float
+  unit              String   // USD | kg/ha | % | score | tCO2e | days
+  period            String   // e.g. "2026-06" (monthly) or "2026A" (season)
+
+  // Attribution
+  attributionMethod String   @default("NAIVE")  // NAIVE | DID_MATCHED | SYNTHETIC_CONTROL
+  controlGroupId    String?  // for DiD: the matched control farmer's ID
+  confidenceScore   Float?   // 0-1 confidence in the attribution
+
+  // Baseline + target for quick % calc
+  baselineValue     Float?
+  targetValue       Float?
+
+  computedAt        DateTime @default(now())
+
+  @@unique([farmerId, kpiCode, period])
+  @@index([tenantId])
+  @@index([farmerId])
+  @@index([kpiCode])
+  @@index([period])
+  @@index([pillar])
+}
+
+model PracticeAdoption {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation("TenantPracticeAdoptions", fields: [tenantId], references: [id])
+  farmerId          String
+  farmer            FarmerProfile @relation("FarmerPracticeAdoptions", fields: [farmerId], references: [id], onDelete: Cascade)
+
+  // Farm5x practice code — e.g. "1M5C_MUST" (shade trees), "1M5C_R1" (organic mulch)
+  practiceCode      String
+  cropType          String   // COFFEE | MAIZE | COCOA | TEA | DAIRY
+  frameworkVariant  String   // 1M5C | 1M5M | 1M5K | 1M5T | 1M5D
+  isMandatory       Boolean  @default(false)  // true if this is the "Must" practice
+
+  // Adoption details
+  adoptedAt         DateTime @default(now())
+  adoptedBy         String?  // FARMER | EXTENSION_OFFICER
+  plotId            String?  // optional: which plot
+
+  // Verification — satellite or field officer confirmation
+  verificationStatus String  @default("PENDING")  // PENDING | VERIFIED | REJECTED
+  verificationMethod String?  // SATELLITE | FIELD_OFFICER | PHOTO | IoT
+  verifiedAt        DateTime?
+  verifiedBy        String?
+  confidenceScore   Float?   // 0-1
+  evidenceUrl       String?  // photo or satellite image URL
+
+  notes             String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([farmerId])
+  @@index([practiceCode])
+  @@index([cropType])
+  @@index([verificationStatus])
+  @@index([adoptedAt])
+}
+
+model ClimateResilienceScore {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation("TenantClimateResilienceScores", fields: [tenantId], references: [id])
+  farmerId          String
+  farmer            FarmerProfile @relation("FarmerClimateResilienceScores", fields: [farmerId], references: [id], onDelete: Cascade)
+
+  // Score period (monthly computation)
+  period            String   @default("2026-06")  // YYYY-MM
+  computedAt        DateTime @default(now())
+
+  // Total score (0-100)
+  score             Int
+
+  // 4-factor breakdown
+  practicePoints    Int      @default(0)   // /40 — Farm5x practice adoption
+  yieldPoints       Int      @default(0)   // /20 — yield stability over 3 seasons
+  trainingPoints    Int      @default(0)   // /20 — training completion
+  climatePoints     Int      @default(0)   // /20 — climate exposure (lower risk = more points)
+
+  // Risk category derived from score
+  riskCategory      String   // LOW_RISK | MEDIUM_RISK | HIGH_RISK | CRITICAL_RISK
+
+  // Inputs that produced this score (for auditability)
+  inputs            String   // JSON: { practiceCount, yieldCV, trainingCount, climateExposure }
+
+  // Trend vs previous period
+  previousScore     Int?
+  trend             String?  // IMPROVING | STABLE | DECLINING
+
+  @@unique([farmerId, period])
+  @@index([tenantId])
+  @@index([farmerId])
+  @@index([period])
+  @@index([riskCategory])
+  @@index([score])
 }

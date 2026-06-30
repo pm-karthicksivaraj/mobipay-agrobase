@@ -13,6 +13,9 @@ import '../../features/plots/presentation/pages/plots_page.dart';
 import '../../features/plots/presentation/pages/plot_detail_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
+import '../../features/impact/presentation/pages/impact_dashboard_page.dart';
+import '../../features/impact/presentation/pages/practice_logger_page.dart';
+import '../../features/impact/presentation/pages/my_passport_page.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -38,6 +41,19 @@ class AppRouter {
             path: '/plots/:id',
             builder: (_, state) =>
                 PlotDetailPage(id: state.pathParameters['id']!),
+          ),
+          // ─── Impact Engine routes (6-week sprint) ───
+          GoRoute(
+            path: '/impact',
+            builder: (_, __) => const ImpactDashboardPage(),
+          ),
+          GoRoute(
+            path: '/impact/practices',
+            builder: (_, __) => const PracticeLoggerPage(),
+          ),
+          GoRoute(
+            path: '/impact/passport',
+            builder: (_, __) => const MyPassportPage(),
           ),
           StatefulShellRoute.indexedStack(
             builder: (context, state, navigationShell) {
@@ -90,6 +106,12 @@ class AppRouter {
                 GoRoute(
                   path: '/compliance',
                   builder: (_, __) => const CompliancePage(),
+                ),
+              ]),
+              StatefulShellBranch(routes: [
+                GoRoute(
+                  path: '/impact',
+                  builder: (_, __) => const ImpactDashboardPage(),
                 ),
               ]),
               StatefulShellBranch(routes: [
@@ -156,6 +178,11 @@ class ScaffoldWithNavBar extends StatelessWidget {
             icon: Icon(Icons.verified_user_outlined),
             selectedIcon: Icon(Icons.verified_user),
             label: 'Comply',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.insights_outlined),
+            selectedIcon: Icon(Icons.insights),
+            label: 'Impact',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
