@@ -119,6 +119,7 @@ model Tenant {
   transportRequests    TransportRequest[]     @relation("TenantTransportRequests")
   transportTrips       TransportTrip[]        @relation("TenantTransportTrips")
   transportCharges     TransportCharge[]      @relation("TenantTransportCharges")
+  ccrpEnrollments      CcrpEnrollment[]        @relation("TenantCcrpEnrollments")
 }
 
 // --- USERS & AUTH ---
@@ -329,6 +330,7 @@ model FarmerProfile {
   productBatches       ProductBatch[]         @relation("FarmerBatches")
   farmPassport         FarmPassport?          @relation("FarmerPassport")
   plots                Plot[]                 @relation("FarmerPlots")
+  ccrpEnrollments      CcrpEnrollment[]        @relation("FarmerCcrpEnrollments")
 }
 
 model ChildProfile {
@@ -3090,4 +3092,50 @@ model MfiRepayment {
   @@index([tenantId])
   @@index([loanId])
   @@index([scheduleId])
+}
+
+// ============================================
+// CCRP (Cashew Crop Research Project) ENROLLMENT
+// Tracks farmer enrollment, adopted practices, and history
+// ============================================
+
+model CcrpEnrollment {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant         @relation("TenantCcrpEnrollments", fields: [tenantId], references: [id])
+  farmerId        String
+  farmer          FarmerProfile  @relation("FarmerCcrpEnrollments", fields: [farmerId], references: [id], onDelete: Cascade)
+  enrolledBy      String?
+  enrolledByName  String?
+  enrolledAt      DateTime @default(now())
+  status          String   @default("ACTIVE")  // ACTIVE | SUSPENDED | GRADUATED | EXITED
+  exitReason      String?                        // Graduate, Relocated, Deceased, Inactive
+  exitedAt        DateTime?
+  practices       String?                         // JSON array of adopted practice names, e.g. ["irrigation","agroforestry"]
+  notes           String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  history         CcrpEnrollmentHistory[]
+
+  @@unique([tenantId, farmerId])
+  @@index([tenantId])
+  @@index([farmerId])
+  @@index([status])
+}
+
+model CcrpEnrollmentHistory {
+  id              String   @id @default(cuid())
+  enrollmentId    String
+  enrollment      CcrpEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  changedBy       String?
+  changedByName   String?
+  action          String                     // ENROLLED, PRACTICE_ADDED, PRACTICE_REMOVED, STATUS_CHANGED, NOTES_UPDATED
+  previousValue   String?                    // JSON snapshot of relevant fields before change
+  newValue        String?                    // JSON snapshot of relevant fields after change
+  createdAt       DateTime @default(now())
+
+  @@index([enrollmentId])
+  @@index([action])
 }

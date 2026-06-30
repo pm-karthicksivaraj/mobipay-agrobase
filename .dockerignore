@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+
+# Build outputs
+.next
+dist
+out
+
+# Database
+db/
+*.db
+*.db-journal
+
+# Mobile app (has its own build pipeline)
+mobile/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment (injected at runtime via docker-compose)
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Misc
+*.md
+*.log
+scripts/
+skills/
+worklog.md

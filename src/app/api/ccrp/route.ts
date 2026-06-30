@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getTenantContext } from '@/lib/tenant'
 import { db } from '@/lib/db'
-import { Prisma } from '@prisma/client'
+// Prisma types used via db queries
 
 type CcrpFarmer = {
   id: string
@@ -65,17 +65,7 @@ function yieldStabilityFromScore(score: number): 'High' | 'Medium' | 'Low' {
   return 'Low'
 }
 
-function districtToRegion(district: string): string {
-  const map: Record<string, string> = {
-    'Gulu': 'Northern', 'Lira': 'Northern', 'Kitgum': 'Northern', 'Pader': 'Northern',
-    'Kampala': 'Central', 'Mukono': 'Central', 'Wakiso': 'Central', 'Luweero': 'Central',
-    'Jinja': 'Eastern', 'Mbale': 'Eastern', 'Tororo': 'Eastern', 'Soroti': 'Eastern',
-    'Mbarara': 'Western', 'Fort Portal': 'Western', 'Hoima': 'Western',
-    'Kabale': 'South-West', 'Kisoro': 'South-West', 'Rukungiri': 'South-West',
-    'Kibale': 'Western',
-  }
-  return map[district] || 'Central'
-}
+// No longer needed — district→region is resolved via DB geo hierarchy (District → SubRegion → Region)
 
 export async function GET(request: Request) {
   try {
@@ -85,7 +75,22 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const view = searchParams.get('view') || 'all' // all | farmers | stats | trend | impact
 
-    // Fetch farmers with their plots, trainings, and verifications
+    // Build district→region lookup from DB geo hierarchy: District → SubRegion → Region
+    const geoLookup = await db.district.findMany({
+      select: {
+        name: true,
+        subRegion: {
+          select: {
+            region: { select: { name: true } },
+          },
+        },
+      },
+    })
+    const districtRegionMap = new Map<string, string>(
+      geoLookup.map(d => [d.name, d.subRegion.region.name]),
+    )
+
+    // Fetch farmers with village (for geo lookup), plots, trainings
     const farmersRaw = await db.farmerProfile.findMany({
       where: { tenantId: ctx.tenantId, status: 'ACTIVE' },
       select: {
@@ -95,6 +100,7 @@ export async function GET(request: Request) {
         phone: true,
         mainCrops: true,
         farmSize: true,
+        villageId: true,
         plots: {
           select: {
             verificationScore: true,
@@ -115,6 +121,42 @@ export async function GET(request: Request) {
       select: { id: true, topic: true, date: true },
     })
     const trainingMap = new Map(trainings.map(t => [t.id, t.topic.toLowerCase()]))
+
+    // Build villageId → {district, region} lookup from geo hierarchy
+    const villageGeo = await db.village.findMany({
+      select: {
+        id: true,
+        parish: {
+          select: {
+            subCounty: {
+              select: {
+                constituency: {
+                  select: {
+                    district: {
+                      select: {
+                        name: true,
+                        subRegion: {
+                          select: { region: { select: { name: true } } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+    const villageGeoMap = new Map<string, { district: string; region: string }>(
+      villageGeo.map(v => [
+        v.id,
+        {
+          district: v.parish.subCounty.constituency.district.name,
+          region: v.parish.subCounty.constituency.district.subRegion.region.name,
+        },
+      ]),
+    )
 
     // Compute CCRP data per farmer
     const ccrpFarmers: CcrpFarmer[] = farmersRaw.map(f => {
@@ -147,14 +189,25 @@ export async function GET(request: Request) {
       )
       const stability = yieldStabilityFromScore(resilienceScore)
 
-      // Derive district from farm data (use first plot's approximate region or phone prefix)
-      const crops = f.mainCrops ? JSON.parse(f.mainCrops) : []
-      const district = crops[0]?.district || 'Kampala' // default
+      // Derive district/region from DB geo hierarchy via villageId lookup
+      let district = 'Unknown'
+      let region = 'Unknown'
+      if (f.villageId) {
+        const villageData = villageGeoMap.get(f.villageId)
+        if (villageData) {
+          district = villageData.district
+          region = villageData.region
+        }
+      }
+      // Fallback: look up region from district map if we got district but no region
+      if (region === 'Unknown' && district !== 'Unknown') {
+        region = districtRegionMap.get(district) || 'Unknown'
+      }
 
       return {
         id: f.id,
         name: `${f.firstName} ${f.lastName}`,
-        region: districtToRegion(district),
+        region,
         district,
         practices: totalPractices,
         resilienceScore,
