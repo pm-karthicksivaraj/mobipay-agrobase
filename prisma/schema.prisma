@@ -127,6 +127,8 @@ model Tenant {
   impactKpiSnapshots   ImpactKpiSnapshot[]    @relation("TenantImpactKpiSnapshots")
   practiceAdoptions    PracticeAdoption[]     @relation("TenantPracticeAdoptions")
   climateResilienceScores ClimateResilienceScore[] @relation("TenantClimateResilienceScores")
+  cropStageEvents     CropStageEvent[]     @relation("TenantCropStageEvents")
+  cropCalendars       CropCalendar[]       @relation("TenantCropCalendars")
 }
 
 // --- USERS & AUTH ---
@@ -489,6 +491,9 @@ model Cultivation {
   sowingChargesBy String?  // hour, hectare
   sowingCharges   Float?   // per unit
   sowingCost      Float?   // auto-calc: area × charges (or hours × charges)
+
+  // Relations
+  stageEvents     CropStageEvent[] @relation("CultivationStageEvents")
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -3464,4 +3469,105 @@ model ClimateResilienceScore {
   @@index([period])
   @@index([riskCategory])
   @@index([score])
+}
+
+// ════════════════════════════════════════════════════════════
+// CROP STAGE MANAGEMENT — Farm5x + DREAM MRV + Cost + Carbon
+//
+// Flexible stage-event model that handles ALL crop verticals:
+//   CropCore (rice/maize), CoffeeCore (coffee/cocoa),
+//   LiveCore (livestock/dairy), OrchardCore, VegCore, etc.
+//
+// Each crop type has 11-20 stages defined in config (not DB).
+// Each stage event stores its fields as JSON — no 200+ models needed.
+// ════════════════════════════════════════════════════════════
+
+model CropStageEvent {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantCropStageEvents", fields: [tenantId], references: [id])
+  cultivationId   String   // links to Cultivation
+  cultivation     Cultivation @relation("CultivationStageEvents", fields: [cultivationId], references: [id], onDelete: Cascade)
+
+  // Stage identification
+  cropVertical    String   // CROPCORE, COFFEECORE, LIVECORE, ORCHARDCORE, VEGCORE, etc.
+  stageNumber     Int      // 1-20 (stage order within the vertical)
+  stageName       String   // e.g. "Land Preparation", "Planting", "Harvest"
+  eventType       String   // e.g. "LAND_PREP", "PLANTING", "FERTILIZER", "HARVEST"
+
+  // The actual data for this stage event (all fields from the Excel)
+  eventData       String   // JSON: all stage-specific fields
+
+  // Photos / evidence
+  photoUrls       String?  // JSON array of photo URLs
+
+  // GPS + timing
+  latitude        Float?
+  longitude       Float?
+  eventDate       DateTime @default(now())
+
+  // Auto-calculated costs (sum of all input costs in eventData)
+  inputCostTotal  Float    @default(0)  // seeds + fertilizer + pesticide + fuel + labor
+  laborCost       Float    @default(0)
+  materialCost    Float    @default(0)
+
+  // Auto-calculated carbon (from IPCC emission factors applied to inputs)
+  carbonKgCO2e    Float    @default(0)  // emissions from this stage event
+
+  // DREAM MRV pipeline status for this event
+  dreamData       Boolean  @default(false)  // D: data collected
+  dreamRemote     Boolean  @default(false)  // R: satellite-verified
+  dreamEvent      Boolean  @default(false)  // E: practice adoption detected
+  dreamAnalytics  Boolean  @default(false)  // A: emissions calculated
+  dreamMonitor    Boolean  @default(false)  // M: season-long monitoring tracked
+
+  // Farm5x practice link (if this event is a Farm5x practice adoption)
+  farm5xPractice  String?  // e.g. "1M5C_MUST", "1M5R_R1", "1M5D_R3"
+  farm5xVariant   String?  // 1M5R, 1M5C, 1M5K, 1M5T, 1M5D, 1M5V, 1M5O, 1M5A
+
+  // Actor
+  createdBy       String?
+  createdByName   String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([cultivationId])
+  @@index([cropVertical])
+  @@index([stageNumber])
+  @@index([eventDate])
+  @@index([farm5xVariant])
+}
+
+// ─── Crop Calendar (from Excel: Crop Calendar Master) ────────
+// Defines the seasonal stages per crop per country — when to plant,
+// expected NDVI, expected rainfall, risks per stage.
+
+model CropCalendar {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation("TenantCropCalendars", fields: [tenantId], references: [id])
+
+  cropName        String   // Coffee, Maize, Rice, Cocoa, Tea, Dairy, etc.
+  country         String   // Uganda, Ghana, Kenya
+  variety         String?  // e.g. SL28, Longe 10H
+
+  // Calendar definition (JSON: array of stages with timing)
+  stages          String   // JSON: [{ stageName, startDay, endDay, expectedNDVI: {min,max}, expectedRainfall: {minMm,maxMm}, risks: [] }]
+
+  totalDurationDays Int?
+  plantingWindows String?  // JSON: [{ startMonth, endMonth }]
+
+  // Linked Farm5x variant
+  farm5xVariant   String?  // 1M5C, 1M5M, 1M5K, 1M5T, 1M5D, etc.
+
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([cropName, country, variety])
+  @@index([tenantId])
+  @@index([cropName])
+  @@index([country])
 }
