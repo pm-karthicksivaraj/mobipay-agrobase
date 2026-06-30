@@ -4,6 +4,10 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/farmers/presentation/pages/farmers_page.dart';
 import '../../features/farmers/presentation/pages/farmer_detail_page.dart';
+import '../../features/farm_lands/presentation/pages/farm_lands_page.dart';
+import '../../features/cultivations/presentation/pages/cultivations_page.dart';
+import '../../features/sales/presentation/pages/sales_page.dart';
+import '../../features/payments/presentation/pages/payments_page.dart';
 import '../../features/loans/presentation/pages/loans_page.dart';
 import '../../features/vsla/presentation/pages/vsla_page.dart';
 import '../../features/mfi/presentation/pages/mfi_page.dart';
@@ -66,6 +70,23 @@ class AppRouter {
             path: '/profile/trainings',
             builder: (_, __) => const MyTrainingsPage(),
           ),
+          // ─── Phase 2: Farm Lands, Cultivations, Sales, Payments ───
+          GoRoute(
+            path: '/farm-lands',
+            builder: (_, __) => const FarmLandsPage(),
+          ),
+          GoRoute(
+            path: '/cultivations',
+            builder: (_, state) => CultivationsPage(farmId: state.uri.queryParameters['farmId']),
+          ),
+          GoRoute(
+            path: '/sales',
+            builder: (_, __) => const SalesPage(),
+          ),
+          GoRoute(
+            path: '/payments',
+            builder: (_, __) => const PaymentsPage(),
+          ),
           StatefulShellRoute.indexedStack(
             builder: (context, state, navigationShell) {
               return ScaffoldWithNavBar(navigationShell: navigationShell);
@@ -87,6 +108,24 @@ class AppRouter {
                 GoRoute(
                   path: '/farmers',
                   builder: (_, __) => const FarmersPage(),
+                ),
+              ]),
+              StatefulShellBranch(routes: [
+                GoRoute(
+                  path: '/farm-lands',
+                  builder: (_, __) => const FarmLandsPage(),
+                ),
+              ]),
+              StatefulShellBranch(routes: [
+                GoRoute(
+                  path: '/sales',
+                  builder: (_, __) => const SalesPage(),
+                ),
+              ]),
+              StatefulShellBranch(routes: [
+                GoRoute(
+                  path: '/payments',
+                  builder: (_, __) => const PaymentsPage(),
                 ),
               ]),
               StatefulShellBranch(routes: [
@@ -164,6 +203,21 @@ class ScaffoldWithNavBar extends StatelessWidget {
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
             label: 'Farmers',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.landscape_outlined),
+            selectedIcon: Icon(Icons.landscape),
+            label: 'Farms',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_outlined),
+            selectedIcon: Icon(Icons.receipt),
+            label: 'Sales',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.payment_outlined),
+            selectedIcon: Icon(Icons.payment),
+            label: 'Pay',
           ),
           NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),
