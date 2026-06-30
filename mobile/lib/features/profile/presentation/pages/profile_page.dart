@@ -9,7 +9,10 @@ import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/auth/auth_provider.dart';
+import '../../../../core/sync/sync_status_widget.dart';
+import '../../../../core/sync/sync_engine.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/lightweight_mode.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../shared/widgets/kpi_card.dart';
@@ -163,6 +166,32 @@ class _ProfilePageState extends State<ProfilePage> {
                 onTap: () {
                   setState(
                       () => _notificationsEnabled = !_notificationsEnabled);
+                },
+              ),
+              const _SettingsDivider(),
+              // ─── Lightweight Mode for low-end phones ───
+              _SettingsItem(
+                icon: Icons.speed_outlined,
+                label: 'Lightweight Mode',
+                trailing: Consumer<LightweightMode>(
+                  builder: (context, mode, _) => Switch(
+                    value: mode.enabled,
+                    activeColor: AppTheme.primaryGreen,
+                    onChanged: (v) => mode.toggle(),
+                  ),
+                ),
+                onTap: () {
+                  context.read<LightweightMode>().toggle();
+                },
+              ),
+              const _SettingsDivider(),
+              // ─── Sync Now button ───
+              _SettingsItem(
+                icon: Icons.sync_outlined,
+                label: 'Sync Now',
+                trailing: const SyncStatusWidget(),
+                onTap: () {
+                  context.read<SyncEngine>().syncNow();
                 },
               ),
             ]),

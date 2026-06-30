@@ -9,6 +9,9 @@ import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/auth/auth_provider.dart';
+import '../../../../core/sync/offline_repository.dart';
+import '../../../../core/sync/sync_status_widget.dart';
+import '../../../../core/connectivity/connectivity_manager.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/constants.dart';
@@ -72,18 +75,36 @@ class _FarmersPageState extends State<FarmersPage> {
 
   Future<void> _loadData() async {
     try {
-      final api = ApiClient();
-      final res = await api.get('/api/farmers?page=1&limit=20');
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
+      final connectivity = context.read<ConnectivityManager>();
+      if (connectivity.isOnline) {
+        final api = ApiClient();
+        final res = await api.get('/api/farmers?page=1&limit=20');
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body);
+          setState(() {
+            _farmers = List<Map<String, dynamic>>.from(data['farmers'] ?? []);
+            _hasMore = data['hasMore'] ?? false;
+            _currentPage = 1;
+          });
+        }
+      } else {
+        // Offline: read from local cache via OfflineRepository
+        final repo = context.read<OfflineRepository>();
+        final farmers = await repo.getFarmers(limit: 200);
         setState(() {
-          _farmers = List<Map<String, dynamic>>.from(data['farmers'] ?? []);
-          _hasMore = data['hasMore'] ?? false;
+          _farmers = farmers;
+          _hasMore = false;
           _currentPage = 1;
         });
       }
     } catch (e) {
       debugPrint('Farmers load error: $e');
+      // Fallback to offline cache
+      try {
+        final repo = context.read<OfflineRepository>();
+        final farmers = await repo.getFarmers(limit: 200);
+        setState(() { _farmers = farmers; _hasMore = false; });
+      } catch (_) {}
     } finally {
       _loading = false;
       _refreshController.refreshCompleted();
@@ -154,6 +175,7 @@ class _FarmersPageState extends State<FarmersPage> {
         ),
         backgroundColor: AppTheme.surfaceLight,
         elevation: 0,
+        actions: const [SyncStatusWidget(), SizedBox(width: 12)],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showRegisterDialog(context),

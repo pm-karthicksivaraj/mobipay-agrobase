@@ -1,4 +1,7 @@
 import 'dart:convert';
+import '../../../../core/sync/offline_repository.dart';
+import '../../../../core/sync/sync_status_widget.dart';
+import '../../../../core/connectivity/connectivity_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/api/api_client.dart';
@@ -45,18 +48,31 @@ class _MyTrainingsPageState extends State<MyTrainingsPage>
 
   Future<void> _loadTrainings() async {
     try {
-      final res = await ApiClient().get('/api/trainings');
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        setState(() {
-          _trainings = data['trainings'] ?? data ?? [];
-          _loadingTrainings = false;
-        });
-      } else {
+      final connectivity = context.read<ConnectivityManager>();
+      if (connectivity.isOnline) {
+        final res = await ApiClient().get('/api/trainings');
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body);
+          setState(() {
+            _trainings = data['trainings'] ?? data ?? [];
+            _loadingTrainings = false;
+          });
+          return;
+        }
+      }
+      // Offline: read from local cache
+      final repo = context.read<OfflineRepository>();
+      final trainings = await repo.getTrainings();
+      setState(() { _trainings = trainings; _loadingTrainings = false; });
+    } catch (_) {
+      // Fallback to cache
+      try {
+        final repo = context.read<OfflineRepository>();
+        final trainings = await repo.getTrainings();
+        setState(() { _trainings = trainings; _loadingTrainings = false; });
+      } catch (_) {
         setState(() => _loadingTrainings = false);
       }
-    } catch (_) {
-      setState(() => _loadingTrainings = false);
     }
   }
 
@@ -85,6 +101,7 @@ class _MyTrainingsPageState extends State<MyTrainingsPage>
         title: const Text('My Trainings'),
         backgroundColor: AppTheme.primaryGreen,
         foregroundColor: Colors.white,
+        actions: const [SyncStatusWidget(), SizedBox(width: 12)],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,

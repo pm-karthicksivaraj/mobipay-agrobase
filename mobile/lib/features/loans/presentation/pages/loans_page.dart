@@ -1,4 +1,7 @@
 import 'dart:convert';
+import '../../../../core/sync/offline_repository.dart';
+import '../../../../core/sync/sync_status_widget.dart';
+import '../../../../core/connectivity/connectivity_manager.dart';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';

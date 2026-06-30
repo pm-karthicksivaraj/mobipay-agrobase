@@ -9,6 +9,10 @@ import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/auth/auth_provider.dart';
+import '../../../../core/sync/offline_repository.dart';
+import '../../../../core/sync/sync_engine.dart';
+import '../../../../core/sync/sync_status_widget.dart';
+import '../../../../core/connectivity/connectivity_manager.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/constants.dart';
@@ -39,15 +43,46 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _loadData() async {
     try {
-      final api = ApiClient();
-      final res = await api.get('/api/dashboard');
-      if (res.statusCode == 200) {
+      // Try online first
+      final connectivity = context.read<ConnectivityManager>();
+      if (connectivity.isOnline) {
+        final api = ApiClient();
+        final res = await api.get('/api/dashboard');
+        if (res.statusCode == 200) {
+          setState(() {
+            _dashboardData = jsonDecode(res.body);
+          });
+        }
+      } else {
+        // Offline: build dashboard from local cache
+        final repo = context.read<OfflineRepository>();
+        final farmers = await repo.getFarmers();
+        final farms = await repo.getFarmLands();
+        final trainings = await repo.getTrainings();
         setState(() {
-          _dashboardData = jsonDecode(res.body);
+          _dashboardData = {
+            'stats': {
+              'farmerCount': farmers.length,
+              'farmCount': farms.length,
+              'trainingCount': trainings.length,
+            },
+            'offline': true,
+          };
         });
       }
     } catch (e) {
       debugPrint('Dashboard load error: $e');
+      // Fallback to offline cache
+      try {
+        final repo = context.read<OfflineRepository>();
+        final farmers = await repo.getFarmers();
+        setState(() {
+          _dashboardData = {
+            'stats': {'farmerCount': farmers.length},
+            'offline': true,
+          };
+        });
+      } catch (_) {}
     } finally {
       _loading = false;
       _refreshController.refreshCompleted();
@@ -85,6 +120,8 @@ class _DashboardPageState extends State<DashboardPage> {
         backgroundColor: AppTheme.surfaceLight,
         elevation: 0,
         actions: [
+          const SyncStatusWidget(),
+          const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {},

@@ -4,6 +4,7 @@ import 'core/api/api_client.dart';
 import 'core/auth/auth_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/lightweight_mode.dart';
 import 'core/database/app_database.dart';
 import 'core/connectivity/connectivity_manager.dart';
 import 'core/sync/sync_engine.dart';
@@ -25,6 +26,10 @@ void main() async {
 
   final offlineRepo = OfflineRepository(db, apiClient, connectivityManager, syncEngine);
 
+  // ─── Initialize lightweight mode (for low-end phones) ───────
+  final lightweightMode = LightweightMode();
+  await lightweightMode.initialize();
+
   // ─── Auto-sync on app launch (if online) ────────────────────
   if (connectivityManager.isOnline) {
     syncEngine.syncNow();
@@ -36,6 +41,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthState()..init()),
         ChangeNotifierProvider(create: (_) => connectivityManager),
         ChangeNotifierProvider(create: (_) => syncEngine),
+        ChangeNotifierProvider(create: (_) => lightweightMode),
         Provider(create: (_) => offlineRepo),
         Provider(create: (_) => db),
       ],
