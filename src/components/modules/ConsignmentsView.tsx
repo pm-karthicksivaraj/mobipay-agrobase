@@ -1,4 +1,5 @@
 'use client'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 
 import React, { useEffect, useState, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
@@ -120,10 +121,9 @@ export default function ConsignmentsView() {
   const fetchConsignments = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/consignments')
-      if (res.ok) {
-        const data = await res.json()
-        setConsignments(data.consignments || data.data || [])
+      const data = await safeFetch('/api/consignments')
+      if (data) {
+        setConsignments(extractArray(data, 'consignments'))
       } else {
         setConsignments(mockConsignments)
       }

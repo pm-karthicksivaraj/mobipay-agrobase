@@ -1,4 +1,5 @@
 'use client'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 
 import React, { useEffect, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
@@ -55,15 +56,15 @@ export default function AgriTrackView() {
 
   const fetchScores = useCallback(async () => {
     try {
-      const res = await fetch('/api/loans?type=credit-scores')
-      const data = await res.json()
-      setScores(data.scores || data || [])
+      const data = await safeFetch('/api/loans?type=credit-scores')
+      if (!data) { setScores([]); setLoading(false); return }
+      setScores(extractArray(data, 'scores'))
     } catch {
       // Fallback: try farmers API which might include credit scores
       try {
-        const res = await fetch('/api/farmers?limit=50')
-        const data = await res.json()
-        const farmers = data.farmers || data.data || data || []
+        const data2 = await safeFetch('/api/farmers?limit=50')
+        if (!data2) { setScores([]); setLoading(false); return }
+        const farmers = extractArray(data2, 'farmers')
         // Create mock scores for display
         setScores(farmers.slice(0, 25).map((f: any, i: number) => ({
           id: `cs-${i}`,

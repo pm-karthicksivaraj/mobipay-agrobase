@@ -1,4 +1,5 @@
 'use client'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 
 import React, { useEffect, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
@@ -18,8 +19,8 @@ export default function TrainingView() {
 
   const fetchTrainings = useCallback(async () => {
     try {
-      const res = await fetch('/api/trainings')
-      const data = await res.json()
+      const data = await safeFetch('/api/trainings')
+      if (!data) { setLoading(false); return }
       setTrainings(data.trainings || data || [])
     } catch (e) {
       console.error(e)

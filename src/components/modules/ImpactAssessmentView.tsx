@@ -1,4 +1,5 @@
 'use client'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
@@ -112,10 +113,9 @@ export default function ImpactAssessmentView() {
 
   const fetchAssessments = useCallback(async () => {
     try {
-      const res = await fetch('/api/impact-assessments')
-      if (res.ok) {
-        const data = await res.json()
-        setAssessments(data.assessments || data || [])
+      const data = await safeFetch('/api/impact-assessments')
+      if (data) {
+        setAssessments(extractArray(data, 'assessments'))
       }
     } catch (e) {
       console.error(e)
@@ -126,10 +126,9 @@ export default function ImpactAssessmentView() {
 
   const fetchFarmers = useCallback(async () => {
     try {
-      const res = await fetch('/api/farmers?limit=200')
-      if (res.ok) {
-        const data = await res.json()
-        setFarmers(data.farmers || data || [])
+      const data = await safeFetch('/api/farmers?limit=200')
+      if (data) {
+        setFarmers(extractArray(data, 'farmers'))
       }
     } catch (e) {
       console.error(e)

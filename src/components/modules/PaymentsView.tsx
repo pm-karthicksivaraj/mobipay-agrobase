@@ -1,4 +1,5 @@
 'use client'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 
 import React, { useEffect, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
@@ -48,8 +49,8 @@ export default function PaymentsView() {
 
   const fetchPayments = useCallback(async () => {
     try {
-      const res = await fetch('/api/payments')
-      const data = await res.json()
+      const data = await safeFetch('/api/payments')
+      if (!data) { setLoading(false); return }
       setPayments(data.payments || data || [])
     } catch (e) {
       console.error(e)

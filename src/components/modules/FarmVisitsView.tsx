@@ -1,4 +1,5 @@
 'use client'
+import { safeFetch, extractArray } from '@/lib/safe-fetch'
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
@@ -59,10 +60,9 @@ export default function FarmVisitsView() {
 
   const fetchVisits = useCallback(async () => {
     try {
-      const res = await fetch('/api/farm-visits')
-      if (res.ok) {
-        const data = await res.json()
-        setVisits(data.visits || data || [])
+      const data = await safeFetch('/api/farm-visits')
+      if (data) {
+        setVisits(extractArray(data, 'visits'))
       }
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
@@ -70,10 +70,9 @@ export default function FarmVisitsView() {
 
   const fetchFarmers = useCallback(async () => {
     try {
-      const res = await fetch('/api/farmers?limit=200')
-      if (res.ok) {
-        const data = await res.json()
-        setFarmers(data.farmers || data || [])
+      const data = await safeFetch('/api/farmers?limit=200')
+      if (data) {
+        setFarmers(extractArray(data, 'farmers'))
       }
     } catch (e) { console.error(e) }
   }, [])
@@ -101,6 +100,8 @@ export default function FarmVisitsView() {
     if (!formTopic) { toast.error('Please select a topic'); return }
     setSubmitting(true)
     try {
+      const data = await safeFetch('/api/farm-visits', )
+      // POST: re-fetch after -- but safeFetch is GET-only
       const res = await fetch('/api/farm-visits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
