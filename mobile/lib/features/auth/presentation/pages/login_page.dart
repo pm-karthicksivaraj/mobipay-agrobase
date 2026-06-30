@@ -153,9 +153,7 @@ class _LoginPageState extends State<LoginPage> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {
-                            // TODO: Implement forgot password
-                          },
+                          onPressed: () => _showForgotPasswordDialog(context),
                           child: Text(
                             'Forgot password?',
                             style: TextStyle(
@@ -218,6 +216,150 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showForgotPasswordDialog(BuildContext context) {
+    final phoneController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    final otpController = TextEditingController();
+    bool otpSent = false;
+    bool otpVerified = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Reset Password'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Step 1: Enter phone number
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone Number',
+                        hintText: '+256...',
+                        prefixIcon: Icon(Icons.phone),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    if (!otpSent) ...[
+                      Text(
+                        'Enter your registered phone number. An OTP will be sent via SMS.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+
+                    // Step 2: OTP entry (after sending)
+                    if (otpSent && !otpVerified) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: otpController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Enter OTP (6 digits)',
+                          prefixIcon: Icon(Icons.lock),
+                        ),
+                      ),
+                    ],
+
+                    // Step 3: New password (after OTP verified)
+                    if (otpVerified) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: newPasswordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'New Password',
+                          prefixIcon: Icon(Icons.lock_outline),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: confirmPasswordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Confirm Password',
+                          prefixIcon: Icon(Icons.lock_outline),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                if (!otpSent)
+                  ElevatedButton(
+                    onPressed: () {
+                      // In production: call /api/auth/reset-password/request
+                      // For demo: auto-advance with a mock OTP
+                      setDialogState(() => otpSent = true);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('OTP sent: 123456 (demo mode)'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    },
+                    child: const Text('Send OTP'),
+                  ),
+                if (otpSent && !otpVerified)
+                  ElevatedButton(
+                    onPressed: () {
+                      if (otpController.text == '123456') {
+                        setDialogState(() => otpVerified = true);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Invalid OTP. Use 123456 (demo mode)'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Verify OTP'),
+                  ),
+                if (otpVerified)
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (newPasswordController.text.isEmpty ||
+                          newPasswordController.text != confirmPasswordController.text) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Passwords do not match'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      // In production: call /api/auth/reset-password/confirm
+                      // For demo: just close and show success
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Password reset successful! Please log in.'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    },
+                    child: const Text('Reset Password'),
+                  ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -12,6 +12,8 @@ import '../../features/compliance/presentation/pages/compliance_page.dart';
 import '../../features/plots/presentation/pages/plots_page.dart';
 import '../../features/plots/presentation/pages/plot_detail_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/profile/presentation/pages/farmer_id_card_page.dart';
+import '../../features/trainings/presentation/pages/my_trainings_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/impact/presentation/pages/impact_dashboard_page.dart';
 import '../../features/impact/presentation/pages/practice_logger_page.dart';
@@ -54,6 +56,15 @@ class AppRouter {
           GoRoute(
             path: '/impact/passport',
             builder: (_, __) => const MyPassportPage(),
+          ),
+          // ─── EKIBBO: Farmer ID Card + My Trainings ───
+          GoRoute(
+            path: '/profile/farmer-id-card',
+            builder: (_, __) => const FarmerIdCardPage(),
+          ),
+          GoRoute(
+            path: '/profile/trainings',
+            builder: (_, __) => const MyTrainingsPage(),
           ),
           StatefulShellRoute.indexedStack(
             builder: (context, state, navigationShell) {

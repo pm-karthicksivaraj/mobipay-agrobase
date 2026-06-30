@@ -84,6 +84,27 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 8),
             _buildProfileHeader(name, role, email, initials),
             const SizedBox(height: 24),
+
+            // ─── EKIBBO: Farmer ID Card + My Trainings ───
+            _buildSectionTitle('My Card & Trainings'),
+            const SizedBox(height: 8),
+            _buildSettingsCard([
+              _SettingsItem(
+                icon: Icons.badge_outlined,
+                label: 'Farmer ID Card (with QR)',
+                trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20),
+                onTap: () => context.push('/profile/farmer-id-card'),
+              ),
+              const _SettingsDivider(),
+              _SettingsItem(
+                icon: Icons.school_outlined,
+                label: 'My Trainings & Visits',
+                trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20),
+                onTap: () => context.push('/profile/trainings'),
+              ),
+            ]),
+            const SizedBox(height: 24),
+
             _buildSectionTitle('Account Settings'),
             const SizedBox(height: 8),
             _buildSettingsCard([
