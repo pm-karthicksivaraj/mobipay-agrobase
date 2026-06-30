@@ -21,7 +21,7 @@ export default function TrainingView() {
     try {
       const data = await safeFetch('/api/trainings')
       if (!data) { setLoading(false); return }
-      setTrainings(data.trainings || data || [])
+      setTrainings(extractArray(data, 'trainings'))
     } catch (e) {
       console.error(e)
     } finally {
@@ -83,7 +83,7 @@ export default function TrainingView() {
                 </div>
                 {t.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{t.description}</p>}
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(t.date).toLocaleDateString()}</div>
+                  <div className="flex items-center gap-1"><Calendar className="w-3 h-3" />{t.date ? new Date(t.date).toLocaleDateString() : '—'}</div>
                   {t.location && <div className="flex items-center gap-1"><MapPin className="w-3 h-3" />{t.location}</div>}
                 </div>
                 <div className="mt-3 flex items-center gap-2">

@@ -137,7 +137,10 @@ export default function ConsignmentsView() {
   useEffect(() => { fetchConsignments() }, [fetchConsignments])
 
   const filtered = consignments.filter(c => {
-    const matchSearch = !search || c.product.toLowerCase().includes(search.toLowerCase()) || c.source.toLowerCase().includes(search.toLowerCase()) || c.destination.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = !search ||
+      (c.product || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.source || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.destination || '').toLowerCase().includes(search.toLowerCase())
     const matchStatus = !statusFilter || c.status === statusFilter
     return matchSearch && matchStatus
   })
@@ -146,7 +149,7 @@ export default function ConsignmentsView() {
     total: consignments.length,
     inTransit: consignments.filter(c => ['DISPATCHED', 'CHECKED_IN'].includes(c.status)).length,
     received: consignments.filter(c => ['RECEIVED', 'APPROVED', 'PAID'].includes(c.status)).length,
-    totalValue: consignments.reduce((s, c) => s + c.totalValue, 0),
+    totalValue: consignments.reduce((s, c) => s + (c.totalValue || 0), 0),
   }
 
   const pipelineCounts = statusPipeline.map(s => ({
@@ -155,7 +158,11 @@ export default function ConsignmentsView() {
   }))
 
   const destinationData = Object.entries(
-    consignments.reduce((acc, c) => { acc[c.destination] = (acc[c.destination] || 0) + c.totalValue; return acc }, {} as Record<string, number>)
+    consignments.reduce((acc, c) => {
+      const d = c.destination || 'Unknown'
+      acc[d] = (acc[d] || 0) + (c.totalValue || 0)
+      return acc
+    }, {} as Record<string, number>)
   ).map(([name, value]) => ({ name, value }))
 
   const pieData = [
@@ -232,18 +239,18 @@ export default function ConsignmentsView() {
                     <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setShowDetail(c)}>
                       <TableCell>
                         <p className="font-medium text-sm">{c.product}</p>
-                        <p className="text-[10px] text-muted-foreground">{c.items.length} item(s)</p>
+                        <p className="text-[10px] text-muted-foreground">{(c.items?.length ?? 0)} item(s)</p>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-1 text-xs">
                           <MapPin className="w-3 h-3 text-muted-foreground" />
-                          <span>{c.source}</span>
+                          <span>{c.source || '—'}</span>
                           <ArrowRight className="w-3 h-3 text-muted-foreground mx-1" />
-                          <span className="font-medium">{c.destination}</span>
+                          <span className="font-medium">{c.destination || '—'}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{c.quantity} {c.unit}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm font-medium">UGX {c.totalValue.toLocaleString()}</TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">{c.quantity} {c.unit || ''}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm font-medium">UGX {(c.totalValue ?? 0).toLocaleString()}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-0.5">
                           {statusPipeline.map((s, i) => (
@@ -322,7 +329,7 @@ export default function ConsignmentsView() {
                 <div><p className="text-xs text-muted-foreground">Source</p><p className="text-sm">{showDetail.source}</p></div>
                 <div><p className="text-xs text-muted-foreground">Destination</p><p className="text-sm">{showDetail.destination}</p></div>
                 <div><p className="text-xs text-muted-foreground">Total Quantity</p><p className="text-sm">{showDetail.quantity} {showDetail.unit}</p></div>
-                <div><p className="text-xs text-muted-foreground">Total Value</p><p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">UGX {showDetail.totalValue.toLocaleString()}</p></div>
+                <div><p className="text-xs text-muted-foreground">Total Value</p><p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">UGX {(showDetail.totalValue ?? 0).toLocaleString()}</p></div>
                 <div><p className="text-xs text-muted-foreground">Created</p><p className="text-sm">{showDetail.createdAt}</p></div>
                 {showDetail.dispatchDate && <div><p className="text-xs text-muted-foreground">Dispatched</p><p className="text-sm">{showDetail.dispatchDate}</p></div>}
                 {showDetail.receiveDate && <div><p className="text-xs text-muted-foreground">Received</p><p className="text-sm">{showDetail.receiveDate}</p></div>}
@@ -347,7 +354,7 @@ export default function ConsignmentsView() {
 
               {/* Items */}
               <Separator />
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Items ({showDetail.items.length})</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Items ({showDetail.items?.length ?? 0})</p>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -357,11 +364,11 @@ export default function ConsignmentsView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {showDetail.items.map(item => (
+                  {(showDetail.items ?? []).map(item => (
                     <TableRow key={item.id}>
                       <TableCell className="text-sm">{item.productName}</TableCell>
                       <TableCell className="text-sm text-right">{item.quantity} {item.unit}</TableCell>
-                      <TableCell className="text-sm text-right font-medium">UGX {item.total.toLocaleString()}</TableCell>
+                      <TableCell className="text-sm text-right font-medium">UGX {(item.total ?? 0).toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

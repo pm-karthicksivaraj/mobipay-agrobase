@@ -9,7 +9,8 @@ import {
   Package, Truck, ClipboardCheck, Building2, UserCheck, Shield, Layers,
   Receipt, TrendingUp, Phone, Map, Radio, ShoppingCart,
   Sprout, PiggyBank, DollarSign, FileText, Leaf,
-  Stethoscope, Activity, Smartphone, TreePine, UsersRound, Landmark, MapPin
+  Stethoscope, Activity, Smartphone, TreePine, UsersRound, Landmark, MapPin,
+  Cloud, Calculator, BookOpen
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -27,12 +28,19 @@ const ALL_MODULES: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
   // Core Operations
   { key: 'farmers', label: 'Farmer Profiling', icon: Users, group: 'Core Operations' },
+  { key: 'farm-lands', label: 'Farm Land Registry', icon: MapPin, group: 'Core Operations' },
+  { key: 'cultivations', label: 'Cultivations', icon: Sprout, group: 'Core Operations' },
   { key: 'vsla', label: 'VSLA Management', icon: PiggyBank, group: 'Core Operations' },
   { key: 'marketplace', label: 'Marketplace', icon: Store, group: 'Core Operations' },
   { key: 'payments', label: 'Payments', icon: CreditCard, group: 'Core Operations' },
   { key: 'loans', label: 'Loan Management', icon: DollarSign, group: 'Core Operations' },
   { key: 'training', label: 'Training & Groups', icon: GraduationCap, group: 'Core Operations' },
   { key: 'farm-visits', label: 'Farm Visits', icon: Leaf, group: 'Core Operations' },
+  // Farm Management (Core Product)
+  { key: 'crop-stages', label: 'Crop Stage Library', icon: BookOpen, group: 'Farm Management' },
+  { key: 'farm5x', label: 'Farm5X & DREAM MRV', icon: Layers, group: 'Farm Management' },
+  { key: 'cost-of-cultivation', label: 'Cost of Cultivation', icon: Calculator, group: 'Farm Management' },
+  { key: 'carbon', label: 'Carbon & Compliance', icon: Cloud, group: 'Farm Management' },
   // Supply Chain
   { key: 'input-aggregation', label: 'Input Aggregation', icon: Package, group: 'Supply Chain' },
   { key: 'purchases', label: 'Purchases', icon: ShoppingCart, group: 'Supply Chain' },

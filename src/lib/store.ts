@@ -1,13 +1,16 @@
 import { create } from 'zustand'
 
 export type ModuleKey =
-  'dashboard' | 'farmers' | 'vsla' | 'marketplace' | 'payments' | 'loans' |
+  'dashboard' | 'farmers' | 'farm-lands' | 'cultivations' |
+  'vsla' | 'marketplace' | 'payments' | 'loans' |
   'reports' | 'training' | 'settings' | 'communication' | 'agritrack' |
   'profile' | 'companies' | 'input-aggregation' | 'purchases' | 'approvals' |
   'sales' | 'deliveries' | 'consignments' | 'processing' |
   'ccrp' | 'cohort1' | 'cohort2' | 'smile' | 'nakivaale' |
   'ivr' | 'feedback' | 'trace' | 'users' | 'surveys' |
   'farm-visits' | 'impact-assessment' | 'channel-sim' | 'compliance' | 'mfi' | 'transport' | 'plots' |
+  // Core product modules
+  'carbon' | 'farm5x' | 'cost-of-cultivation' | 'crop-stages' |
   'super-admin-overview' | 'super-admin-tenants' | 'super-admin-revenue' | 'super-admin-impact' | 'super-admin-users' | 'super-admin-mobile' | 'super-admin-config'
 
 interface AuthUser {
@@ -18,6 +21,9 @@ interface AuthUser {
   email?: string
   phone?: string
   avatarUrl?: string
+  country?: string
+  currency?: string
+  language?: string
 }
 
 interface AppState {

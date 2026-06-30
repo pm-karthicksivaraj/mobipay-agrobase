@@ -113,7 +113,7 @@ export default function PlotMap({
       setPlotCount(features.length)
 
       if (features.length === 0) {
-        setError('No plots with GPS boundaries found. Verify plots to enable map display.')
+        setError('No plots or farm lands with GPS boundaries found. Register a farm land with a polygon in the Farm Land Registry to enable map display.')
         setLoading(false)
         return
       }

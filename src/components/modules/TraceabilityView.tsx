@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import {
   Search, Package, Truck, CheckCircle, Clock, MapPin, ArrowRight,
   Leaf, Coffee, Factory, Ship, BarChart3, Loader2, AlertCircle, X, Filter,
-  ChevronDown, ChevronUp, Shield, TrendingUp
+  ChevronDown, ChevronUp, Shield, TrendingUp, QrCode, ScanLine, Camera, StopCircle, Download
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
+import { QRCodeSVG } from 'qrcode.react'
+import jsQR from 'jsqr'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 interface TraceChainStep {
@@ -219,10 +221,11 @@ export default function TraceabilityView() {
       </div>
 
       <Tabs defaultValue="lookup" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="lookup">Trace Lookup</TabsTrigger>
           <TabsTrigger value="batches">Batch Tracking</TabsTrigger>
           <TabsTrigger value="map">Chain Map</TabsTrigger>
+          <TabsTrigger value="qr" className="gap-1.5"><QrCode className="w-3.5 h-3.5" /> QR</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Trace Lookup */}
@@ -462,7 +465,260 @@ export default function TraceabilityView() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Tab 4: QR Scanner & Generator */}
+        <TabsContent value="qr" className="space-y-4">
+          <QrScannerTab />
+        </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+// ─── QR Scanner & Generator Tab ────────────────────────────────────
+
+function QrScannerTab() {
+  const [scanning, setScanning] = useState(false)
+  const [scanResult, setScanResult] = useState<any>(null)
+  const [scanError, setScanError] = useState<string | null>(null)
+  const videoRef = React.useRef<HTMLVideoElement>(null)
+  const canvasRef = React.useRef<HTMLCanvasElement>(null)
+  const streamRef = React.useRef<MediaStream | null>(null)
+  const rafRef = React.useRef<number | null>(null)
+
+  // Lookup farmer/batch by code
+  const [lookupCode, setLookupCode] = useState('')
+  const [generatedQr, setGeneratedQr] = useState<string>('')
+
+  const stopScan = useCallback(() => {
+    setScanning(false)
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+    if (videoRef.current) videoRef.current.srcObject = null
+  }, [])
+
+  const startScan = useCallback(async () => {
+    setScanResult(null)
+    setScanError(null)
+    setScanning(true)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.setAttribute('playsinline', 'true')
+        await videoRef.current.play()
+      }
+      const tick = () => {
+        if (!scanning && !streamRef.current) return
+        if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+          const canvas = canvasRef.current
+          const video = videoRef.current
+          if (canvas) {
+            canvas.width = video.videoWidth
+            canvas.height = video.videoHeight
+            const ctx = canvas.getContext('2d', { willReadFrequently: true })
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+              const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: 'dontInvert',
+              })
+              if (code && code.data) {
+                try {
+                  const parsed = JSON.parse(code.data)
+                  setScanResult(parsed)
+                  toast.success(`QR scanned: ${parsed.type || 'unknown'} — ${parsed.code || parsed.id}`)
+                  stopScan()
+                  return
+                } catch {
+                  // Not JSON — treat as raw text
+                  setScanResult({ raw: code.data })
+                  toast.success(`QR scanned: ${code.data}`)
+                  stopScan()
+                  return
+                }
+              }
+            }
+          }
+        }
+        rafRef.current = requestAnimationFrame(tick)
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    } catch (err: any) {
+      setScanning(false)
+      setScanError(err?.message || 'Camera access denied. Use the upload option below.')
+      toast.error('Could not access camera')
+    }
+  }, [scanning, stopScan])
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
+    }
+  }, [])
+
+  // Image upload fallback
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      ctx.drawImage(img, 0, 0)
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const code = jsQR(imageData.data, imageData.width, imageData.height)
+      if (code && code.data) {
+        try {
+          setScanResult(JSON.parse(code.data))
+          toast.success('QR decoded from image')
+        } catch {
+          setScanResult({ raw: code.data })
+          toast.success(`QR decoded: ${code.data}`)
+        }
+      } else {
+        toast.error('No QR code found in image')
+      }
+    }
+    img.src = URL.createObjectURL(file)
+  }
+
+  // Generate QR for a farmer code
+  const handleGenerate = () => {
+    if (!lookupCode.trim()) {
+      toast.error('Enter a farmer code, lot number, or trace ID')
+      return
+    }
+    const payload = JSON.stringify({
+      type: 'AGROBASE_TRACE',
+      code: lookupCode,
+      url: `${typeof window !== 'undefined' ? window.location.origin : ''}/trace/${lookupCode}`,
+      generatedAt: new Date().toISOString(),
+    })
+    setGeneratedQr(payload)
+    toast.success('QR code generated')
+  }
+
+  const downloadQr = () => {
+    const svg = document.getElementById('generated-qr-svg')
+    if (!svg) return
+    const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(new XMLSerializer().serializeToString(svg))}`
+    const a = document.createElement('a')
+    a.href = dataUrl
+    a.download = `qr-${lookupCode}.svg`
+    a.click()
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Scanner */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2"><ScanLine className="w-4 h-4" /> Scan QR Code</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="aspect-square max-w-sm mx-auto bg-black rounded-lg overflow-hidden relative">
+            {scanning ? (
+              <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-white/40">
+                <Camera className="w-12 h-12" />
+              </div>
+            )}
+            {/* Scan overlay */}
+            {scanning && (
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute inset-x-8 top-1/4 bottom-1/4 border-2 border-emerald-400 rounded-lg">
+                  <div className="absolute inset-x-0 top-0 h-0.5 bg-emerald-400 animate-pulse" />
+                </div>
+              </div>
+            )}
+          </div>
+          <canvas ref={canvasRef} className="hidden" />
+
+          <div className="flex gap-2">
+            {!scanning ? (
+              <Button onClick={startScan} className="flex-1 gap-2"><Camera className="w-4 h-4" /> Start Camera Scan</Button>
+            ) : (
+              <Button onClick={stopScan} variant="destructive" className="flex-1 gap-2"><StopCircle className="w-4 h-4" /> Stop Scan</Button>
+            )}
+          </div>
+
+          <Separator />
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Or upload a QR image</Label>
+            <Input type="file" accept="image/*" onChange={handleImageUpload} className="text-xs" />
+          </div>
+
+          {scanError && <p className="text-xs text-red-600">{scanError}</p>}
+
+          {scanResult && (
+            <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Scan Result</p>
+              {scanResult.raw ? (
+                <p className="text-sm font-mono break-all">{scanResult.raw}</p>
+              ) : (
+                <div className="text-sm space-y-1">
+                  <p><span className="text-muted-foreground">Type:</span> <strong>{scanResult.type}</strong></p>
+                  <p><span className="text-muted-foreground">Code:</span> <strong className="font-mono">{scanResult.code || scanResult.id}</strong></p>
+                  {scanResult.name && <p><span className="text-muted-foreground">Name:</span> {scanResult.name}</p>}
+                  {scanResult.url && <a href={scanResult.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline block mt-2">Open trace record →</a>}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Generator */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2"><QrCode className="w-4 h-4" /> Generate QR Code</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Farmer Code / Lot Number / Trace ID</Label>
+            <Input
+              value={lookupCode}
+              onChange={e => setLookupCode(e.target.value)}
+              placeholder="e.g. UG-2026-001 or LOT-COFFEE-1234"
+            />
+          </div>
+          <Button onClick={handleGenerate} className="w-full gap-2"><QrCode className="w-4 h-4" /> Generate QR</Button>
+
+          {generatedQr && (
+            <>
+              <div className="bg-white p-4 rounded-lg border flex items-center justify-center">
+                <QRCodeSVG
+                  id="generated-qr-svg"
+                  value={generatedQr}
+                  size={200}
+                  level="M"
+                />
+              </div>
+              <Button onClick={downloadQr} variant="outline" className="w-full gap-2">
+                <Download className="w-4 h-4" /> Download SVG
+              </Button>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">Encoded payload:</p>
+                <pre className="bg-muted p-2 rounded font-mono text-[10px] overflow-x-auto">{generatedQr}</pre>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

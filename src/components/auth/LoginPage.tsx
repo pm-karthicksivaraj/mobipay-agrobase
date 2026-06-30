@@ -3,12 +3,57 @@
 import React, { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { toast } from 'sonner'
-import { Loader2, Leaf, Eye, EyeOff, Sprout } from 'lucide-react'
+import { Loader2, Leaf, Eye, EyeOff, Sprout, Globe, Coins, ChevronDown } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+
+const DEMO_ACCOUNTS = [
+  // Super Admin
+  { group: 'Super Admin', email: 'admin@agrobase.co', role: 'Super Admin', country: 'All', currency: 'UGX' },
+  // Uganda
+  { group: 'Uganda', email: 'ug.admin@agrobase.co', role: 'Country Admin', country: 'UG', currency: 'UGX' },
+  { group: 'Uganda', email: 'ug.tenant@agrobase.co', role: 'Tenant Admin', country: 'UG', currency: 'UGX' },
+  { group: 'Uganda', email: 'ug.eo1@agrobase.co', role: 'Extension Officer', country: 'UG', currency: 'UGX' },
+  { group: 'Uganda', email: 'ug.eo2@agrobase.co', role: 'Extension Officer', country: 'UG', currency: 'UGX' },
+  { group: 'Uganda', email: 'ug.agent1@agrobase.co', role: 'Agent', country: 'UG', currency: 'UGX' },
+  { group: 'Uganda', email: 'ug.cbt@agrobase.co', role: 'CBT', country: 'UG', currency: 'UGX' },
+  { group: 'Uganda', email: 'ug.farmer1@agrobase.co', role: 'Farmer', country: 'UG', currency: 'UGX' },
+  { group: 'Uganda', email: 'ug.farmer2@agrobase.co', role: 'Farmer', country: 'UG', currency: 'UGX' },
+  // Ghana
+  { group: 'Ghana', email: 'gh.admin@agrobase.co', role: 'Country Admin', country: 'GH', currency: 'GHS' },
+  { group: 'Ghana', email: 'gh.eo1@agrobase.co', role: 'Extension Officer', country: 'GH', currency: 'GHS' },
+  { group: 'Ghana', email: 'gh.agent1@agrobase.co', role: 'Agent', country: 'GH', currency: 'GHS' },
+  { group: 'Ghana', email: 'gh.farmer1@agrobase.co', role: 'Farmer', country: 'GH', currency: 'GHS' },
+  // Kenya
+  { group: 'Kenya', email: 'ke.admin@agrobase.co', role: 'Country Admin', country: 'KE', currency: 'KES' },
+  { group: 'Kenya', email: 'ke.eo1@agrobase.co', role: 'Extension Officer', country: 'KE', currency: 'KES' },
+  { group: 'Kenya', email: 'ke.agent1@agrobase.co', role: 'Agent', country: 'KE', currency: 'KES' },
+  { group: 'Kenya', email: 'ke.farmer1@agrobase.co', role: 'Farmer', country: 'KE', currency: 'KES' },
+  // Exporter & MFI
+  { group: 'Partners', email: 'exporter@ekibbo.co', role: 'EKIBBO Exporter', country: 'UG', currency: 'UGX' },
+  { group: 'Partners', email: 'mfi@hopefinance.co', role: 'Hope MFI', country: 'UG', currency: 'UGX' },
+]
+
+const CURRENCIES = [
+  { code: 'UGX', name: 'Ugandan Shilling', symbol: 'USh', flag: '🇺🇬' },
+  { code: 'GHS', name: 'Ghanaian Cedi', symbol: 'GH₵', flag: '🇬🇭' },
+  { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh', flag: '🇰🇪' },
+  { code: 'USD', name: 'US Dollar', symbol: '$', flag: '🇺🇸' },
+]
+
+const LANGUAGES = [
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'sw', name: 'Swahili', flag: '🇰🇪' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'lg', name: 'Luganda', flag: '🇺🇬' },
+]
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
@@ -16,6 +61,8 @@ export function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [currency, setCurrency] = useState('UGX')
+  const [language, setLanguage] = useState('en')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,8 +91,8 @@ export function LoginPage() {
     }
   }
 
-  const handleDemoLogin = () => {
-    setEmail('admin@agrobase.co')
+  const handleDemoLogin = (demoEmail?: string) => {
+    setEmail(demoEmail || 'admin@agrobase.co')
     setPassword('password123')
   }
 
@@ -61,6 +108,50 @@ export function LoginPage() {
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-primary/8 blur-3xl" />
         <div className="absolute top-1/4 left-1/4 w-60 h-60 rounded-full bg-primary/3 blur-2xl" />
+      </div>
+
+      {/* Top-right: Multi-currency + Multi-language selectors */}
+      <div className="fixed top-4 right-4 z-10 flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2 bg-background/80 backdrop-blur-sm">
+              <Coins className="w-3.5 h-3.5" />
+              <span className="font-mono text-xs">{CURRENCIES.find(c => c.code === currency)?.symbol}</span>
+              <span className="text-xs">{currency}</span>
+              <ChevronDown className="w-3 h-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">Multi-currency</DropdownMenuLabel>
+            {CURRENCIES.map(c => (
+              <DropdownMenuItem key={c.code} onClick={() => setCurrency(c.code)} className="gap-2">
+                <span>{c.flag}</span>
+                <span className="text-sm font-medium">{c.code}</span>
+                <span className="text-xs text-muted-foreground ml-auto">{c.name} ({c.symbol})</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2 bg-background/80 backdrop-blur-sm">
+              <Globe className="w-3.5 h-3.5" />
+              <span className="text-xs">{LANGUAGES.find(l => l.code === language)?.name}</span>
+              <ChevronDown className="w-3 h-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">Multi-language</DropdownMenuLabel>
+            {LANGUAGES.map(l => (
+              <DropdownMenuItem key={l.code} onClick={() => setLanguage(l.code)} className="gap-2">
+                <span>{l.flag}</span>
+                <span className="text-sm font-medium">{l.name}</span>
+                <span className="text-xs text-muted-foreground ml-auto">{l.code.toUpperCase()}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="relative z-10 w-full max-w-md">
@@ -173,17 +264,52 @@ export function LoginPage() {
                 )}
               </Button>
 
-              {/* Demo login button */}
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full h-10 border-primary/20 hover:bg-primary/5 hover:border-primary/40 text-primary transition-all"
-                onClick={handleDemoLogin}
-                disabled={loading}
-              >
-                <Sprout className="w-4 h-4 mr-2" />
-                Demo Login (Auto-fill Credentials)
-              </Button>
+              {/* Demo login dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-10 border-primary/20 hover:bg-primary/5 hover:border-primary/40 text-primary transition-all justify-between"
+                    disabled={loading}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Sprout className="w-4 h-4" />
+                      Demo Accounts (UG · GH · KE)
+                    </span>
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto" align="center">
+                  {Object.entries(
+                    DEMO_ACCOUNTS.reduce((acc, a) => {
+                      if (!acc[a.group]) acc[a.group] = []
+                      acc[a.group].push(a)
+                      return acc
+                    }, {} as Record<string, typeof DEMO_ACCOUNTS>)
+                  ).map(([group, accounts]) => (
+                    <React.Fragment key={group}>
+                      <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">
+                        {group} · password: <span className="font-mono text-foreground">password123</span>
+                      </DropdownMenuLabel>
+                      {accounts.map(a => (
+                        <DropdownMenuItem
+                          key={a.email}
+                          onClick={() => handleDemoLogin(a.email)}
+                          className="flex items-center justify-between gap-2 py-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">{a.role}</p>
+                            <p className="text-xs text-muted-foreground font-mono truncate">{a.email}</p>
+                          </div>
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted">{a.currency}</span>
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                    </React.Fragment>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </form>
 
             {/* Footer */}

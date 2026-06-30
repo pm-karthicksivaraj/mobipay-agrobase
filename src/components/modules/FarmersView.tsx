@@ -5,7 +5,9 @@ import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import {
   Search, Plus, Eye, X, UserPlus, Phone, MapPin, Sprout, Calendar, CreditCard,
-  ChevronLeft, ChevronRight, Filter, Loader2, Users, ArrowLeft, Star, AlertCircle
+  ChevronLeft, ChevronRight, Filter, Loader2, Users, ArrowLeft, Star, AlertCircle,
+  Layers, DollarSign, GraduationCap, PiggyBank, Leaf, Activity, QrCode, Download,
+  Shield, Banknote, Award
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +22,7 @@ import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface Farmer {
   id: string; firstName: string; lastName: string; phone: string
@@ -31,6 +34,12 @@ interface Farmer {
   bankName?: string; bankAccountNo?: string
   familyMembers?: number; childrenUnder18?: number
   groupId?: string; createdAt: string
+  email?: string; villageName?: string; country?: string; district?: string
+  housingOwnership?: string; houseType?: string
+  loanTakenLastYear?: boolean
+  spouseName?: string; schoolGoingChildren?: number; livestockTypes?: string
+  loanTakenFrom?: string; loanAmount?: number; loanPurpose?: string
+  loanInterestPct?: number; loanInterestPeriod?: string
 }
 
 const genderColor: Record<string, string> = {
@@ -47,7 +56,7 @@ function initials(f: string, l: string) {
 }
 
 export default function FarmersView() {
-  const { selectedFarmerId, setSelectedFarmerId } = useAppStore()
+  const { selectedFarmerId, setSelectedFarmerId, setActiveModule } = useAppStore()
   const [farmers, setFarmers] = useState<Farmer[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -304,20 +313,50 @@ function AddFarmerForm({ onClose }: { onClose: () => void }) {
   )
 }
 
+// ─── Enhanced Farmer Detail with Tabs ─────────────────────────────
+
 function FarmerDetail({ farmerId, onBack }: { farmerId: string; onBack: () => void }) {
-  const [farmer, setFarmer] = useState<Farmer | null>(null)
+  const { setActiveModule, setSelectedFarmerId } = useAppStore()
+  const [farmer, setFarmer] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('profile')
+  const [farmLands, setFarmLands] = useState<any[]>([])
+  const [cultivations, setCultivations] = useState<any[]>([])
+  const [creditScore, setCreditScore] = useState<any>(null)
 
   useEffect(() => {
+    setLoading(true)
     fetch(`/api/farmers/${farmerId}`)
       .then(r => r.json())
-      .then(data => setFarmer(data.farmer || data))
+      .then(data => {
+        // API returns { data: farmer } — handle both shapes
+        const f = data.data || data.farmer || data
+        setFarmer(f)
+        setFarmLands(f?.farms || [])
+        // Flatten cultivations across all farms
+        const allCults = (f?.farms || []).flatMap((fm: any) =>
+          (fm.cultivations || []).map((c: any) => ({ ...c, farm: { id: fm.id, name: fm.name, sizeHectares: fm.sizeHectares } }))
+        )
+        setCultivations(allCults)
+        // Latest credit score
+        if (f?.creditScores?.[0]) setCreditScore(f.creditScores[0])
+      })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [farmerId])
 
   if (loading) return <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}</div>
   if (!farmer) return <div className="text-center py-12"><AlertCircle className="w-10 h-10 mx-auto text-muted-foreground mb-2" /><p>Farmer not found</p><Button variant="link" onClick={onBack}>Go back</Button></div>
+
+  // Generate QR data URL (farm-passport URL)
+  const qrData = JSON.stringify({
+    type: 'AGROBASE_FARMER',
+    id: farmer.id,
+    code: farmer.farmerCode || farmer.id,
+    name: `${farmer.firstName} ${farmer.lastName}`,
+    phone: farmer.phone,
+    url: `${typeof window !== 'undefined' ? window.location.origin : 'https://mobipay-agrobase.vercel.app'}/farmer/${farmer.id}`,
+  })
 
   return (
     <div className="space-y-4">
@@ -328,8 +367,8 @@ function FarmerDetail({ farmerId, onBack }: { farmerId: string; onBack: () => vo
       {/* Profile Card */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-xl font-bold text-primary shrink-0">
+          <div className="flex flex-col lg:flex-row gap-5">
+            <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary shrink-0">
               {initials(farmer.firstName, farmer.lastName)}
             </div>
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
@@ -341,18 +380,343 @@ function FarmerDetail({ farmerId, onBack }: { farmerId: string; onBack: () => vo
               <InfoItem icon={<MapPin className="w-4 h-4" />} label="Code" value={farmer.farmerCode || '—'} />
               {farmer.education && <InfoItem icon={<Star className="w-4 h-4" />} label="Education" value={farmer.education} />}
               {farmer.mainCrops && <InfoItem icon={<Sprout className="w-4 h-4" />} label="Crops" value={farmer.mainCrops} />}
+              {farmer.country && <InfoItem icon={<MapPin className="w-4 h-4" />} label="Country" value={farmer.country} />}
+              {farmer.district && <InfoItem icon={<MapPin className="w-4 h-4" />} label="District" value={farmer.district} />}
+              {farmer.villageName && <InfoItem icon={<MapPin className="w-4 h-4" />} label="Village" value={farmer.villageName} />}
+              {farmer.bankName && <InfoItem icon={<Banknote className="w-4 h-4" />} label="Bank" value={`${farmer.bankName} ${farmer.bankAccountNo ? `(${farmer.bankAccountNo})` : ''}`} />}
+            </div>
+            {/* QR Code */}
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className="bg-white p-2 rounded-lg border">
+                <QRCodeSVG
+                  id={`qr-${farmer.id}`}
+                  value={qrData}
+                  size={120}
+                  level="M"
+                  includeMargin={false}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">Traceability QR</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={() => {
+                  const svg = document.getElementById(`qr-${farmer.id}`)
+                  if (!svg) return
+                  const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(new XMLSerializer().serializeToString(svg))}`
+                  const a = document.createElement('a')
+                  a.href = dataUrl
+                  a.download = `farmer-${farmer.farmerCode || farmer.id}.svg`
+                  a.click()
+                }}
+              >
+                <Download className="w-3 h-3" /> Download
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Status */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Status</p><Badge className={cn('mt-1', statusColor[farmer.status] || '')}>{farmer.status}</Badge></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Family</p><p className="text-lg font-bold mt-1">{farmer.familyMembers || 0}</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Children &lt;18</p><p className="text-lg font-bold mt-1">{farmer.childrenUnder18 || 0}</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Joined</p><p className="text-sm font-medium mt-1">{new Date(farmer.createdAt).toLocaleDateString()}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><Layers className="w-4 h-4 mx-auto text-emerald-600 mb-1" /><p className="text-xs text-muted-foreground">Farm Lands</p><p className="text-lg font-bold">{farmLands.length}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><Sprout className="w-4 h-4 mx-auto text-amber-600 mb-1" /><p className="text-xs text-muted-foreground">Cultivations</p><p className="text-lg font-bold">{cultivations.length}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><Users className="w-4 h-4 mx-auto text-blue-600 mb-1" /><p className="text-xs text-muted-foreground">Family</p><p className="text-lg font-bold">{farmer.familyMembers || 0}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><CreditCard className="w-4 h-4 mx-auto text-purple-600 mb-1" /><p className="text-xs text-muted-foreground">Credit Score</p><p className="text-lg font-bold">{creditScore?.totalScore || '—'}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><Calendar className="w-4 h-4 mx-auto text-slate-600 mb-1" /><p className="text-xs text-muted-foreground">Joined</p><p className="text-sm font-medium mt-1">{new Date(farmer.createdAt).toLocaleDateString()}</p></CardContent></Card>
       </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="profile" className="gap-1.5"><Users className="w-3.5 h-3.5" /> Profile</TabsTrigger>
+          <TabsTrigger value="farms" className="gap-1.5"><Layers className="w-3.5 h-3.5" /> Farm Lands ({farmLands.length})</TabsTrigger>
+          <TabsTrigger value="cultivations" className="gap-1.5"><Sprout className="w-3.5 h-3.5" /> Cultivations ({cultivations.length})</TabsTrigger>
+          <TabsTrigger value="trainings" className="gap-1.5"><GraduationCap className="w-3.5 h-3.5" /> Trainings</TabsTrigger>
+          <TabsTrigger value="savings" className="gap-1.5"><PiggyBank className="w-3.5 h-3.5" /> Savings & Loans</TabsTrigger>
+          <TabsTrigger value="impact" className="gap-1.5"><Activity className="w-3.5 h-3.5" /> Impact</TabsTrigger>
+        </TabsList>
+
+        {/* Profile Tab */}
+        <TabsContent value="profile" className="mt-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Demographics</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3">
+              <DetailItem label="Date of Birth" value={farmer.dateOfBirth ? new Date(farmer.dateOfBirth).toLocaleDateString() : undefined} />
+              <DetailItem label="Marital Status" value={farmer.maritalStatus} />
+              <DetailItem label="Education" value={farmer.education} />
+              <DetailItem label="National ID Type" value={farmer.nationalIdType} />
+              <DetailItem label="National ID No" value={farmer.nationalIdNo} />
+              <DetailItem label="Spouse Name" value={farmer.spouseName} />
+              <DetailItem label="Children Under 18" value={farmer.childrenUnder18?.toString()} />
+              <DetailItem label="School Going Children" value={farmer.schoolGoingChildren?.toString()} />
+              <DetailItem label="Housing Ownership" value={farmer.housingOwnership} />
+              <DetailItem label="House Type" value={farmer.houseType} />
+            </CardContent>
+          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Farm Information</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <DetailItem label="Total Farm Size" value={farmer.farmSize ? `${farmer.farmSize} ha` : undefined} />
+                <DetailItem label="Farm Ownership" value={farmer.farmOwnership} />
+                <DetailItem label="Main Crops" value={farmer.mainCrops} />
+                <DetailItem label="Livestock Types" value={farmer.livestockTypes} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Loan History</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <DetailItem label="Loan Taken Last Year" value={farmer.loanTakenLastYear ? 'Yes' : 'No'} />
+                <DetailItem label="Loan From" value={farmer.loanTakenFrom} />
+                <DetailItem label="Loan Amount" value={farmer.loanAmount ? `UGX ${farmer.loanAmount.toLocaleString()}` : undefined} />
+                <DetailItem label="Loan Purpose" value={farmer.loanPurpose} />
+                <DetailItem label="Interest Rate" value={farmer.loanInterestPct ? `${farmer.loanInterestPct}% ${farmer.loanInterestPeriod || ''}` : undefined} />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Farm Lands Tab */}
+        <TabsContent value="farms" className="mt-4">
+          <Card>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Registered Farm Lands</CardTitle>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => {
+                  setSelectedFarmerId(farmerId)
+                  setActiveModule('farm-lands')
+                }}
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Farm Land
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {farmLands.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Layers className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No farm lands registered for this farmer yet.</p>
+                  <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => { setSelectedFarmerId(farmerId); setActiveModule('farm-lands') }}>
+                    <Plus className="w-3.5 h-3.5" /> Register First Farm Land
+                  </Button>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Farm Name</TableHead>
+                      <TableHead>Area (ha)</TableHead>
+                      <TableHead>Ownership</TableHead>
+                      <TableHead>Cultivations</TableHead>
+                      <TableHead>GPS</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {farmLands.map(f => (
+                      <TableRow key={f.id}>
+                        <TableCell className="font-medium text-sm">{f.name}</TableCell>
+                        <TableCell className="text-sm">{f.sizeHectares?.toFixed(2) ?? '—'}</TableCell>
+                        <TableCell className="text-sm">{f.landOwnership || '—'}</TableCell>
+                        <TableCell className="text-sm">{f.cultivations?.length || 0}</TableCell>
+                        <TableCell className="text-xs">
+                          {(f.polygonPoints?.length ?? 0) >= 3 ? `${f.polygonPoints.length} pts` : 'No polygon'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Cultivations Tab */}
+        <TabsContent value="cultivations" className="mt-4">
+          <Card>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Cultivations</CardTitle>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setActiveModule('cultivations')}>
+                <Plus className="w-3.5 h-3.5" /> Add Cultivation
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {cultivations.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Sprout className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No cultivations registered for this farmer yet.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Crop</TableHead>
+                      <TableHead>Variety</TableHead>
+                      <TableHead>Farm</TableHead>
+                      <TableHead>Season</TableHead>
+                      <TableHead>Area (ha)</TableHead>
+                      <TableHead>Seed Cost</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {cultivations.map(c => (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-medium text-sm">{c.cropName}</TableCell>
+                        <TableCell className="text-sm">{c.variety || '—'}</TableCell>
+                        <TableCell className="text-sm">{c.farm?.name || '—'}</TableCell>
+                        <TableCell className="text-sm">{c.season || '—'}</TableCell>
+                        <TableCell className="text-sm">{c.cultivationAreaHa?.toFixed(2) ?? '—'}</TableCell>
+                        <TableCell className="text-sm">{c.seedCost ? `UGX ${c.seedCost.toLocaleString()}` : '—'}</TableCell>
+                        <TableCell><Badge variant="outline">{c.status}</Badge></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Trainings Tab */}
+        <TabsContent value="trainings" className="mt-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Training Attendance</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              {(!farmer.trainings || farmer.trainings.length === 0) ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <GraduationCap className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No training records yet.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Topic</TableHead>
+                      <TableHead>Trainer</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Attended</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {farmer.trainings.map((ta: any) => (
+                      <TableRow key={ta.id}>
+                        <TableCell className="font-medium text-sm">{ta.training?.topic || '—'}</TableCell>
+                        <TableCell className="text-sm">{ta.training?.trainerName || '—'}</TableCell>
+                        <TableCell className="text-sm">{ta.training?.date ? new Date(ta.training.date).toLocaleDateString() : '—'}</TableCell>
+                        <TableCell><Badge variant="outline">{ta.attended ? 'Present' : 'Absent'}</Badge></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Savings & Loans Tab */}
+        <TabsContent value="savings" className="mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">VSLA Savings</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                {(!farmer.savings || farmer.savings.length === 0) ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">No savings recorded.</div>
+                ) : (
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Amount</TableHead><TableHead>Shares</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {farmer.savings.map((s: any) => (
+                        <TableRow key={s.id}>
+                          <TableCell className="text-sm">{new Date(s.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-sm font-medium">UGX {s.amount?.toLocaleString()}</TableCell>
+                          <TableCell className="text-sm">{s.sharesBought}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">VSLA Loans</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                {(!farmer.vslaLoans || farmer.vslaLoans.length === 0) ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">No loans recorded.</div>
+                ) : (
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Amount</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {farmer.vslaLoans.map((l: any) => (
+                        <TableRow key={l.id}>
+                          <TableCell className="text-sm">{new Date(l.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-sm font-medium">UGX {l.amount?.toLocaleString()}</TableCell>
+                          <TableCell><Badge variant="outline">{l.status}</Badge></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Impact Tab */}
+        <TabsContent value="impact" className="mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Credit Score</CardTitle></CardHeader>
+              <CardContent>
+                {creditScore ? (
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-emerald-600">{creditScore.totalScore || '—'}</div>
+                    <p className="text-xs text-muted-foreground mt-1">out of 900</p>
+                    <Separator className="my-3" />
+                    <div className="space-y-2 text-sm text-left">
+                      <DetailItem label="Demographics (15%)" value={`${creditScore.demographicsScore || 0}/100`} />
+                      <DetailItem label="Assets (25%)" value={`${creditScore.assetScore || 0}/100`} />
+                      <DetailItem label="Crop Perf (25%)" value={`${creditScore.cropScore || 0}/100`} />
+                      <DetailItem label="Financial (35%)" value={`${creditScore.financialScore || 0}/100`} />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-center text-sm text-muted-foreground py-6">No credit score yet.</p>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Impact Baseline</CardTitle></CardHeader>
+              <CardContent>
+                {farmer.impactBaseline ? (
+                  <div className="space-y-2 text-sm">
+                    <DetailItem label="Baseline Date" value={new Date(farmer.impactBaseline.baselineDate).toLocaleDateString()} />
+                    <DetailItem label="Income (annual)" value={farmer.impactBaseline.annualIncome ? `UGX ${farmer.impactBaseline.annualIncome.toLocaleString()}` : undefined} />
+                    <DetailItem label="Food Security" value={farmer.impactBaseline.foodSecurityMonths ? `${farmer.impactBaseline.foodSecurityMonths} months` : undefined} />
+                  </div>
+                ) : (
+                  <p className="text-center text-sm text-muted-foreground py-6">No baseline set.</p>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Practice Adoptions</CardTitle></CardHeader>
+              <CardContent>
+                {farmer.practiceAdoptions?.length > 0 ? (
+                  <p className="text-3xl font-bold text-emerald-600 text-center mt-4">{farmer.practiceAdoptions.length}</p>
+                ) : (
+                  <p className="text-center text-sm text-muted-foreground py-6">No practices adopted.</p>
+                )}
+                <p className="text-xs text-muted-foreground text-center mt-1">sustainable practices adopted</p>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
@@ -365,3 +729,14 @@ function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string
     </div>
   )
 }
+
+function DetailItem({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value || '—'}</span>
+    </div>
+  )
+}
+
+

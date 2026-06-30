@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Progress } from '@/components/ui/progress'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,7 +18,8 @@ import { useAppStore } from '@/lib/store'
 interface CreditScoreData {
   id: string
   farmerId: string
-  farmer: { firstName: string; lastName: string }
+  farmer?: { firstName: string; lastName: string } | null
+  applicantName?: string
   demographicsScore: number | null
   assetScore: number | null
   cropScore: number | null
@@ -56,28 +56,32 @@ export default function AgriTrackView() {
 
   const fetchScores = useCallback(async () => {
     try {
-      const data = await safeFetch('/api/loans?type=credit-scores')
+      const data = await safeFetch('/api/credit-scores')
       if (!data) { setScores([]); setLoading(false); return }
-      setScores(extractArray(data, 'scores'))
-    } catch {
+      const list = extractArray(data, 'scores', 'data')
+      if (list.length > 0) {
+        setScores(list)
+        setLoading(false)
+        return
+      }
       // Fallback: try farmers API which might include credit scores
-      try {
-        const data2 = await safeFetch('/api/farmers?limit=50')
-        if (!data2) { setScores([]); setLoading(false); return }
-        const farmers = extractArray(data2, 'farmers')
-        // Create mock scores for display
-        setScores(farmers.slice(0, 25).map((f: any, i: number) => ({
-          id: `cs-${i}`,
-          farmerId: f.id,
-          farmer: { firstName: f.firstName, lastName: f.lastName },
-          demographicsScore: 50 + Math.floor(Math.random() * 40),
-          assetScore: 50 + Math.floor(Math.random() * 40),
-          cropScore: 50 + Math.floor(Math.random() * 40),
-          financialScore: 50 + Math.floor(Math.random() * 40),
-          totalScore: 400 + Math.floor(Math.random() * 350),
-          scoreDate: new Date().toISOString(),
-        })))
-      } catch (e) { console.error(e) }
+      const data2 = await safeFetch('/api/farmers?limit=50')
+      if (!data2) { setScores([]); setLoading(false); return }
+      const farmers = extractArray(data2, 'farmers')
+      // Create mock scores for display
+      setScores(farmers.slice(0, 25).map((f: any, i: number) => ({
+        id: `cs-${i}`,
+        farmerId: f.id,
+        farmer: { firstName: f.firstName, lastName: f.lastName },
+        demographicsScore: 50 + Math.floor(Math.random() * 40),
+        assetScore: 50 + Math.floor(Math.random() * 40),
+        cropScore: 50 + Math.floor(Math.random() * 40),
+        financialScore: 50 + Math.floor(Math.random() * 40),
+        totalScore: 400 + Math.floor(Math.random() * 350),
+        scoreDate: new Date().toISOString(),
+      })))
+    } catch {
+      setScores([])
     } finally {
       setLoading(false)
     }
@@ -87,9 +91,10 @@ export default function AgriTrackView() {
 
   const handleTabChange = (t: string) => { setActiveTab(t); setActiveSubTab(t) }
 
-  const filteredScores = scores.filter(s =>
-    `${s.farmer.firstName} ${s.farmer.lastName}`.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredScores = scores.filter(s => {
+    const fn = s.farmer?.firstName ? `${s.farmer.firstName} ${s.farmer.lastName || ''}` : (s.applicantName || '')
+    return fn.toLowerCase().includes(search.toLowerCase())
+  })
 
   const avgScore = scores.length > 0
     ? Math.round(scores.reduce((s, c) => s + (c.totalScore || 0), 0) / scores.length)
@@ -169,9 +174,9 @@ export default function AgriTrackView() {
                         <TableCell className="font-medium text-sm">
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                              {s.farmer.firstName[0]}{s.farmer.lastName[0]}
+                              {(s.farmer?.firstName || '?')[0]}{(s.farmer?.lastName || '?')[0]}
                             </div>
-                            {s.farmer.firstName} {s.farmer.lastName}
+                            {s.farmer?.firstName ?? s.applicantName ?? 'Unknown'} {s.farmer?.lastName ?? ''}
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">

@@ -8,9 +8,11 @@ import { TopBar } from '@/components/layout/TopBar'
 import { LoginPage } from '@/components/auth/LoginPage'
 import { Skeleton } from '@/components/ui/skeleton'
 
-// Core modules (11 existing)
+// Core modules
 const DashboardView = lazy(() => import('@/components/modules/DashboardView'))
 const FarmersView = lazy(() => import('@/components/modules/FarmersView'))
+const FarmLandsView = lazy(() => import('@/components/modules/FarmLandsView'))
+const CultivationsView = lazy(() => import('@/components/modules/CultivationsView'))
 const VslaView = lazy(() => import('@/components/modules/VslaView'))
 const MarketplaceView = lazy(() => import('@/components/modules/MarketplaceView'))
 const PaymentsView = lazy(() => import('@/components/modules/PaymentsView'))
@@ -52,6 +54,12 @@ const SuperAdminTenantsView = lazy(() => import('@/components/admin/SuperAdminTe
 const SuperAdminRevenueView = lazy(() => import('@/components/admin/SuperAdminRevenueView'))
 const SuperAdminImpactView = lazy(() => import('@/components/admin/SuperAdminImpactView'))
 
+// Farm Management (core product) views
+const CarbonView = lazy(() => import('@/components/modules/CarbonView'))
+const Farm5xView = lazy(() => import('@/components/modules/Farm5xView'))
+const CostOfCultivationView = lazy(() => import('@/components/modules/CostOfCultivationView'))
+const CropStagesLibraryView = lazy(() => import('@/components/modules/CropStagesLibraryView'))
+
 function ModuleLoader() {
   return (
     <div className="space-y-4 animate-pulse">
@@ -72,6 +80,8 @@ function ModuleRouter() {
     // Core
     case 'dashboard': return <DashboardView />
     case 'farmers': return <FarmersView />
+    case 'farm-lands': return <FarmLandsView />
+    case 'cultivations': return <CultivationsView />
     case 'vsla': return <VslaView />
     case 'marketplace': return <MarketplaceView />
     case 'payments': return <PaymentsView />
@@ -81,6 +91,11 @@ function ModuleRouter() {
     case 'settings': return <SettingsView />
     case 'communication': return <CommunicationView />
     case 'agritrack': return <AgriTrackView />
+    // Farm Management (core product)
+    case 'carbon': return <CarbonView />
+    case 'farm5x': return <Farm5xView />
+    case 'cost-of-cultivation': return <CostOfCultivationView />
+    case 'crop-stages': return <CropStagesLibraryView />
     // Supply Chain
     case 'input-aggregation': return <InputAggregationView />
     case 'purchases': return <PurchasesView />

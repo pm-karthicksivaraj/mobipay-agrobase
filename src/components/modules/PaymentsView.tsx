@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart'
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts'
 import { useAppStore } from '@/lib/store'
 
@@ -51,7 +51,7 @@ export default function PaymentsView() {
     try {
       const data = await safeFetch('/api/payments')
       if (!data) { setLoading(false); return }
-      setPayments(data.payments || data || [])
+      setPayments(extractArray(data, 'payments'))
     } catch (e) {
       console.error(e)
     } finally {
@@ -71,9 +71,10 @@ export default function PaymentsView() {
   const pendingCount = payments.filter((p: any) => p.status === 'PENDING').length
   const failedCount = payments.filter((p: any) => p.status === 'FAILED').length
 
-  // By type
+  // By type (guard null type)
   const byType = payments.reduce((acc: Record<string, number>, p: any) => {
-    acc[p.type] = (acc[p.type] || 0) + (p.amount || 0)
+    const t = p.type || 'UNKNOWN'
+    acc[t] = (acc[t] || 0) + (p.amount || 0)
     return acc
   }, {})
   const typeData = Object.entries(byType).map(([name, value]) => ({ name, value }))
@@ -138,7 +139,7 @@ export default function PaymentsView() {
                         <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{p.recipientPhone}</TableCell>
                         <TableCell className="text-right text-sm font-medium">UGX {p.amount?.toLocaleString()}</TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">{p.description || '—'}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{new Date(p.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}</TableCell>
                         <TableCell><Badge className={cn('text-[10px]', payStatusColor[p.status] || '')}>{p.status}</Badge></TableCell>
                       </TableRow>
                     ))
