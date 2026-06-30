@@ -38,19 +38,36 @@ Deploy the full platform to **Vercel** (web app + API) with **Neon.tech** (Postg
 1. Go to **https://neon.tech** → Sign up (free tier: 0.5 GB, 100 compute hours)
 2. Create a new project:
    - **Name:** `agrobase-prod`
-   - **Region:** `AWS US East (Ohio)` — closest to Vercel's default region
-   - **PostgreSQL version:** 16
+   - **PostgreSQL version:** `16` ✅
+   - **Region:** `AWS Frankfurt (eu-central-1)` ✅ — closest to East Africa + matches Vercel `fra1` region
 3. Create a database:
    - **Name:** `agrobase`
 4. Copy BOTH connection strings from the dashboard:
    - **Pooled connection** (has `-pooler-` in the hostname) → this is your `DATABASE_URL`
    - **Direct connection** (no `-pooler-`) → this is your `DIRECT_URL`
 
-Example:
+Example (Frankfurt):
 ```
-DATABASE_URL=postgresql://neondb_owner:npg_XxXxXxXx@ep-mighty-rain-123456-pooler.us-east-2.aws.neon.tech/agrobase?sslmode=require&schema=public
-DIRECT_URL=postgresql://neondb_owner:npg_XxXxXxXx@ep-mighty-rain-123456.us-east-2.aws.neon.tech/agrobase?sslmode=require&schema=public
+DATABASE_URL=postgresql://neondb_owner:npg_XxXxXxXx@ep-mighty-rain-123456-pooler.eu-central-1.aws.neon.tech/agrobase?sslmode=require&schema=public
+DIRECT_URL=postgresql://neondb_owner:npg_XxXxXxXx@ep-mighty-rain-123456.eu-central-1.aws.neon.tech/agrobase?sslmode=require&schema=public
 ```
+
+### Why Frankfurt (not US East)?
+
+Your farmers are in Uganda/Ghana/Kenya. The request path is:
+```
+Farmer phone → Vercel Edge POP (Nairobi) → Vercel Serverless Function → Neon DB
+```
+
+| Setup | Edge→Function | Function→DB | Total DB round-trip |
+|---|---|---|---|
+| Vercel US East + Neon US East | ~250ms | ~2ms | ~252ms |
+| Vercel US East + Neon Frankfurt | ~250ms | ~80ms | ~330ms ❌ |
+| **Vercel Frankfurt + Neon Frankfurt** | ~150ms | ~2ms | **~152ms** ✅ |
+
+**The trap:** If you pick Neon Frankfurt but leave Vercel on its default US East region, you get 80ms DB round-trips on every query — the app will feel slow.
+
+**The fix:** `vercel.json` already sets `"regions": ["fra1"]` to match Neon Frankfurt. This requires Vercel Pro ($20/mo) — Hobby tier locks you to US East.
 
 > **Why two URLs?** Neon's pooled connection uses PgBouncer (connection pooling) which is required for serverless (Vercel) but doesn't support Prisma migrations. The direct URL is used only for migrations.
 
@@ -225,8 +242,10 @@ Neon lets you branch the database (like Git branches):
 ### Vercel
 | Plan | Price | Includes |
 |------|-------|---------|
-| Hobby (Free) | $0 | 100 GB bandwidth, 100 GB-hrs serverless, 1 cron |
-| Pro | $20/mo | 1 TB bandwidth, 1000 GB-hrs serverless, 40 crons, 300s timeout |
+| Hobby (Free) | $0 | 100 GB bandwidth, 100 GB-hrs serverless, 1 cron, **US East only** |
+| Pro | $20/mo | 1 TB bandwidth, 1000 GB-hrs serverless, 40 crons, 300s timeout, **all regions including Frankfurt** |
+
+> **Frankfurt requires Vercel Pro.** The `vercel.json` sets `"regions": ["fra1"]` which is ignored on Hobby (defaults to US East). For the latency-optimized Frankfurt + Frankfurt setup, you need Pro.
 
 ### Neon
 | Plan | Price | Includes |
@@ -236,8 +255,8 @@ Neon lets you branch the database (like Git branches):
 | Scale | $69/mo | 50 GB storage, 5000 compute hours, PITR |
 
 ### Total for pilot (first 1000 farmers)
-- Vercel Hobby + Neon Free = **$0/month**
-- Vercel Pro + Neon Launch = **$39/month** (recommended for production)
+- **Dev / testing:** Vercel Hobby (US East) + Neon Free (Frankfurt) = **$0/month** (expect ~330ms latency)
+- **Production (recommended):** Vercel Pro (Frankfurt) + Neon Launch (Frankfurt) = **$39/month** (expect ~150ms latency)
 
 ---
 
@@ -261,6 +280,13 @@ The `postinstall` script handles this. If it fails:
 ### NextAuth redirect loop
 - Ensure `NEXTAUTH_URL` matches your Vercel domain exactly (including `https://`)
 - Check that `NEXTAUTH_SECRET` is set in all environments
+
+### High latency / slow API responses
+- Check that Neon region matches Vercel function region
+- `vercel.json` sets `"regions": ["fra1"]` — verify Vercel dashboard shows functions in Frankfurt
+- If on Vercel Hobby, functions default to US East regardless of `vercel.json` → upgrade to Pro
+- Neon: verify the connection string hostname contains `eu-central-1` (Frankfurt)
+- Run `curl -w "%{time_total}" https://your-app.vercel.app/api/health` to measure end-to-end latency
 
 ### Build fails with "output: standalone"
 - The `build` script is `prisma generate && next build` (no standalone copy)
