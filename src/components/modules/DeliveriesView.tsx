@@ -177,10 +177,11 @@ export default function DeliveriesView() {
   useEffect(() => { fetchDeliveries() }, [fetchDeliveries])
 
   const filtered = deliveries.filter(d => {
-    const matchSearch = !search || d.driverName.toLowerCase().includes(search.toLowerCase()) ||
-      d.vehicleReg.toLowerCase().includes(search.toLowerCase()) ||
-      d.product.toLowerCase().includes(search.toLowerCase()) ||
-      d.destination.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = !search ||
+      (d.driverName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (d.vehicleReg || '').toLowerCase().includes(search.toLowerCase()) ||
+      (d.product || '').toLowerCase().includes(search.toLowerCase()) ||
+      (d.destination || '').toLowerCase().includes(search.toLowerCase())
     const matchStatus = !statusFilter || d.status === statusFilter
     const matchType = !typeFilter || d.relatedType === typeFilter
     return matchSearch && matchStatus && matchType
@@ -196,6 +197,7 @@ export default function DeliveriesView() {
       const totalDays = completed.reduce((sum, d) => {
         const dispatch = new Date(d.dispatchDate!).getTime()
         const delivery = new Date(d.deliveryDate!).getTime()
+        if (isNaN(dispatch) || isNaN(delivery)) return sum
         return sum + Math.max(1, Math.ceil((delivery - dispatch) / (1000 * 60 * 60 * 24)))
       }, 0)
       return Math.round(totalDays / completed.length)
@@ -293,22 +295,24 @@ export default function DeliveriesView() {
                   {paged.map(d => (
                     <TableRow key={d.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setShowDetail(d)}>
                       <TableCell>
-                        <Badge className={cn('text-[10px]', relatedTypeColor[d.relatedType] || '')}>
-                          {d.relatedType.replace('_', ' ')}
-                        </Badge>
+                        {d.relatedType ? (
+                          <Badge className={cn('text-[10px]', relatedTypeColor[d.relatedType] || '')}>
+                            {d.relatedType.replace('_', ' ')}
+                          </Badge>
+                        ) : <span className="text-xs text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium text-sm">{d.product}</p>
-                          <p className="text-[10px] text-muted-foreground">{d.quantity} {d.unit}</p>
+                          <p className="font-medium text-sm">{d.product || '—'}</p>
+                          <p className="text-[10px] text-muted-foreground">{d.quantity ?? '—'} {d.unit || ''}</p>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-1 text-xs">
                           <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
-                          <span className="truncate max-w-[80px]">{d.source}</span>
+                          <span className="truncate max-w-[80px]">{d.source || '—'}</span>
                           <span className="text-muted-foreground">→</span>
-                          <span className="font-medium truncate max-w-[80px]">{d.destination}</span>
+                          <span className="font-medium truncate max-w-[80px]">{d.destination || '—'}</span>
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
@@ -318,7 +322,7 @@ export default function DeliveriesView() {
                         </div>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-sm font-mono">{d.vehicleReg || <span className="text-muted-foreground">—</span>}</TableCell>
-                      <TableCell><Badge className={cn('text-[10px]', deliveryStatusColor[d.status] || '')}>{d.status.replace('_', ' ')}</Badge></TableCell>
+                      <TableCell>{d.status ? <Badge className={cn('text-[10px]', deliveryStatusColor[d.status] || '')}>{d.status.replace('_', ' ')}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-0.5">
                           {statusPipeline.map((s, i) => (
@@ -391,20 +395,20 @@ export default function DeliveriesView() {
           {showDetail && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Badge className={cn(relatedTypeColor[showDetail.relatedType] || '')}>{showDetail.relatedType.replace('_', ' ')}</Badge>
-                <Badge className={cn(deliveryStatusColor[showDetail.status] || '')}>{showDetail.status.replace('_', ' ')}</Badge>
-                <span className="text-xs text-muted-foreground font-mono">{showDetail.relatedRef}</span>
+                {showDetail.relatedType && <Badge className={cn(relatedTypeColor[showDetail.relatedType] || '')}>{showDetail.relatedType.replace('_', ' ')}</Badge>}
+                {showDetail.status && <Badge className={cn(deliveryStatusColor[showDetail.status] || '')}>{showDetail.status.replace('_', ' ')}</Badge>}
+                <span className="text-xs text-muted-foreground font-mono">{showDetail.relatedRef || '—'}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div><p className="text-xs text-muted-foreground">Product</p><p className="text-sm font-medium">{showDetail.product}</p></div>
-                <div><p className="text-xs text-muted-foreground">Quantity</p><p className="text-sm">{showDetail.quantity} {showDetail.unit}</p></div>
-                <div><p className="text-xs text-muted-foreground">Source</p><p className="text-sm">{showDetail.source}</p></div>
-                <div><p className="text-xs text-muted-foreground">Destination</p><p className="text-sm">{showDetail.destination}</p></div>
+                <div><p className="text-xs text-muted-foreground">Product</p><p className="text-sm font-medium">{showDetail.product || '—'}</p></div>
+                <div><p className="text-xs text-muted-foreground">Quantity</p><p className="text-sm">{showDetail.quantity ?? '—'} {showDetail.unit || ''}</p></div>
+                <div><p className="text-xs text-muted-foreground">Source</p><p className="text-sm">{showDetail.source || '—'}</p></div>
+                <div><p className="text-xs text-muted-foreground">Destination</p><p className="text-sm">{showDetail.destination || '—'}</p></div>
                 <div><p className="text-xs text-muted-foreground">Driver</p><p className="text-sm">{showDetail.driverName || 'Unassigned'}</p></div>
                 <div><p className="text-xs text-muted-foreground">Vehicle</p><p className="text-sm font-mono">{showDetail.vehicleReg || '—'}</p></div>
                 <div><p className="text-xs text-muted-foreground">Driver Phone</p><p className="text-sm">{showDetail.driverPhone || '—'}</p></div>
-                <div><p className="text-xs text-muted-foreground">Est. Days</p><p className="text-sm">{showDetail.estimatedDays} days</p></div>
+                <div><p className="text-xs text-muted-foreground">Est. Days</p><p className="text-sm">{showDetail.estimatedDays ?? '—'} days</p></div>
                 {showDetail.dispatchDate && <div><p className="text-xs text-muted-foreground">Dispatch Date</p><p className="text-sm">{showDetail.dispatchDate}</p></div>}
                 {showDetail.deliveryDate && <div><p className="text-xs text-muted-foreground">Delivery Date</p><p className="text-sm">{showDetail.deliveryDate}</p></div>}
               </div>
@@ -412,6 +416,7 @@ export default function DeliveriesView() {
               {/* Status Timeline */}
               <Separator />
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Delivery Timeline</p>
+              {(showDetail.timeline?.length ?? 0) > 0 ? (
               <div className="relative pl-6 space-y-4">
                 {/* Vertical line */}
                 <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gray-200 dark:bg-gray-700" />
@@ -450,6 +455,9 @@ export default function DeliveriesView() {
                   )
                 })}
               </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No timeline events recorded.</p>
+              )}
 
               {/* Pipeline overview */}
               <Separator />

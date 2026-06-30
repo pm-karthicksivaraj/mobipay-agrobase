@@ -9,7 +9,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const record = await db.training.findFirst({
     where: { id, ...tf },
-    include: { _count: { select: { attendance: true } } },
+    include: {
+      _count: { select: { attendance: true } },
+      attendance: {
+        orderBy: { createdAt: 'asc' },
+        include: { farmer: { select: { id: true, firstName: true, lastName: true, farmerCode: true, phone: true } } },
+      },
+    },
   })
   if (!record) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json({ data: record })
@@ -24,9 +30,28 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const existing = await db.training.findFirst({ where: { id, ...tf } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+  // Pick only the allowed fields (avoid malicious updates)
+  const {
+    topic, description, date, location, trainerName,
+    type, status, startTime, endTime, expectedAttendees, materialsUsed, notes,
+  } = body
+
   const updated = await db.training.update({
     where: { id },
-    data: { ...body },
+    data: {
+      ...(topic !== undefined && { topic }),
+      ...(description !== undefined && { description }),
+      ...(date !== undefined && { date: date ? new Date(date) : undefined }),
+      ...(location !== undefined && { location }),
+      ...(trainerName !== undefined && { trainerName }),
+      ...(type !== undefined && { type }),
+      ...(status !== undefined && { status }),
+      ...(startTime !== undefined && { startTime: startTime ? new Date(startTime) : null }),
+      ...(endTime !== undefined && { endTime: endTime ? new Date(endTime) : null }),
+      ...(expectedAttendees !== undefined && { expectedAttendees: expectedAttendees ? parseInt(expectedAttendees) : null }),
+      ...(materialsUsed !== undefined && { materialsUsed }),
+      ...(notes !== undefined && { notes }),
+    },
   })
   return NextResponse.json({ data: updated })
 }

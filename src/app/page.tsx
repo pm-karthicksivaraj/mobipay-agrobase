@@ -159,19 +159,26 @@ function AuthenticatedApp() {
 export default function HomePage() {
   const { data: session, status } = useSession()
   const setUser = useAppStore((s) => s.setUser)
+  const setActiveModule = useAppStore((s) => s.setActiveModule)
+  const activeModule = useAppStore((s) => s.activeModule)
 
   useEffect(() => {
     if (session?.user) {
+      const role = (session.user as { role: string }).role
       setUser({
         userId: (session.user as { userId: string }).userId,
         tenantId: (session.user as { tenantId: string }).tenantId,
-        role: (session.user as { role: string }).role,
+        role,
         name: session.user.name || '',
       })
+      // If SUPER_ADMIN and currently on a non-super-admin module, switch to super-admin-overview
+      if (role === 'SUPER_ADMIN' && !activeModule.startsWith('super-admin')) {
+        setActiveModule('super-admin-overview')
+      }
     } else {
       setUser(null)
     }
-  }, [session, setUser])
+  }, [session, setUser, setActiveModule, activeModule])
 
   if (status === 'loading') {
     return (

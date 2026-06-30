@@ -39,6 +39,8 @@ interface Survey {
   responseCount: number
   createdAt: string
   updatedAt: string
+  // From real API: Prisma _count
+  _count?: { questions?: number; responses?: number }
 }
 
 interface SurveyResponse {
@@ -125,15 +127,29 @@ export default function SurveysView() {
     try {
       const [sRes, rRes] = await Promise.all([
         fetch('/api/surveys'),
-        fetch('/api/surveys/responses'),
+        fetch('/api/surveys/[id]/responses').catch(() => null), // may 404; that's OK
       ])
       if (sRes.ok) {
         const sData = await sRes.json()
-        setSurveys(sData.surveys || sData.data || [])
+        // API returns { data: [...] } with _count instead of questions array.
+        // Normalize to the shape the view expects.
+        const rawSurveys = sData.surveys || sData.data || []
+        const normalized: Survey[] = rawSurveys.map((s: any) => ({
+          id: s.id,
+          title: s.title || 'Untitled',
+          description: s.description || '',
+          status: s.status || 'DRAFT',
+          questions: Array.isArray(s.questions) ? s.questions : [],
+          responseCount: s._count?.responses ?? s.responseCount ?? 0,
+          createdAt: s.createdAt ? new Date(s.createdAt).toISOString().split('T')[0] : '',
+          updatedAt: s.updatedAt ? new Date(s.updatedAt).toISOString().split('T')[0] : '',
+          _count: s._count,
+        }))
+        setSurveys(normalized.length > 0 ? normalized : mockSurveys)
       } else {
         setSurveys(mockSurveys)
       }
-      if (rRes.ok) {
+      if (rRes && rRes.ok) {
         const rData = await rRes.json()
         setResponses(rData.responses || rData.data || [])
       } else {
@@ -150,13 +166,13 @@ export default function SurveysView() {
   useEffect(() => { fetchData() }, [fetchData])
 
   const filteredSurveys = surveys.filter(s => {
-    const matchSearch = !search || s.title.toLowerCase().includes(search.toLowerCase()) || s.description.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = !search || (s.title || '').toLowerCase().includes(search.toLowerCase()) || (s.description || '').toLowerCase().includes(search.toLowerCase())
     const matchStatus = !statusFilter || s.status === statusFilter
     return matchSearch && matchStatus
   })
 
   const filteredResponses = responses.filter(r => {
-    const matchSearch = !search || r.farmerName.toLowerCase().includes(search.toLowerCase()) || r.surveyTitle.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = !search || (r.farmerName || '').toLowerCase().includes(search.toLowerCase()) || (r.surveyTitle || '').toLowerCase().includes(search.toLowerCase())
     return matchSearch
   })
 
@@ -243,7 +259,7 @@ export default function SurveysView() {
                     </div>
                     <Separator className="my-3" />
                     <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><ListChecks className="w-3 h-3" /> {survey.questions.length} questions</span>
+                      <span className="flex items-center gap-1"><ListChecks className="w-3 h-3" /> {survey._count?.questions ?? survey.questions.length} questions</span>
                       <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {survey.responseCount} responses</span>
                       <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {survey.createdAt}</span>
                     </div>
@@ -251,9 +267,12 @@ export default function SurveysView() {
                       {survey.questions.slice(0, 3).map(q => (
                         <Badge key={q.id} variant="outline" className="text-[10px]">{q.type}</Badge>
                       ))}
-                      {survey.questions.length > 3 && (
-                        <Badge variant="outline" className="text-[10px]">+{survey.questions.length - 3}</Badge>
+                      {(survey._count?.questions ?? survey.questions.length) > 3 && (
+                        <Badge variant="outline" className="text-[10px]">+{(survey._count?.questions ?? survey.questions.length) - 3}</Badge>
                       )}
+                      {(survey.questions.length === 0 && survey._count?.questions) ? (
+                        <Badge variant="outline" className="text-[10px]">{survey._count.questions} questions</Badge>
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>

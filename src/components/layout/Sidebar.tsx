@@ -13,7 +13,6 @@ import {
   Cloud, Calculator, BookOpen
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface NavItem {
@@ -138,11 +137,13 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <ScrollArea className="flex-1 py-3">
+        <nav className="flex-1 overflow-y-auto py-3">
           <div className="px-3 space-y-1">
             {Object.entries(MODULE_GROUPS).map(([groupLabel, items]) => {
               // Hide Super Admin group for non-super-admin users
               if (groupLabel === 'Super Admin' && user?.role !== 'SUPER_ADMIN') return null
+              // For SUPER_ADMIN role: ONLY show Super Admin group (they manage tenants/subscriptions/revenue)
+              if (user?.role === 'SUPER_ADMIN' && groupLabel !== 'Super Admin') return null
               return (
               <div key={groupLabel} className="mb-3">
                 <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
@@ -180,7 +181,7 @@ export function Sidebar() {
               )
             })}
           </div>
-        </ScrollArea>
+        </nav>
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4 shrink-0">

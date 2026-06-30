@@ -5,18 +5,20 @@ import { cn } from '@/lib/utils'
 import {
   Cloud, Plus, Eye, Leaf, Award, Shield, TrendingUp, Globe, FileText,
   Loader2, ArrowLeft, Calendar, DollarSign, TreePine, Layers, Activity,
-  CheckCircle, XCircle
+  CheckCircle, XCircle, Save
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
@@ -48,6 +50,7 @@ export default function CarbonView() {
   const [loading, setLoading] = useState(true)
   const [selectedProject, setSelectedProject] = useState<any | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
+  const [showCreate, setShowCreate] = useState(false)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -99,6 +102,7 @@ export default function CarbonView() {
           <h3 className="text-lg font-semibold flex items-center gap-2"><Cloud className="w-5 h-5 text-emerald-600" /> Carbon &amp; Compliance</h3>
           <p className="text-sm text-muted-foreground">IPCC · Verra VCS · Gold Standard · DREAM MRV · CBAM · EUDR</p>
         </div>
+        <Button onClick={() => setShowCreate(true)} className="gap-2"><Plus className="w-4 h-4" /> Create Project</Button>
       </div>
 
       {/* Stats */}
@@ -301,6 +305,17 @@ export default function CarbonView() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Create Project Dialog */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Carbon Project</DialogTitle>
+            <CardDescription>Register a new carbon project under IPCC, Verra VCS, Gold Standard, or DREAM methodology.</CardDescription>
+          </DialogHeader>
+          <CreateProjectForm onClose={() => setShowCreate(false)} onSaved={() => { setShowCreate(false); fetchAll() }} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -370,5 +385,138 @@ function ProjectDetail({ project, onBack }: { project: any; onBack: () => void }
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+// ─── Create Project Form ───────────────────────────────────────────
+
+function CreateProjectForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState<Record<string, any>>({
+    name: '',
+    description: '',
+    standard: 'VERRA_VCS',
+    methodologyCode: 'VM0042',
+    projectType: 'AGROFORESTRY',
+    country: 'Uganda',
+    region: '',
+    totalAreaHectares: '',
+    estimatedAnnualRemovals: '',
+    projectStartDate: '',
+    projectEndDate: '',
+    creditingPeriodYears: '10',
+    proponentName: '',
+    proponentContact: '',
+  })
+
+  const update = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }))
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.name) { toast.error('Project name is required'); return }
+    setSaving(true)
+    try {
+      const payload = {
+        ...form,
+        totalAreaHectares: form.totalAreaHectares ? parseFloat(form.totalAreaHectares) : null,
+        estimatedAnnualRemovals: form.estimatedAnnualRemovals ? parseFloat(form.estimatedAnnualRemovals) : null,
+        projectStartDate: form.projectStartDate || null,
+        projectEndDate: form.projectEndDate || null,
+        creditingPeriodYears: form.creditingPeriodYears ? parseInt(form.creditingPeriodYears) : null,
+        creditingPeriodStart: form.projectStartDate || null,
+        creditingPeriodEnd: form.projectEndDate || null,
+      }
+      const res = await fetch('/api/carbon/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success('Carbon project created')
+        onSaved()
+      } else {
+        toast.error(data.error || 'Failed to create project')
+      }
+    } catch {
+      toast.error('Network error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Project Name *</Label>
+        <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="e.g. Mt. Elgon Coffee Agroforestry" required />
+      </div>
+      <div className="space-y-1.5">
+        <Label>Description</Label>
+        <Textarea value={form.description} onChange={e => update('description', e.target.value)} rows={2} placeholder="Brief description of the project..." />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label>Standard</Label>
+          <Select value={form.standard} onValueChange={v => update('standard', v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="VERRA_VCS">Verra VCS</SelectItem>
+              <SelectItem value="GOLD_STANDARD">Gold Standard</SelectItem>
+              <SelectItem value="PLANET">Planet</SelectItem>
+              <SelectItem value="AMERICAN_CARBON_REGISTRY">American Carbon Registry</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Methodology Code</Label>
+          <Input value={form.methodologyCode} onChange={e => update('methodologyCode', e.target.value)} placeholder="e.g. VM0042" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label>Project Type</Label>
+          <Select value={form.projectType} onValueChange={v => update('projectType', v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="AFFORESTATION">Afforestation</SelectItem>
+              <SelectItem value="REFORESTATION">Reforestation</SelectItem>
+              <SelectItem value="AGRICULTURE">Agriculture</SelectItem>
+              <SelectItem value="SOIL_CARBON">Soil Carbon</SelectItem>
+              <SelectItem value="BIOCHAR">Biochar</SelectItem>
+              <SelectItem value="AGROFORESTRY">Agroforestry</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Country</Label>
+          <Select value={form.country} onValueChange={v => update('country', v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Uganda">Uganda</SelectItem>
+              <SelectItem value="Ghana">Ghana</SelectItem>
+              <SelectItem value="Kenya">Kenya</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-1.5"><Label>Area (ha)</Label><Input type="number" step="0.1" value={form.totalAreaHectares} onChange={e => update('totalAreaHectares', e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>Est. Annual Removals (tCO₂e)</Label><Input type="number" value={form.estimatedAnnualRemovals} onChange={e => update('estimatedAnnualRemovals', e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>Crediting Period (years)</Label><Input type="number" value={form.creditingPeriodYears} onChange={e => update('creditingPeriodYears', e.target.value)} /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5"><Label>Start Date</Label><Input type="date" value={form.projectStartDate} onChange={e => update('projectStartDate', e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>End Date</Label><Input type="date" value={form.projectEndDate} onChange={e => update('projectEndDate', e.target.value)} /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5"><Label>Proponent Name</Label><Input value={form.proponentName} onChange={e => update('proponentName', e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>Proponent Contact</Label><Input value={form.proponentContact} onChange={e => update('proponentContact', e.target.value)} placeholder="email or phone" /></div>
+      </div>
+      <DialogFooter className="gap-2">
+        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+        <Button type="submit" disabled={saving} className="gap-2">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Create Project</Button>
+      </DialogFooter>
+    </form>
   )
 }

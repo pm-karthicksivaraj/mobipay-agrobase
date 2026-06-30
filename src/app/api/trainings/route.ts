@@ -19,7 +19,14 @@ export async function GET(request: Request) {
         where,
         skip: (page - 1) * limit,
         take: limit,
-        include: { _count: { select: { attendance: true } } },
+        include: {
+          _count: { select: { attendance: true } },
+          attendance: {
+            take: 5,
+            orderBy: { createdAt: 'desc' },
+            include: { farmer: { select: { id: true, firstName: true, lastName: true, farmerCode: true } } },
+          },
+        },
         orderBy: { date: 'desc' },
       }),
       db.training.count({ where }),
@@ -39,11 +46,18 @@ export async function POST(request: Request) {
     const training = await db.training.create({
       data: {
         tenantId: ctx.tenantId,
-        topic: body.title || body.topic,
+        topic: body.topic || body.title,
         description: body.description || null,
         date: body.date ? new Date(body.date) : new Date(),
         location: body.location || null,
-        trainerName: body.facilitator || body.trainerName || null,
+        trainerName: body.trainerName || body.facilitator || null,
+        type: body.type || 'GROUP_TRAINING',
+        status: body.status || 'SCHEDULED',
+        startTime: body.startTime ? new Date(body.startTime) : null,
+        endTime: body.endTime ? new Date(body.endTime) : null,
+        expectedAttendees: body.expectedAttendees ? parseInt(body.expectedAttendees) : null,
+        materialsUsed: body.materialsUsed || null,
+        notes: body.notes || null,
       },
     })
     return NextResponse.json({ data: training }, { status: 201 })

@@ -869,6 +869,19 @@ model Training {
   trainerName String?
   createdAt   DateTime @default(now())
 
+  // ─── Training Program Flow (CRUD + enrollment) ───
+  type            String   @default("GROUP_TRAINING") // GROUP_TRAINING | FARM_VISIT | DEMO_PLOT | WORKSHOP | FIELD_DAY
+  status          String   @default("SCHEDULED")      // SCHEDULED | ONGOING | COMPLETED | CANCELLED
+  conductedById   String?                            // User who conducts (extension officer)
+  startTime       DateTime?
+  endTime         DateTime?
+  durationMinutes Int?
+  expectedAttendees Int?
+  materialsUsed   String?   // JSON array: ["Booklet", "Seed samples"]
+  notes           String?
+  groupId         String?   // optional: link to a FarmerGroup (group-based training)
+  cohortId        String?   // optional: link to a program cohort (CCRP, SMILE, etc.)
+
   attendance  TrainingAttendance[]
 }
 
@@ -880,6 +893,13 @@ model TrainingAttendance {
   farmer      FarmerProfile @relation(fields: [farmerId], references: [id])
   attended    Boolean  @default(false)
   createdAt   DateTime @default(now())
+
+  // ─── Enrollment flow ───
+  enrolledAt       DateTime?  // when farmer was invited/enrolled
+  enrollmentStatus String   @default("INVITED") // INVITED | ENROLLED | ATTENDED | ABSENT | CANCELLED
+  enrolledById     String?  // who enrolled them (extension officer / agent)
+  feedbackRating   Int?     // 1-5 farmer feedback
+  feedbackNotes    String?
 }
 
 // --- CREDIT SCORING ---

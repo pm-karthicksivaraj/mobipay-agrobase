@@ -1,17 +1,26 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import {
   Layers, Leaf, Shield, TrendingDown, CheckCircle, Circle, Award, Globe,
-  BookOpen, Sprout, TreePine, Fish, Trees, Flower, Apple, Wheat, Milk, Coffee
+  BookOpen, Sprout, TreePine, Fish, Trees, Flower, Apple, Wheat, Milk, Coffee,
+  Plus, Eye, Loader2, Save, User, MapPin, Calendar
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
+import { toast } from 'sonner'
 import { FARM5X_VARIANTS, type Farm5xVariantDefinition, type Farm5xPractice } from '@/lib/farm5x/definitions'
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -23,6 +32,25 @@ const ICON_MAP: Record<string, React.ElementType> = {
 export default function Farm5xView() {
   const [selectedVariant, setSelectedVariant] = useState<Farm5xVariantDefinition>(FARM5X_VARIANTS[1]) // default: Coffee
   const [adoptedPractices, setAdoptedPractices] = useState<Set<string>>(new Set())
+  const [adoptions, setAdoptions] = useState<any[]>([])
+  const [loadingAdoptions, setLoadingAdoptions] = useState(true)
+  const [showLog, setShowLog] = useState(false)
+  const [activeMainTab, setActiveMainTab] = useState('calculator')
+
+  const fetchAdoptions = useCallback(async () => {
+    setLoadingAdoptions(true)
+    try {
+      const res = await fetch('/api/practices')
+      const data = await res.json()
+      setAdoptions(data.practices || data.data || [])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingAdoptions(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchAdoptions() }, [fetchAdoptions])
 
   const togglePractice = (code: string) => {
     setAdoptedPractices(prev => {
@@ -53,15 +81,21 @@ export default function Farm5xView() {
         </p>
       </div>
 
-      <Tabs defaultValue="calculator">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="calculator">Practice Calculator</TabsTrigger>
-          <TabsTrigger value="variants">All 10 Verticals</TabsTrigger>
-          <TabsTrigger value="dream">DREAM Pipeline</TabsTrigger>
-        </TabsList>
+      <div className="flex items-center justify-between">
+        <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="flex-1">
+          <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="calculator">Practice Calculator</TabsTrigger>
+            <TabsTrigger value="adoptions" className="gap-1.5">Logged Adoptions ({adoptions.length})</TabsTrigger>
+            <TabsTrigger value="variants">All 10 Verticals</TabsTrigger>
+            <TabsTrigger value="dream">DREAM Pipeline</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <Button onClick={() => setShowLog(true)} className="gap-2 ml-3"><Plus className="w-4 h-4" /> Log Adoption</Button>
+      </div>
 
-        {/* Calculator */}
-        <TabsContent value="calculator" className="mt-4 space-y-4">
+      {/* Render active tab content manually based on activeMainTab */}
+      {activeMainTab === 'calculator' && (
+        <div className="space-y-4">
           {/* Variant selector */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2">
             {FARM5X_VARIANTS.map(v => {
@@ -152,10 +186,12 @@ export default function Farm5xView() {
               />
             ))}
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* All Variants */}
-        <TabsContent value="variants" className="mt-4">
+      {/* All Variants */}
+      {activeMainTab === 'variants' && (
+        <div className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {FARM5X_VARIANTS.map(v => (
               <Card key={v.variant} className="hover:shadow-md transition-shadow cursor-pointer" >
@@ -185,10 +221,12 @@ export default function Farm5xView() {
               </Card>
             ))}
           </div>
-        </TabsContent>
+        </div>
+      )}
 
         {/* DREAM Pipeline */}
-        <TabsContent value="dream" className="mt-4">
+      {activeMainTab === 'dream' && (
+        <div className="mt-4">
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Globe className="w-4 h-4" /> DREAM 5-Phase MRV Pipeline</CardTitle><CardDescription>Define → Register → Engage → Adopt → Measure. Per-cultivation lifecycle.</CardDescription></CardHeader>
             <CardContent>
@@ -201,9 +239,206 @@ export default function Farm5xView() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
+
+        {/* Adoptions List */}
+      {activeMainTab === 'adoptions' && (
+        <div className="mt-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Logged Practice Adoptions</CardTitle><CardDescription>Each row is a real adoption event logged by an Extension Officer for a farmer.</CardDescription></CardHeader>
+            <CardContent className="p-0">
+              {loadingAdoptions ? (
+                <div className="p-6 space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded" />)}</div>
+              ) : adoptions.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Leaf className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                  <p className="font-medium">No adoptions logged yet</p>
+                  <p className="text-sm mt-1">Click "Log Adoption" to record the first sustainable practice</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Farmer</TableHead>
+                      <TableHead>Practice</TableHead>
+                      <TableHead>Variant</TableHead>
+                      <TableHead className="hidden md:table-cell">Crop</TableHead>
+                      <TableHead className="hidden lg:table-cell">Adopted At</TableHead>
+                      <TableHead>Verification</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {adoptions.map(a => (
+                      <TableRow key={a.id}>
+                        <TableCell className="font-medium text-sm">
+                          {a.farmer ? `${a.farmer.firstName} ${a.farmer.lastName}` : 'Unknown'}
+                        </TableCell>
+                        <TableCell className="text-sm font-mono">{a.practiceCode}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-[10px]">{a.frameworkVariant}</Badge></TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">{a.cropType}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">{new Date(a.adoptedAt).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge className={cn('text-[10px]',
+                            a.verificationStatus === 'VERIFIED' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' :
+                            a.verificationStatus === 'REJECTED' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
+                            'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                          )}>{a.verificationStatus}</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Log Adoption Dialog */}
+      <Dialog open={showLog} onOpenChange={setShowLog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Log Practice Adoption</DialogTitle><CardDescription>Record that a farmer has adopted a Farm5x practice.</CardDescription></DialogHeader>
+          <LogAdoptionForm onClose={() => setShowLog(false)} onSaved={() => { setShowLog(false); fetchAdoptions() }} />
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+// ─── Log Adoption Form ─────────────────────────────────────────────
+
+function LogAdoptionForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [saving, setSaving] = useState(false)
+  const [farmers, setFarmers] = useState<Array<{ id: string; firstName: string; lastName: string; farmerCode?: string | null }>>([])
+  const [form, setForm] = useState({
+    farmerId: '',
+    practiceCode: '',
+    cropType: 'COFFEE',
+    frameworkVariant: '1M5C',
+    isMandatory: false,
+    evidenceUrl: '',
+    notes: '',
+  })
+
+  useEffect(() => {
+    fetch('/api/farmers?limit=200')
+      .then(r => r.json())
+      .then(data => setFarmers(data.farmers || data.data || []))
+      .catch(() => {})
+  }, [])
+
+  const update = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }))
+
+  // When variant changes, populate practice codes from definitions
+  const variantDef = FARM5X_VARIANTS.find(v => v.variant === form.frameworkVariant)
+  const practices = variantDef ? [variantDef.mandatoryPractice, ...variantDef.reducePractices] : []
+
+  const handleVariantChange = (v: string) => {
+    const def = FARM5X_VARIANTS.find(variant => variant.variant === v)
+    setForm(p => ({
+      ...p,
+      frameworkVariant: v,
+      cropType: def?.cropType || p.cropType,
+      practiceCode: '',
+      isMandatory: false,
+    }))
+  }
+
+  const handlePracticeChange = (code: string) => {
+    const practice = practices.find(p => p.code === code)
+    setForm(p => ({ ...p, practiceCode: code, isMandatory: practice?.isMandatory || false }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.farmerId || !form.practiceCode || !form.cropType || !form.frameworkVariant) {
+      toast.error('All fields are required')
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/practices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success('Practice adoption logged')
+        onSaved()
+      } else {
+        toast.error(data.error || 'Failed to log')
+      }
+    } catch {
+      toast.error('Network error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Farmer *</Label>
+        <Select value={form.farmerId} onValueChange={v => update('farmerId', v)}>
+          <SelectTrigger><SelectValue placeholder="Select farmer" /></SelectTrigger>
+          <SelectContent className="max-h-72">
+            {farmers.map(f => <SelectItem key={f.id} value={f.id}>{f.firstName} {f.lastName} {f.farmerCode ? `(${f.farmerCode})` : ''}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label>Framework Variant *</Label>
+          <Select value={form.frameworkVariant} onValueChange={handleVariantChange}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {FARM5X_VARIANTS.map(v => <SelectItem key={v.variant} value={v.variant}>{v.variant} — {v.cropLabel}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Crop Type</Label>
+          <Input value={form.cropType} disabled className="text-xs" />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Practice *</Label>
+        <Select value={form.practiceCode} onValueChange={handlePracticeChange}>
+          <SelectTrigger><SelectValue placeholder="Select practice" /></SelectTrigger>
+          <SelectContent>
+            {practices.map(p => (
+              <SelectItem key={p.code} value={p.code}>
+                {p.isMandatory ? '⭐ MUST · ' : ''}{p.label} ({p.code})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {form.practiceCode && (() => {
+          const p = practices.find(x => x.code === form.practiceCode)
+          if (!p) return null
+          return (
+            <div className="p-2 rounded-md bg-muted/40 text-xs">
+              <p className="text-muted-foreground">{p.description}</p>
+              <p className="mt-1">GHG reduction: <strong>−{p.emissionReductionPct}%</strong> · Verification: {p.verificationMethod.replace(/_/g, ' ')} {p.carbonCreditEligible && '· Carbon credit eligible'}</p>
+            </div>
+          )
+        })()}
+      </div>
+      <div className="space-y-1.5">
+        <Label>Evidence URL (optional)</Label>
+        <Input value={form.evidenceUrl} onChange={e => update('evidenceUrl', e.target.value)} placeholder="Photo or satellite image URL" />
+      </div>
+      <div className="space-y-1.5">
+        <Label>Notes (optional)</Label>
+        <Textarea value={form.notes} onChange={e => update('notes', e.target.value)} rows={2} placeholder="Any additional context..." />
+      </div>
+      <DialogFooter className="gap-2">
+        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+        <Button type="submit" disabled={saving} className="gap-2">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Log Adoption</Button>
+      </DialogFooter>
+    </form>
   )
 }
 

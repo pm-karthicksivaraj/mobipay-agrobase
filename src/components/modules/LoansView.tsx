@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import {
   DollarSign, Calculator, Plus, CheckCircle, Clock, XCircle, AlertTriangle,
-  TrendingUp, FileText, Users, ArrowRight
+  TrendingUp, FileText, Users, ArrowRight, Loader2
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +43,7 @@ export default function LoansView() {
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showCalc, setShowCalc] = useState(false)
+  const [showApply, setShowApply] = useState(false)
   const [activeTab, setActiveTab] = useState(activeSubTab || 'applications')
 
   const loadData = useCallback(async () => {
@@ -103,11 +104,17 @@ export default function LoansView() {
           <TabsList>
             <TabsTrigger value="applications">Applications</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="flow" className="gap-1.5"><FileText className="w-3.5 h-3.5" /> How It Works</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Button variant="outline" onClick={() => setShowCalc(true)} className="gap-2">
-          <Calculator className="w-4 h-4" /> Loan Calculator
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowCalc(true)} className="gap-2">
+            <Calculator className="w-4 h-4" /> Calculator
+          </Button>
+          <Button onClick={() => setShowApply(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Apply for Loan
+          </Button>
+        </div>
       </div>
 
       {activeTab === 'applications' && (
@@ -182,7 +189,119 @@ export default function LoansView() {
           <LoanCalculator />
         </DialogContent>
       </Dialog>
+
+      {/* Apply for Loan Dialog */}
+      <Dialog open={showApply} onOpenChange={setShowApply}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Apply for Loan</DialogTitle></DialogHeader>
+          <ApplyLoanForm products={products} onClose={() => setShowApply(false)} onSaved={() => { setShowApply(false); loadData() }} />
+        </DialogContent>
+      </Dialog>
+
+      {activeTab === 'flow' && <LoanFlowGuide />}
     </div>
+  )
+}
+
+function ApplyLoanForm({ products, onClose, onSaved }: { products: any[]; onClose: () => void; onSaved: () => void }) {
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({ loanProductId: '', applicantName: '', applicantPhone: '', amount: '', purpose: '' })
+
+  const update = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.loanProductId || !form.applicantName || !form.amount) {
+      toast.error('Product, applicant name, and amount are required')
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/loans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, amount: parseFloat(form.amount) }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success('Loan application submitted')
+        onSaved()
+      } else {
+        toast.error(data.error || 'Failed to apply')
+      }
+    } catch {
+      toast.error('Network error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Loan Product *</Label>
+        <Select value={form.loanProductId} onValueChange={v => update('loanProductId', v)}>
+          <SelectTrigger><SelectValue placeholder="Select a loan product" /></SelectTrigger>
+          <SelectContent>
+            {products.map((p: any) => (
+              <SelectItem key={p.id} value={p.id}>{p.name} ({p.interestRate}% / {p.maxDuration}mo)</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5"><Label>Applicant Name *</Label><Input value={form.applicantName} onChange={e => update('applicantName', e.target.value)} required /></div>
+        <div className="space-y-1.5"><Label>Applicant Phone</Label><Input value={form.applicantPhone} onChange={e => update('applicantPhone', e.target.value)} placeholder="+256..." /></div>
+      </div>
+      <div className="space-y-1.5"><Label>Amount (UGX) *</Label><Input type="number" value={form.amount} onChange={e => update('amount', e.target.value)} required /></div>
+      <div className="space-y-1.5"><Label>Purpose</Label><Textarea value={form.purpose} onChange={e => update('purpose', e.target.value)} placeholder="e.g. Purchase fertilizers and seed for next season" rows={2} /></div>
+      <DialogFooter className="gap-2">
+        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+        <Button type="submit" disabled={saving} className="gap-2">{saving && <Loader2 className="w-4 h-4 animate-spin" />} Submit Application</Button>
+      </DialogFooter>
+    </form>
+  )
+}
+
+function LoanFlowGuide() {
+  return (
+    <Card>
+      <CardHeader className="pb-2"><CardTitle className="text-base">Loan Management Flow</CardTitle><CardDescription>From application to disbursement and repayment</CardDescription></CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {[
+            { step: '1', title: 'Configure Product', color: 'blue', desc: 'Tenant Admin creates Loan Products (name, min/max amount, interest rate, max duration). One per tenant.' },
+            { step: '2', title: 'Apply', color: 'purple', desc: 'Farmer or Extension Officer submits an application via "Apply for Loan". Selects product, enters amount, purpose.' },
+            { step: '3', title: 'Approve (L1)', color: 'amber', desc: 'CBT or Extension Officer does first-level review against farmer credit score (AgriTrack). Status: PENDING → LEVEL1_APPROVED.' },
+            { step: '4', title: 'Approve (L2)', color: 'emerald', desc: 'Tenant Admin or MFI partner does final approval. Status: LEVEL1_APPROVED → APPROVED → DISBURSED via mobile money.' },
+            { step: '5', title: 'Repay', color: 'pink', desc: 'Auto-deducted from produce sales or VSLA savings. Status: DISBURSED → COMPLETED. Overdue triggers alerts.' },
+          ].map(s => (
+            <div key={s.step} className={cn('p-3 rounded-lg border',
+              s.color === 'blue' ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800' :
+              s.color === 'purple' ? 'bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800' :
+              s.color === 'amber' ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800' :
+              s.color === 'emerald' ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' :
+              'bg-pink-50 dark:bg-pink-950/30 border-pink-200 dark:border-pink-800'
+            )}>
+              <div className="w-8 h-8 rounded-full bg-white dark:bg-background flex items-center justify-center text-sm font-bold mb-2">{s.step}</div>
+              <p className="font-semibold text-sm">{s.title}</p>
+              <p className="text-xs text-muted-foreground mt-1">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+        <Separator className="my-4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <div className="p-3 rounded-lg bg-muted/30">
+            <p className="font-semibold mb-1">Credit Score Integration</p>
+            <p className="text-xs text-muted-foreground">Loan approvals reference the 4-factor credit score from AgriTrack: Demographics (15%) + Assets (25%) + Crop Performance (25%) + Financial Discipline (35%).</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/30">
+            <p className="font-semibold mb-1">Repayment Sources</p>
+            <p className="text-xs text-muted-foreground">Auto-deduct from produce sales (Cooperative ERP), VSLA savings withdrawals, or direct mobile money (M-Pesa, MTN, Airtel).</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

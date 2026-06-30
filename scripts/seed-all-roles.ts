@@ -85,11 +85,13 @@ async function main() {
       where: { OR: [{ email: u.email }, { phone: u.phone }] },
     })
     if (existing) {
-      // Update password + role to ensure consistent state
+      // Update password + role + email + names to ensure consistent state
+      // (email update handles the case where old user matched by phone only)
       const { country, ...userData } = u
       await db.user.update({
         where: { id: existing.id },
         data: {
+          email: userData.email,
           passwordHash,
           role: userData.role,
           isActive: true,
