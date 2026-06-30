@@ -46,6 +46,12 @@ const MfiPortalView = lazy(() => import('@/components/modules/MfiPortalView'))
 const TransportPortalView = lazy(() => import('@/components/modules/TransportPortalView'))
 const PlotsView = lazy(() => import('@/components/modules/PlotsView'))
 
+// Super Admin views
+const SuperAdminOverviewView = lazy(() => import('@/components/admin/SuperAdminOverviewView'))
+const SuperAdminTenantsView = lazy(() => import('@/components/admin/SuperAdminTenantsView'))
+const SuperAdminRevenueView = lazy(() => import('@/components/admin/SuperAdminRevenueView'))
+const SuperAdminImpactView = lazy(() => import('@/components/admin/SuperAdminImpactView'))
+
 function ModuleLoader() {
   return (
     <div className="space-y-4 animate-pulse">
@@ -108,6 +114,11 @@ function ModuleRouter() {
     case 'transport': return <TransportPortalView />
     // Plot-Level Traceability
     case 'plots': return <PlotsView />
+    // Super Admin
+    case 'super-admin-overview': return <SuperAdminOverviewView />
+    case 'super-admin-tenants': return <SuperAdminTenantsView />
+    case 'super-admin-revenue': return <SuperAdminRevenueView />
+    case 'super-admin-impact': return <SuperAdminImpactView />
     default: return <DashboardView />
   }
 }

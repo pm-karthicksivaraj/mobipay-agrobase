@@ -66,6 +66,14 @@ const ALL_MODULES: NavItem[] = [
   { key: 'users', label: 'User Management', icon: UserCheck, group: 'Admin' },
   { key: 'settings', label: 'Settings', icon: Settings, group: 'Admin' },
   { key: 'profile', label: 'Profile', icon: Stethoscope, group: 'Admin' },
+  // Super Admin (only visible to SUPER_ADMIN role)
+  { key: 'super-admin-overview', label: 'Platform Overview', icon: LayoutDashboard, group: 'Super Admin' },
+  { key: 'super-admin-tenants', label: 'Tenants', icon: Building2, group: 'Super Admin' },
+  { key: 'super-admin-revenue', label: 'Revenue & Subscriptions', icon: DollarSign, group: 'Super Admin' },
+  { key: 'super-admin-impact', label: 'Platform Impact', icon: Leaf, group: 'Super Admin' },
+  { key: 'super-admin-users', label: 'All Users', icon: UserCheck, group: 'Super Admin' },
+  { key: 'super-admin-mobile', label: 'Mobile App', icon: Smartphone, group: 'Super Admin' },
+  { key: 'super-admin-config', label: 'Configuration', icon: Settings, group: 'Super Admin' },
 ]
 
 const MODULE_GROUPS: Record<string, NavItem[]> = {}
@@ -124,7 +132,10 @@ export function Sidebar() {
         {/* Navigation */}
         <ScrollArea className="flex-1 py-3">
           <div className="px-3 space-y-1">
-            {Object.entries(MODULE_GROUPS).map(([groupLabel, items]) => (
+            {Object.entries(MODULE_GROUPS).map(([groupLabel, items]) => {
+              // Hide Super Admin group for non-super-admin users
+              if (groupLabel === 'Super Admin' && user?.role !== 'SUPER_ADMIN') return null
+              return (
               <div key={groupLabel} className="mb-3">
                 <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
                   {groupLabel}
@@ -158,7 +169,8 @@ export function Sidebar() {
                   )
                 })}
               </div>
-            ))}
+              )
+            })}
           </div>
         </ScrollArea>
 

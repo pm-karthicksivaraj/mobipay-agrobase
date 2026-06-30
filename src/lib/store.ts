@@ -7,7 +7,8 @@ export type ModuleKey =
   'sales' | 'deliveries' | 'consignments' | 'processing' |
   'ccrp' | 'cohort1' | 'cohort2' | 'smile' | 'nakivaale' |
   'ivr' | 'feedback' | 'trace' | 'users' | 'surveys' |
-  'farm-visits' | 'impact-assessment' | 'channel-sim' | 'compliance' | 'mfi' | 'transport' | 'plots'
+  'farm-visits' | 'impact-assessment' | 'channel-sim' | 'compliance' | 'mfi' | 'transport' | 'plots' |
+  'super-admin-overview' | 'super-admin-tenants' | 'super-admin-revenue' | 'super-admin-impact' | 'super-admin-users' | 'super-admin-mobile' | 'super-admin-config'
 
 interface AuthUser {
   userId: string
