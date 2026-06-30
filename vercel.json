@@ -1,0 +1,29 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/impact/cron/compute?limit=100",
+      "schedule": "0 22 * * *"
+    }
+  ],
+  "functions": {
+    "src/app/api/impact/cron/compute/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/impact/snapshot/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/impact/dashboard/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/admin/dashboard/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/admin/impact/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/admin/revenue/route.ts": {
+      "maxDuration": 15
+    }
+  }
+}
