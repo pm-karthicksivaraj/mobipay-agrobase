@@ -414,6 +414,44 @@ model FarmLand {
   waterSource String?
   soilFertility String?
   isActive    Boolean  @default(true)
+
+  // ─── Farm Land Creation fields (from Excel: 26 new fields) ───
+  landSurveyNo    String?
+  approachRoad    String?  // JSON: ["close main road","inner field","close main canal"]
+  landTopology    String?  // Valley, Plains, Plateaus
+  landGradient    String?  // JSON: ["Up Land","Low Land"]
+  landDocumentUrl String?
+  powerSource     String?  // Solar, Electricity, Fuel
+  farmPhotoUrl    String?
+  // Soil & Irrigation
+  irrigationSource String? // JSON: ["Rainfed","Irrigated"]
+  irrigationType   String? // Drip, Canal, Others
+  // Labor
+  fullTimeWorkers  Int?
+  partTimeWorkers  Int?
+  seasonalWorkers  Int?
+  familyWorkers    Int?
+  // Conversion Info (organic)
+  lastChemicalApplicationDate DateTime?
+  conventionalLands String?
+  fallowPastureLand String?
+  conventionalCrops String?
+  estYieldKg       Float?
+  // Certification conversion
+  certType         String?  // NPOP, NOP
+  conversionStatus String?  // IC-1, IC-2, IC-3, Organic, SRP
+  conversionDate   DateTime?
+  inspectorName    String?
+  conversionQualified Boolean?
+  conversionRemarks String?
+  // Soil Analysis
+  soilCollectionDate DateTime?
+  soilLabTestingDate DateTime?
+  soilResultDate   DateTime?
+  soilReportUrl    String?
+  soilSamplesInfo  String?  // text: no of samples + area
+  soilCriteria     String?  // JSON: [{criteria: "pH", value: "6.5"}, {criteria: "N", value: "120ppm"}]
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -432,6 +470,26 @@ model Cultivation {
   estimatedYield  Float?
   actualYield     Float?
   status          String   @default("ACTIVE")
+
+  // ─── Cultivation Creation fields (from Excel: 13 new fields) ───
+  cropCategory    String?  // Main Crop, Inter Crop, Border Crop
+  cultivationAreaHa Float? // hectares (may differ from farm size — partial planting)
+  cropCalendarId  String?  // linked crop calendar
+  cultivationGeoJson String? // GeoJSON polygon for the cultivation area
+  photoUrl        String?
+  // Seed Information
+  seedSource      String?  // Seed Company, Agent, Self-save
+  isSeedTreated   Boolean  @default(false)
+  seedType        String?  // Certified 1, Certified 2, Self-save, Other
+  seedQuantity    Float?   // kg
+  seedPrice       Float?   // per kg
+  seedCost        Float?   // auto-calc: quantity × price
+  // Sowing
+  sowingType      String?  // Row sowing, Hand sowing, Drone sowing, Transplanting, Re-planting
+  sowingChargesBy String?  // hour, hectare
+  sowingCharges   Float?   // per unit
+  sowingCost      Float?   // auto-calc: area × charges (or hours × charges)
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
