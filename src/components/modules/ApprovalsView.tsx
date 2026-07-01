@@ -63,21 +63,6 @@ const priorityColor: Record<string, string> = {
   LOW: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
 }
 
-const DEMO_APPROVALS: ApprovalItem[] = [
-  { id: '1', type: 'PURCHASE', reference: 'PO-2024-0123', requesterName: 'Bugisu Cooperative Union', description: 'Bulk purchase of 5,000 kg of organic coffee cherries from Mt. Elgon zone farmers', amount: 25000000, currency: 'UGX', status: 'PENDING', priority: 'HIGH', submittedAt: '2024-04-15T07:00:00Z', details: { supplier: 'Mt. Elgon Farmers Association', deliveryDate: '2024-04-25', paymentTerms: 'Net 30' } },
-  { id: '2', type: 'LOAN', reference: 'LN-2024-0456', requesterName: 'Linda Nakasujja', description: 'Agricultural input loan for maize planting season - seeds, fertilizer, and labor costs', amount: 500000, currency: 'UGX', status: 'PENDING', priority: 'MEDIUM', submittedAt: '2024-04-14T14:30:00Z', details: { loanProduct: 'Input Loan', repaymentPeriod: '6 months', interestRate: '12%', collateral: 'VSLA savings' } },
-  { id: '3', type: 'INPUT_REQUEST', reference: 'IR-2024-0789', requesterName: 'John Mugisha', description: 'Request for 200kg of NPK fertilizer and 50kg of improved maize seeds for 45 farmers in the cooperative', quantity: 250, unit: 'kg', status: 'PENDING', priority: 'HIGH', submittedAt: '2024-04-15T08:15:00Z', details: { inputType: 'Fertilizer + Seeds', zone: 'Mt. Elgon', deliveryLocation: 'Budadiri Collection Center' } },
-  { id: '4', type: 'PURCHASE', reference: 'PO-2024-0124', requesterName: 'Nile Agro Processors', description: 'Purchase of 10,000 kg of sunflower seeds for oil processing', amount: 45000000, currency: 'UGX', status: 'PENDING', priority: 'URGENT', submittedAt: '2024-04-15T06:00:00Z', details: { supplier: 'Northern Farmers Alliance', deliveryDate: '2024-04-20', qualityGrade: 'Grade 1' } },
-  { id: '5', type: 'LOAN', reference: 'LN-2024-0457', requesterName: 'Charles Draku', description: 'Emergency loan for post-harvest storage facility construction', amount: 2000000, currency: 'UGX', status: 'PENDING', priority: 'HIGH', submittedAt: '2024-04-13T10:00:00Z', details: { loanProduct: 'Development Loan', repaymentPeriod: '12 months', interestRate: '10%' } },
-  { id: '6', type: 'INPUT_REQUEST', reference: 'IR-2024-0790', requesterName: 'Sarah Achieng', description: 'Pesticide and fungicide request for coffee leaf rust management - 120 farmers affected', quantity: 500, unit: 'liters', status: 'PENDING', priority: 'URGENT', submittedAt: '2024-04-15T09:00:00Z', details: { inputType: 'Crop Protection', zone: 'Mbale', urgency: 'Coffee leaf rust outbreak reported' } },
-  { id: '7', type: 'PURCHASE', reference: 'PO-2024-0125', requesterName: 'Green World Inputs Ltd', description: 'Restock order for processing chemicals - 500L of washing detergent and 200kg of hulling compound', amount: 8500000, currency: 'UGX', status: 'APPROVED', priority: 'MEDIUM', submittedAt: '2024-04-12T11:00:00Z', reviewedAt: '2024-04-13T09:00:00Z', reviewedBy: 'Grace Nakamya', details: { supplier: 'Kampala Chemicals Ltd', deliveryDate: '2024-04-18' } },
-  { id: '8', type: 'LOAN', reference: 'LN-2024-0458', requesterName: 'Maria Nakamya', description: 'VSLA group loan for collective purchase of drying equipment', amount: 1500000, currency: 'UGX', status: 'APPROVED', priority: 'MEDIUM', submittedAt: '2024-04-11T15:00:00Z', reviewedAt: '2024-04-12T10:30:00Z', reviewedBy: 'Tom Otim', details: { loanProduct: 'Group Equipment Loan', repaymentPeriod: '9 months', interestRate: '8%' } },
-  { id: '9', type: 'INPUT_REQUEST', reference: 'IR-2024-0791', requesterName: 'Agnes Birungi', description: 'Request for soil testing kits and pH meters for CCRP program monitoring', quantity: 50, unit: 'kits', status: 'REJECTED', priority: 'LOW', submittedAt: '2024-04-10T08:00:00Z', reviewedAt: '2024-04-11T14:00:00Z', reviewedBy: 'Admin User', details: { reason: 'Budget constraints this quarter. Resubmit in Q3 2024.' } },
-  { id: '10', type: 'PURCHASE', reference: 'PO-2024-0126', requesterName: 'Mount Elgon Coffee Exporters', description: 'Purchase of 8,000 kg of premium washed Arabica coffee for export to EU market', amount: 64000000, currency: 'UGX', status: 'PENDING', priority: 'HIGH', submittedAt: '2024-04-15T10:30:00Z', details: { supplier: 'Bugisu Cooperative Union', deliveryDate: '2024-04-30', certification: 'EUDR Compliant, RA Certified' } },
-  { id: '11', type: 'LOAN', reference: 'LN-2024-0459', requesterName: 'David Wanyama', description: 'Working capital loan for coffee nursery expansion - 5,000 seedlings', amount: 800000, currency: 'UGX', status: 'PENDING', priority: 'MEDIUM', submittedAt: '2024-04-14T16:00:00Z', details: { loanProduct: 'Nursery Loan', repaymentPeriod: '4 months', interestRate: '10%' } },
-  { id: '12', type: 'INPUT_REQUEST', reference: 'IR-2024-0792', requesterName: 'Peter Okello', description: 'Request for 300 bags of organic compost for soil amendment program in Northern region', quantity: 15000, unit: 'kg', status: 'PENDING', priority: 'LOW', submittedAt: '2024-04-14T09:00:00Z', details: { inputType: 'Organic Fertilizer', zone: 'Gulu', deliveryLocation: 'Gulu Warehouse' } },
-]
-
 export default function ApprovalsView() {
   const { activeSubTab, setActiveSubTab } = useAppStore()
   const [approvals, setApprovals] = useState<ApprovalItem[]>([])
@@ -91,14 +76,9 @@ export default function ApprovalsView() {
     try {
       const data = await safeFetch('/api/approvals')
       const list = extractArray(data, 'data', 'approvals')
-      if (list.length > 0) {
-        setApprovals(list)
-        setLoading(false)
-        return
-      }
-      setApprovals(DEMO_APPROVALS)
+      setApprovals(list)
     } catch {
-      setApprovals(DEMO_APPROVALS)
+      setApprovals([])
     } finally {
       setLoading(false)
     }
@@ -262,9 +242,10 @@ export default function ApprovalsView() {
                 {loading ? (
                   <div className="p-6 space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded" />)}</div>
                 ) : filteredByTab.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <ClipboardCheck className="w-10 h-10 mx-auto mb-3 opacity-40" />
-                    <p className="font-medium">No {tab === 'pending' ? 'pending approvals' : tab} found</p>
+                  <div className="text-center py-12">
+                    <ClipboardCheck className="w-10 h-10 mx-auto mb-3 opacity-40 text-muted-foreground" />
+                    <p className="font-medium">No pending approvals</p>
+                    <p className="text-sm text-muted-foreground mt-1">All caught up!</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">

@@ -7,7 +7,7 @@ import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import {
   PiggyBank, Users, DollarSign, Calendar, CheckCircle, Clock, XCircle,
   HandCoins, Plus, Eye, ChevronLeft, ChevronRight, Search, Filter, X, Loader2,
-  AlertCircle, TrendingUp, CircleDollarSign, Save, Trash2, Pencil
+  AlertCircle, TrendingUp, CircleDollarSign, Save, Trash2, Pencil, Download
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +24,7 @@ import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, PieChart, Pie } from 'recharts'
+import { exportToCSV } from '@/components/ui/empty-state'
 
 const COLORS = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#f59e0b']
 
@@ -140,7 +141,14 @@ export default function VslaView() {
           </TabsList>
           {activeTab === 'groups' && <Button onClick={() => { setEditing(null); setShowCreate('group') }} className="gap-2"><Plus className="w-4 h-4" /> New Group</Button>}
           {activeTab === 'savings' && <Button onClick={() => { setEditing(null); setShowCreate('saving') }} className="gap-2"><Plus className="w-4 h-4" /> Record Saving</Button>}
-          {activeTab === 'loans' && <Button onClick={() => { setEditing(null); setShowCreate('loan') }} className="gap-2"><Plus className="w-4 h-4" /> Issue Loan</Button>}
+          {activeTab === 'loans' && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => exportToCSV(loans, 'vsla-loans')} disabled={loans.length === 0} className="gap-2">
+                <Download className="w-4 h-4" /> Export CSV
+              </Button>
+              <Button onClick={() => { setEditing(null); setShowCreate('loan') }} className="gap-2"><Plus className="w-4 h-4" /> Issue Loan</Button>
+            </div>
+          )}
           {activeTab === 'meetings' && <Button onClick={() => { setEditing(null); setShowCreate('meeting') }} className="gap-2"><Plus className="w-4 h-4" /> Schedule Meeting</Button>}
         </div>
 

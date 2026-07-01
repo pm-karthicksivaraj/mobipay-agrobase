@@ -23,6 +23,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { QRCodeSVG } from 'qrcode.react'
+import { FarmerTimeline } from '@/components/farmers/FarmerTimeline'
+import { EmptyState, exportToCSV } from '@/components/ui/empty-state'
 
 interface Farmer {
   id: string; firstName: string; lastName: string; phone: string
@@ -108,6 +110,9 @@ export default function FarmersView() {
           <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
             <Upload className="w-4 h-4" /> Import CSV
           </Button>
+          <Button variant="outline" size="sm" onClick={() => exportToCSV(farmers, 'farmers')} disabled={farmers.length === 0} className="gap-2">
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
           <Button onClick={() => setShowAdd(true)} className="gap-2">
             <Plus className="w-4 h-4" /> Add Farmer
           </Button>
@@ -156,11 +161,11 @@ export default function FarmersView() {
               {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded" />)}
             </div>
           ) : farmers.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="font-medium">No farmers found</p>
-              <p className="text-sm mt-1">Try adjusting your search or filters</p>
-            </div>
+            <EmptyState
+              icon={Users}
+              title="No farmers found"
+              description="Try adjusting your search or filters"
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -454,6 +459,7 @@ function FarmerDetail({ farmerId, onBack }: { farmerId: string; onBack: () => vo
           <TabsTrigger value="trainings" className="gap-1.5"><GraduationCap className="w-3.5 h-3.5" /> Trainings</TabsTrigger>
           <TabsTrigger value="savings" className="gap-1.5"><PiggyBank className="w-3.5 h-3.5" /> Savings & Loans</TabsTrigger>
           <TabsTrigger value="impact" className="gap-1.5"><Activity className="w-3.5 h-3.5" /> Impact</TabsTrigger>
+          <TabsTrigger value="timeline" className="gap-1.5"><Calendar className="w-3.5 h-3.5" /> Timeline</TabsTrigger>
         </TabsList>
 
         {/* Profile Tab */}
@@ -732,6 +738,16 @@ function FarmerDetail({ farmerId, onBack }: { farmerId: string; onBack: () => vo
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Timeline Tab */}
+        <TabsContent value="timeline" className="mt-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Calendar className="w-4 h-4" /> Farmer Journey Timeline</CardTitle></CardHeader>
+            <CardContent>
+              <FarmerTimeline farmerId={farmerId} />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

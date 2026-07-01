@@ -8,6 +8,7 @@ import { TopBar } from '@/components/layout/TopBar'
 import { LoginPage } from '@/components/auth/LoginPage'
 import { Skeleton } from '@/components/ui/skeleton'
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard'
+import { CommandPalette } from '@/components/layout/CommandPalette'
 
 // Core modules
 const DashboardView = lazy(() => import('@/components/modules/DashboardView'))
@@ -54,6 +55,8 @@ const SuperAdminOverviewView = lazy(() => import('@/components/admin/SuperAdminO
 const SuperAdminTenantsView = lazy(() => import('@/components/admin/SuperAdminTenantsView'))
 const SuperAdminRevenueView = lazy(() => import('@/components/admin/SuperAdminRevenueView'))
 const SuperAdminImpactView = lazy(() => import('@/components/admin/SuperAdminImpactView'))
+const SuperAdminAllUsersView = lazy(() => import('@/components/admin/SuperAdminAllUsersView'))
+const SuperAdminMobileView = lazy(() => import('@/components/admin/SuperAdminMobileView'))
 
 // Farm Management (core product) views
 const CarbonView = lazy(() => import('@/components/modules/CarbonView'))
@@ -61,6 +64,9 @@ const Farm5xView = lazy(() => import('@/components/modules/Farm5xView'))
 const CostOfCultivationView = lazy(() => import('@/components/modules/CostOfCultivationView'))
 const CropStagesLibraryView = lazy(() => import('@/components/modules/CropStagesLibraryView'))
 const RolesPermissionsView = lazy(() => import('@/components/modules/RolesPermissionsView'))
+
+// Billing
+const BillingView = lazy(() => import('@/components/modules/BillingView'))
 
 function ModuleLoader() {
   return (
@@ -118,6 +124,7 @@ function ModuleRouter() {
     case 'users': return <UsersView />
     case 'compliance': return <ComplianceView />
     case 'profile': return <ProfileView />
+    case 'billing': return <BillingView />
     // Programs
     case 'ccrp': return <CcrpView />
     case 'cohort1': return <CohortsView />
@@ -137,6 +144,8 @@ function ModuleRouter() {
     case 'super-admin-tenants': return <SuperAdminTenantsView />
     case 'super-admin-revenue': return <SuperAdminRevenueView />
     case 'super-admin-impact': return <SuperAdminImpactView />
+    case 'super-admin-users': return <SuperAdminAllUsersView />
+    case 'super-admin-mobile': return <SuperAdminMobileView />
     default: return <DashboardView />
   }
 }
@@ -156,6 +165,7 @@ function AuthenticatedApp() {
         </main>
       </div>
       <OnboardingWizard />
+      <CommandPalette />
     </div>
   )
 }

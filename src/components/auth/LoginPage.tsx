@@ -13,6 +13,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { useLanguage, LANGUAGES } from '@/lib/i18n'
+import { useCurrency } from '@/lib/currency'
 
 const DEMO_ACCOUNTS = [
   // Super Admin
@@ -41,6 +43,8 @@ const DEMO_ACCOUNTS = [
   { group: 'Partners', email: 'mfi@hopefinance.co', role: 'Hope MFI', country: 'UG', currency: 'UGX' },
 ]
 
+// Display metadata for the currency dropdown. The actual user preference is
+// persisted to localStorage via the `useCurrency` hook (see `@/lib/currency`).
 const CURRENCIES = [
   { code: 'UGX', name: 'Ugandan Shilling', symbol: 'USh', flag: '🇺🇬' },
   { code: 'GHS', name: 'Ghanaian Cedi', symbol: 'GH₵', flag: '🇬🇭' },
@@ -48,12 +52,8 @@ const CURRENCIES = [
   { code: 'USD', name: 'US Dollar', symbol: '$', flag: '🇺🇸' },
 ]
 
-const LANGUAGES = [
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'sw', name: 'Swahili', flag: '🇰🇪' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-  { code: 'lg', name: 'Luganda', flag: '🇺🇬' },
-]
+// Language list is imported from `@/lib/i18n` so the order and metadata stay
+// in sync with the rest of the app.
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
@@ -61,8 +61,12 @@ export function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [currency, setCurrency] = useState('UGX')
-  const [language, setLanguage] = useState('en')
+  // Language and currency are persisted to localStorage by the hooks so the
+  // rest of the app can read them after sign-in. State is initialised to the
+  // defaults on the server (hydration-safe) and synced from localStorage in
+  // an effect after mount.
+  const { language, setLanguage } = useLanguage()
+  const { currency, setCurrency } = useCurrency()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -49,11 +49,15 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
     })
 
-    // Fetch active subscription per tenant
+    // Fetch active or trial subscription per tenant
     const tenantIds = tenants.map(t => t.id)
     const subscriptions = await db.subscription.findMany({
-      where: { tenantId: { in: tenantIds }, status: 'ACTIVE' },
-      select: { tenantId: true, plan: true, amount: true, billingCycle: true, endDate: true },
+      where: { tenantId: { in: tenantIds }, status: { in: ['ACTIVE', 'TRIAL'] } },
+      select: {
+        tenantId: true, plan: true, amount: true, billingCycle: true, endDate: true,
+        status: true, trialStartsAt: true, trialEndsAt: true, trialConvertedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
     })
     const subByTenant = new Map(subscriptions.map(s => [s.tenantId, s]))
 
@@ -81,8 +85,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, type, country, defaultCurrency, parentId } = body as {
-      name?: string; type?: string; country?: string; defaultCurrency?: string; parentId?: string
+    const { name, type, country, defaultCurrency, parentId, trialDays } = body as {
+      name?: string; type?: string; country?: string; defaultCurrency?: string; parentId?: string; trialDays?: number
     }
 
     if (!name || !type) {
@@ -97,6 +101,12 @@ export async function POST(request: Request) {
     // Derive currency from country if not provided
     const countryCurrency: Record<string, string> = { Uganda: 'UGX', Ghana: 'GHS', Kenya: 'KES' }
     const currency = defaultCurrency || (country ? countryCurrency[country] : 'UGX')
+
+    // Trial period (default 14 days). 0 = no trial.
+    const trial = typeof trialDays === 'number' && trialDays > 0 ? Math.min(Math.floor(trialDays), 365) : 14
+    const now = new Date()
+    const trialStartsAt = new Date(now)
+    const trialEndsAt = new Date(now.getTime() + trial * 86400000)
 
     const tenant = await db.tenant.create({
       data: {
@@ -123,15 +133,19 @@ export async function POST(request: Request) {
       skipDuplicates: true,
     })
 
-    // Auto-create a default ACTIVE subscription (BASIC plan, free)
+    // Auto-create a TRIAL subscription (BASIC plan, free) with trial window.
+    // The /api/admin/cron/check-trials endpoint will flip status to SUSPENDED
+    // once trialEndsAt has passed.
     await db.subscription.create({
       data: {
         tenantId: tenant.id,
         plan: 'BASIC',
         amount: 0,
         billingCycle: 'MONTHLY',
-        status: 'ACTIVE',
-        startDate: new Date(),
+        status: 'TRIAL',
+        startDate: now,
+        trialStartsAt,
+        trialEndsAt,
       },
     })
 

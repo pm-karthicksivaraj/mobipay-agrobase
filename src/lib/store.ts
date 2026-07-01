@@ -11,6 +11,8 @@ export type ModuleKey =
   'farm-visits' | 'impact-assessment' | 'channel-sim' | 'compliance' | 'mfi' | 'transport' | 'plots' |
   // Core product modules
   'carbon' | 'farm5x' | 'cost-of-cultivation' | 'crop-stages' |
+  // Billing
+  'billing' |
   // Reference
   'roles-permissions' |
   'super-admin-overview' | 'super-admin-tenants' | 'super-admin-revenue' | 'super-admin-impact' | 'super-admin-users' | 'super-admin-mobile' | 'super-admin-config'

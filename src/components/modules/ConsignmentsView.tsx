@@ -6,7 +6,7 @@ import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import {
   Search, Plus, X, Loader2, Package, Truck, CheckCircle, Clock, DollarSign,
-  ArrowRight, MapPin, Eye, ChevronLeft, ChevronRight, AlertCircle, Pencil, Trash2
+  ArrowRight, MapPin, Eye, ChevronLeft, ChevronRight, AlertCircle, Pencil, Trash2, Download
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
+import { EmptyState, exportToCSV } from '@/components/ui/empty-state'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 interface Consignment {
@@ -58,55 +59,6 @@ const consignmentStatusColor: Record<string, string> = {
 
 const statusPipeline = ['DRAFT', 'DISPATCHED', 'CHECKED_IN', 'RECEIVED', 'APPROVED', 'PAID']
 
-const mockConsignments: Consignment[] = [
-  {
-    id: 'c1', product: 'Arabica Coffee (Grade A)', quantity: 500, unit: 'kg', source: 'Kampala Warehouse', destination: 'Rotterdam, NL',
-    totalValue: 4250000, status: 'PAID', createdAt: '2024-11-01', updatedAt: '2024-11-20', dispatchDate: '2024-11-05', receiveDate: '2024-11-18',
-    notes: 'Payment processed via bank transfer',
-    items: [
-      { id: 'ci1', productName: 'Arabica Coffee SL14', quantity: 300, unit: 'kg', unitPrice: 8500, total: 2550000 },
-      { id: 'ci2', productName: 'Arabica Coffee Ruiru 11', quantity: 200, unit: 'kg', unitPrice: 8500, total: 1700000 },
-    ]
-  },
-  {
-    id: 'c2', product: 'Robusta Coffee', quantity: 1000, unit: 'kg', source: 'Jinja Depot', destination: 'Hamburg, DE',
-    totalValue: 5500000, status: 'DISPATCHED', createdAt: '2024-11-10', updatedAt: '2024-11-15', dispatchDate: '2024-11-15',
-    items: [
-      { id: 'ci3', productName: 'Robusta Coffee Nganda', quantity: 1000, unit: 'kg', unitPrice: 5500, total: 5500000 },
-    ]
-  },
-  {
-    id: 'c3', product: 'Cocoa Beans (Premium)', quantity: 320, unit: 'kg', source: 'Kumasi Hub', destination: 'Amsterdam, NL',
-    totalValue: 3840000, status: 'CHECKED_IN', createdAt: '2024-11-08', updatedAt: '2024-11-14', dispatchDate: '2024-11-10',
-    items: [
-      { id: 'ci4', productName: 'Cocoa Forastero', quantity: 200, unit: 'kg', unitPrice: 12000, total: 2400000 },
-      { id: 'ci5', productName: 'Cocoa Amelonado', quantity: 120, unit: 'kg', unitPrice: 12000, total: 1440000 },
-    ]
-  },
-  {
-    id: 'c4', product: 'Vanilla Beans', quantity: 50, unit: 'kg', source: 'Mbale Collection', destination: 'Tokyo, JP',
-    totalValue: 4250000, status: 'RECEIVED', createdAt: '2024-11-05', updatedAt: '2024-11-22', dispatchDate: '2024-11-08', receiveDate: '2024-11-20',
-    items: [
-      { id: 'ci6', productName: 'Vanilla Bourbon', quantity: 50, unit: 'kg', unitPrice: 85000, total: 4250000 },
-    ]
-  },
-  {
-    id: 'c5', product: 'Mixed Coffee Lot', quantity: 750, unit: 'kg', source: 'Nairobi Warehouse', destination: 'Seattle, US',
-    totalValue: 6375000, status: 'DRAFT', createdAt: '2024-11-22', updatedAt: '2024-11-22',
-    items: [
-      { id: 'ci7', productName: 'Arabica AA', quantity: 400, unit: 'kg', unitPrice: 9500, total: 3800000 },
-      { id: 'ci8', productName: 'Arabica PB', quantity: 350, unit: 'kg', unitPrice: 7357, total: 2575000 },
-    ]
-  },
-  {
-    id: 'c6', product: 'Cassava Flour', quantity: 2000, unit: 'kg', source: 'Gulu Processing', destination: 'Kampala Market',
-    totalValue: 1600000, status: 'APPROVED', createdAt: '2024-11-12', updatedAt: '2024-11-18', dispatchDate: '2024-11-13', receiveDate: '2024-11-15',
-    items: [
-      { id: 'ci9', productName: 'Cassava Flour NASE 14', quantity: 2000, unit: 'kg', unitPrice: 800, total: 1600000 },
-    ]
-  },
-]
-
 export default function ConsignmentsView() {
   const { } = useAppStore()
   const [consignments, setConsignments] = useState<Consignment[]>([])
@@ -142,12 +94,12 @@ export default function ConsignmentsView() {
           notes: '',
           items: [],
         }))
-        setConsignments(normalized.length > 0 ? normalized : mockConsignments)
+        setConsignments(normalized)
       } else {
-        setConsignments(mockConsignments)
+        setConsignments([])
       }
     } catch {
-      setConsignments(mockConsignments)
+      setConsignments([])
     } finally {
       setLoading(false)
     }
@@ -229,7 +181,12 @@ export default function ConsignmentsView() {
           <h3 className="text-lg font-semibold">Consignment Management</h3>
           <p className="text-sm text-muted-foreground">Track product consignments through the supply chain</p>
         </div>
-        <Button onClick={openAdd} className="gap-2"><Plus className="w-4 h-4" /> New Consignment</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportToCSV(filtered, 'consignments')} disabled={filtered.length === 0} className="gap-2">
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
+          <Button onClick={openAdd} className="gap-2"><Plus className="w-4 h-4" /> New Consignment</Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -264,10 +221,13 @@ export default function ConsignmentsView() {
           {loading ? (
             <div className="p-6 space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded" />)}</div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Package className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="font-medium">No consignments found</p>
-            </div>
+            <EmptyState
+              icon={Package}
+              title="No consignments found"
+              description="Click 'New Consignment' to create one."
+              actionLabel="New Consignment"
+              onAction={openAdd}
+            />
           ) : (
             <div className="max-h-[500px] overflow-y-auto">
               <Table>

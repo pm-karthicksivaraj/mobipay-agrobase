@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import {
   Search, Plus, X, Loader2, Truck, Package, CheckCircle, Clock, MapPin,
-  ChevronLeft, ChevronRight, Eye, User, Calendar, Navigation, Trash2
+  ChevronLeft, ChevronRight, Eye, User, Calendar, Navigation, Trash2, Download
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
+import { EmptyState, exportToCSV } from '@/components/ui/empty-state'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 
 type RelatedType = 'PURCHASE' | 'CONSIGNMENT' | 'INPUT_REQUEST'
@@ -72,80 +73,6 @@ const statusIcons: Record<string, React.ReactNode> = {
   DELIVERED: <CheckCircle className="w-4 h-4" />,
 }
 
-const mockDeliveries: Delivery[] = [
-  {
-    id: 'dv1', relatedType: 'PURCHASE', relatedId: 'pu1', relatedRef: 'PUR-2024-001', status: 'DELIVERED',
-    driverName: 'John Mukiibi', driverPhone: '+256 700 111222', vehicleReg: 'UAK 234A',
-    product: 'Arabica Coffee (SL14)', quantity: 250, unit: 'kg', source: 'Mt. Elgon', destination: 'Kampala Warehouse',
-    dispatchDate: '2024-11-16', deliveryDate: '2024-11-17', estimatedDays: 2, createdAt: '2024-11-15',
-    timeline: [
-      { status: 'PENDING', timestamp: '2024-11-15 09:00', location: 'Mt. Elgon', note: 'Delivery scheduled' },
-      { status: 'IN_TRANSIT', timestamp: '2024-11-16 06:30', location: 'Mbale - Jinja Road', note: 'Driver departed with cargo' },
-      { status: 'DELIVERED', timestamp: '2024-11-17 14:15', location: 'Kampala Warehouse', note: 'Received by warehouse manager' },
-    ]
-  },
-  {
-    id: 'dv2', relatedType: 'CONSIGNMENT', relatedId: 'c2', relatedRef: 'CON-2024-002', status: 'IN_TRANSIT',
-    driverName: 'Robert Kiwanuka', driverPhone: '+256 772 333444', vehicleReg: 'UAB 567B',
-    product: 'Robusta Coffee', quantity: 1000, unit: 'kg', source: 'Jinja Depot', destination: 'Port of Mombasa',
-    dispatchDate: '2024-11-15', estimatedDays: 5, createdAt: '2024-11-14',
-    timeline: [
-      { status: 'PENDING', timestamp: '2024-11-14 10:00', location: 'Jinja Depot', note: 'Awaiting truck assignment' },
-      { status: 'IN_TRANSIT', timestamp: '2024-11-15 08:00', location: 'Jinja - Kampala Highway', note: 'Departed Jinja' },
-    ]
-  },
-  {
-    id: 'dv3', relatedType: 'INPUT_REQUEST', relatedId: 'ir1', relatedRef: 'REQ-2024-001', status: 'DELIVERED',
-    driverName: 'Samuel Ongodia', driverPhone: '+256 783 555666', vehicleReg: 'UAC 890C',
-    product: 'NPK Fertilizer 17-17-17', quantity: 3, unit: '50kg bags', source: 'Agro-Inputs Ltd', destination: 'James Okello Farm',
-    dispatchDate: '2024-11-18', deliveryDate: '2024-11-18', estimatedDays: 1, createdAt: '2024-11-17',
-    timeline: [
-      { status: 'PENDING', timestamp: '2024-11-17 11:00', location: 'Agro-Inputs Ltd', note: 'Ready for pickup' },
-      { status: 'IN_TRANSIT', timestamp: '2024-11-18 07:00', location: 'Kampala - Mbale Road', note: 'En route to farmer' },
-      { status: 'DELIVERED', timestamp: '2024-11-18 16:30', location: 'James Okello Farm', note: 'Handed to farmer, signed' },
-    ]
-  },
-  {
-    id: 'dv4', relatedType: 'PURCHASE', relatedId: 'pu4', relatedRef: 'PUR-2024-004', status: 'PENDING',
-    driverName: '', driverPhone: '', vehicleReg: '',
-    product: 'Cocoa Beans (Forastero)', quantity: 100, unit: 'kg', source: 'Peter Ochieng Farm', destination: 'Collection Center',
-    estimatedDays: 3, createdAt: '2024-11-23',
-    timeline: [
-      { status: 'PENDING', timestamp: '2024-11-23 14:00', location: 'Peter Ochieng Farm', note: 'Awaiting driver assignment' },
-    ]
-  },
-  {
-    id: 'dv5', relatedType: 'CONSIGNMENT', relatedId: 'c4', relatedRef: 'CON-2024-004', status: 'IN_TRANSIT',
-    driverName: 'Michael Wanjiru', driverPhone: '+254 712 777888', vehicleReg: 'KBJ 123D',
-    product: 'Vanilla Beans (Bourbon)', quantity: 50, unit: 'kg', source: 'Mbale Collection', destination: 'Nairobi Export Hub',
-    dispatchDate: '2024-11-19', estimatedDays: 4, createdAt: '2024-11-18',
-    timeline: [
-      { status: 'PENDING', timestamp: '2024-11-18 08:00', location: 'Mbale Collection', note: 'Packaging complete' },
-      { status: 'IN_TRANSIT', timestamp: '2024-11-19 05:30', location: 'Malaba Border', note: 'Crossed into Kenya' },
-    ]
-  },
-  {
-    id: 'dv6', relatedType: 'INPUT_REQUEST', relatedId: 'ir6', relatedRef: 'REQ-2024-006', status: 'DELIVERED',
-    driverName: 'Kofi Mensah', driverPhone: '+233 24 999000', vehicleReg: 'GT 4567 E',
-    product: 'Cocoa Seedlings (Hybrid)', quantity: 200, unit: 'seedlings', source: 'Farmers Choice GH', destination: 'Kwame Asante Farm',
-    dispatchDate: '2024-11-06', deliveryDate: '2024-11-07', estimatedDays: 2, createdAt: '2024-11-05',
-    timeline: [
-      { status: 'PENDING', timestamp: '2024-11-05 10:00', location: 'Kumasi Depot', note: 'Seedlings ready for transport' },
-      { status: 'IN_TRANSIT', timestamp: '2024-11-06 06:00', location: 'Kumasi - Sunyani Road', note: 'Special transport for live seedlings' },
-      { status: 'DELIVERED', timestamp: '2024-11-07 11:00', location: 'Kwame Asante Farm', note: 'Delivered, 195 survived transport' },
-    ]
-  },
-  {
-    id: 'dv7', relatedType: 'PURCHASE', relatedId: 'pu5', relatedRef: 'PUR-2024-005', status: 'PENDING',
-    driverName: 'Joseph Wamala', driverPhone: '+256 704 111333', vehicleReg: 'UAD 321F',
-    product: 'Arabica Coffee (Ruiru 11)', quantity: 180, unit: 'kg', source: 'Nyeri Station', destination: 'Nairobi Warehouse',
-    estimatedDays: 2, createdAt: '2024-11-24',
-    timeline: [
-      { status: 'PENDING', timestamp: '2024-11-24 09:00', location: 'Nyeri Station', note: 'Driver assigned, awaiting departure' },
-    ]
-  },
-]
-
 export default function DeliveriesView() {
   const { } = useAppStore()
   const [deliveries, setDeliveries] = useState<Delivery[]>([])
@@ -185,12 +112,12 @@ export default function DeliveriesView() {
           createdAt: d.createdAt ? new Date(d.createdAt).toISOString().split('T')[0] : '',
           timeline: [],
         }))
-        setDeliveries(normalized.length > 0 ? normalized : mockDeliveries)
+        setDeliveries(normalized)
       } else {
-        setDeliveries(mockDeliveries)
+        setDeliveries([])
       }
     } catch {
-      setDeliveries(mockDeliveries)
+      setDeliveries([])
     } finally {
       setLoading(false)
     }
@@ -276,7 +203,12 @@ export default function DeliveriesView() {
           <h3 className="text-lg font-semibold">Delivery Tracking</h3>
           <p className="text-sm text-muted-foreground">Track deliveries for purchases, consignments, and input requests</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="w-4 h-4" /> New Delivery</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportToCSV(deliveries, 'deliveries')} disabled={deliveries.length === 0} className="gap-2">
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
+          <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="w-4 h-4" /> New Delivery</Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -322,11 +254,13 @@ export default function DeliveriesView() {
           {loading ? (
             <div className="p-6 space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded" />)}</div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Truck className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="font-medium">No deliveries found</p>
-              <p className="text-sm mt-1">Try adjusting your search or filters</p>
-            </div>
+            <EmptyState
+              icon={Truck}
+              title="No deliveries found"
+              description="Click 'New Delivery' to create one."
+              actionLabel="New Delivery"
+              onAction={() => setShowAdd(true)}
+            />
           ) : (
             <div className="max-h-[500px] overflow-y-auto">
               <Table>

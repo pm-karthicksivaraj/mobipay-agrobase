@@ -76,6 +76,7 @@ const ALL_MODULES: NavItem[] = [
   { key: 'compliance', label: 'Compliance Hub', icon: Shield, group: 'Admin', permModule: 'compliance' },
   { key: 'companies', label: 'Companies', icon: Building2, group: 'Admin', permModule: 'companies' },
   { key: 'users', label: 'User Management', icon: UserCheck, group: 'Admin', permModule: 'users' },
+  { key: 'billing', label: 'Billing & Usage', icon: DollarSign, group: 'Admin', alwaysVisible: true },
   { key: 'settings', label: 'Settings', icon: Settings, group: 'Admin', alwaysVisible: true },
   { key: 'profile', label: 'Profile', icon: Stethoscope, group: 'Admin', alwaysVisible: true },
   { key: 'roles-permissions', label: 'Roles & Permissions', icon: KeyRound, group: 'Admin', alwaysVisible: true },

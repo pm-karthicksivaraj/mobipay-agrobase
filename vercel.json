@@ -4,6 +4,14 @@
     {
       "path": "/api/impact/cron/compute?limit=100",
       "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/admin/cron/check-trials",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/billing/cron/generate-invoices",
+      "schedule": "0 6 * * *"
     }
   ],
   "functions": {

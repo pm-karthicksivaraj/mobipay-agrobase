@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import {
   GraduationCap, Calendar, MapPin, Users, Plus, Clock, CheckCircle, Eye,
   Trash2, Pencil, X, Loader2, UserCheck, AlertCircle, ListChecks, Save,
-  ClipboardList, Send, UserPlus, UserX
+  ClipboardList, Send, UserPlus, UserX, Download
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
+import { EmptyState, exportToCSV } from '@/components/ui/empty-state'
 
 interface Training {
   id: string
@@ -159,20 +160,25 @@ export default function TrainingView() {
             <TabsTrigger value="list" className="gap-1.5"><ListChecks className="w-3.5 h-3.5" /> Trainings</TabsTrigger>
             <TabsTrigger value="flow" className="gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> How It Works</TabsTrigger>
           </TabsList>
-          <Button onClick={() => { setEditing(null); setShowCreate(true) }} className="gap-2">
-            <Plus className="w-4 h-4" /> Schedule Training
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => exportToCSV(trainings, 'trainings')} disabled={trainings.length === 0} className="gap-2">
+              <Download className="w-4 h-4" /> Export CSV
+            </Button>
+            <Button onClick={() => { setEditing(null); setShowCreate(true) }} className="gap-2">
+              <Plus className="w-4 h-4" /> Schedule Training
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="list" className="mt-4">
           {loading ? (
             <TrainingSkeleton />
           ) : trainings.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <GraduationCap className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="font-medium">No trainings scheduled</p>
-              <p className="text-sm mt-1">Click "Schedule Training" to create the first one</p>
-            </div>
+            <EmptyState
+              icon={GraduationCap}
+              title="No trainings scheduled"
+              description='Click "Schedule Training" to create the first one'
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {trainings.map((t) => (

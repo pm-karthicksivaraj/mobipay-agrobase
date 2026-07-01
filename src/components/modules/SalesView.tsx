@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { safeFetch, extractArray } from '@/lib/safe-fetch'
 import {
   Search, Plus, X, Loader2, DollarSign, ShoppingCart, TrendingUp, Award,
-  Eye, ChevronLeft, ChevronRight, BarChart3, Calendar, Pencil, Trash2
+  Eye, ChevronLeft, ChevronRight, BarChart3, Calendar, Pencil, Trash2, Download
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
+import { EmptyState, exportToCSV } from '@/components/ui/empty-state'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts'
 
 interface Sale {
@@ -176,7 +177,12 @@ export default function SalesView() {
           <h3 className="text-lg font-semibold">Sales Management</h3>
           <p className="text-sm text-muted-foreground">Track farmer sales — produce and inputs</p>
         </div>
-        <Button onClick={openAdd} className="gap-2"><Plus className="w-4 h-4" /> New Sale</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportToCSV(sales, 'sales')} disabled={sales.length === 0} className="gap-2">
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
+          <Button onClick={openAdd} className="gap-2"><Plus className="w-4 h-4" /> New Sale</Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -219,10 +225,10 @@ export default function SalesView() {
               {loading ? (
                 <div className="p-6 space-y-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded" />)}</div>
               ) : filtered.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <ShoppingCart className="w-10 h-10 mx-auto mb-3 opacity-40" />
-                  <p className="font-medium">No sales found</p>
-                </div>
+                <EmptyState
+                  icon={ShoppingCart}
+                  title="No sales found"
+                />
               ) : (
                 <div className="max-h-[500px] overflow-y-auto">
                   <Table>

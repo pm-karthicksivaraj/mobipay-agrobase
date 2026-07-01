@@ -48,6 +48,7 @@ model Tenant {
   trainings        Training[]
   surveys          Survey[]
   consignments     Consignment[]
+  processingBatches ProcessingBatch[]
   deliveries       Delivery[]
   messages             Message[]
   feedback             Feedback[]
@@ -811,6 +812,33 @@ model Consignment {
   updatedAt   DateTime @updatedAt
 }
 
+model ProcessingBatch {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  batchNumber     String   @unique
+  inputCommodity  String
+  processType     String   // WASHING, DRYING, MILLING, ROASTING, FERMENTATION, GRADING, PACKAGING
+  outputProduct   String?
+  inputQuantity   Float
+  inputUnit       String   @default("kg")
+  outputQuantity  Float?
+  outputUnit      String?
+  qualityGrade    String?  // GRADE_A, GRADE_B, GRADE_C, REJECT
+  qualityScore    Float?
+  facility        String?
+  status          String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, REJECTED
+  startDate       DateTime?
+  endDate         DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([batchNumber])
+}
+
 // --- PAYMENTS ---
 
 model PaymentAccount {
@@ -989,8 +1017,14 @@ model Subscription {
   status      String   @default("ACTIVE")
   startDate   DateTime @default(now())
   endDate     DateTime?
+  trialStartsAt    DateTime?
+  trialEndsAt      DateTime?
+  trialConvertedAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([trialEndsAt])
 }
 
 // --- API KEYS ---

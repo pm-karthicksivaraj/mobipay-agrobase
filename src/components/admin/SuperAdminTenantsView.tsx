@@ -16,7 +16,10 @@ interface Tenant {
   id: string; name: string; type: string; country: string; isActive: boolean
   defaultCurrency: string; createdAt: string
   _count: { users: number; farmerProfiles: number; vslaGroups: number; plots: number }
-  subscription: { plan: string; amount: number; billingCycle: string } | null
+  subscription: {
+    plan: string; amount: number; billingCycle: string; status?: string
+    trialStartsAt?: string | null; trialEndsAt?: string | null
+  } | null
   mrr: number
 }
 
@@ -126,7 +129,21 @@ export default function SuperAdminTenantsView() {
                   <td className="py-3 px-4 text-center">{t._count.farmerProfiles}</td>
                   <td className="py-3 px-4 text-center">{t._count.users}</td>
                   <td className="py-3 px-4 text-center">{t._count.plots}</td>
-                  <td className="py-3 px-4">{t.subscription?.plan || '—'}</td>
+                  <td className="py-3 px-4">
+                    {t.subscription?.status === 'TRIAL' && t.subscription?.trialEndsAt ? (
+                      <div>
+                        <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                          TRIAL · {Math.max(0, Math.ceil((new Date(t.subscription.trialEndsAt).getTime() - Date.now()) / 86400000))}d left
+                        </Badge>
+                        <div className="text-xs text-muted-foreground mt-0.5">{t.subscription?.plan || '—'}</div>
+                      </div>
+                    ) : (
+                      <>
+                        <div>{t.subscription?.plan || '—'}</div>
+                        <div className="text-[10px] text-muted-foreground">{t.subscription?.status?.toLowerCase() || ''}</div>
+                      </>
+                    )}
+                  </td>
                   <td className="py-3 px-4 text-right font-medium">{t.mrr > 0 ? `$${t.mrr.toFixed(0)}` : '—'}</td>
                   <td className="py-3 px-4 text-center">
                     <Badge variant={t.isActive ? 'default' : 'secondary'} className="text-[10px]">
@@ -158,6 +175,7 @@ function CreateTenantDialog({ open, onOpenChange, onCreated }: { open: boolean; 
   const [name, setName] = useState('')
   const [type, setType] = useState('COOPERATIVE')
   const [country, setCountry] = useState('Uganda')
+  const [trialDays, setTrialDays] = useState(14)
   const [submitting, setSubmitting] = useState(false)
 
   const submit = async () => {
@@ -165,12 +183,13 @@ function CreateTenantDialog({ open, onOpenChange, onCreated }: { open: boolean; 
     const res = await fetch('/api/admin/tenants', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, type, country }),
+      body: JSON.stringify({ name, type, country, trialDays }),
     })
     setSubmitting(false)
     if (res.ok) {
-      toast.success('Tenant created with default modules + BASIC subscription')
+      toast.success(`Tenant created · ${trialDays}-day trial`)
       setName('')
+      setTrialDays(14)
       onOpenChange(false)
       onCreated()
     } else {
@@ -211,6 +230,21 @@ function CreateTenantDialog({ open, onOpenChange, onCreated }: { open: boolean; 
               <option value="Ghana">🇬🇭 Ghana (GHS)</option>
               <option value="Kenya">🇰🇪 Kenya (KES)</option>
             </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Trial Period (days)</label>
+            <Input
+              type="number"
+              min={0}
+              max={365}
+              value={trialDays}
+              onChange={e => setTrialDays(Math.max(0, Math.min(365, Number(e.target.value) || 0)))}
+              placeholder="14"
+            />
+            <p className="text-xs text-muted-foreground">
+              Subscription is created with status <code className="text-[10px] bg-muted px-1 rounded">TRIAL</code>.
+              A daily Vercel cron will auto-suspend when the trial ends. Set to 0 to disable the trial.
+            </p>
           </div>
         </div>
         <DialogFooter>

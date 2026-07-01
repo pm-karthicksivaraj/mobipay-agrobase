@@ -64,59 +64,6 @@ const surveyStatusColor: Record<string, string> = {
   CLOSED: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
 }
 
-const mockSurveys: Survey[] = [
-  {
-    id: 's1', title: 'Coffee Farming Practices 2024', description: 'Annual survey on coffee farming methods, yields, and challenges faced by farmers in the Mt. Elgon region.',
-    status: 'ACTIVE', responseCount: 47,
-    questions: [
-      { id: 'q1', text: 'What is your primary coffee variety?', type: 'RADIO', options: ['Arabica', 'Robusta', 'Both'], required: true },
-      { id: 'q2', text: 'What farming methods do you use?', type: 'CHECKBOX', options: ['Organic', 'Conventional', 'Shade-grown', 'Irrigated'], required: false },
-      { id: 'q3', text: 'How many bags of coffee did you harvest last season?', type: 'NUMBER', required: true },
-      { id: 'q4', text: 'What are your main challenges?', type: 'TEXT', required: false },
-    ],
-    createdAt: '2024-11-01', updatedAt: '2024-11-15',
-  },
-  {
-    id: 's2', title: 'Input Needs Assessment', description: 'Assessment of farmer input requirements for the upcoming planting season including fertilizers, seeds, and equipment.',
-    status: 'ACTIVE', responseCount: 32,
-    questions: [
-      { id: 'q5', text: 'What inputs do you need?', type: 'CHECKBOX', options: ['Fertilizers', 'Seeds', 'Pesticides', 'Equipment', 'Tarpaulins'], required: true },
-      { id: 'q6', text: 'What is your estimated budget for inputs?', type: 'NUMBER', required: true },
-      { id: 'q7', text: 'Preferred input brand?', type: 'TEXT', required: false },
-    ],
-    createdAt: '2024-11-10', updatedAt: '2024-11-20',
-  },
-  {
-    id: 's3', title: 'Post-Harvest Handling Survey', description: 'Survey to understand post-harvest practices and storage capabilities.',
-    status: 'DRAFT', responseCount: 0,
-    questions: [
-      { id: 'q8', text: 'How do you dry your coffee?', type: 'RADIO', options: ['Sun-dried on raised beds', 'Machine-dried', 'Both'], required: true },
-      { id: 'q9', text: 'Do you have proper storage facilities?', type: 'RADIO', options: ['Yes', 'No'], required: true },
-    ],
-    createdAt: '2024-11-20', updatedAt: '2024-11-20',
-  },
-  {
-    id: 's4', title: 'Farmer Satisfaction Q3 2024', description: 'Quarterly satisfaction survey for farmers on extension services and market access.',
-    status: 'CLOSED', responseCount: 89,
-    questions: [
-      { id: 'q10', text: 'Rate extension services (1-5)', type: 'NUMBER', required: true },
-      { id: 'q11', text: 'Any suggestions for improvement?', type: 'TEXT', required: false },
-    ],
-    createdAt: '2024-07-01', updatedAt: '2024-09-30',
-  },
-]
-
-const mockResponses: SurveyResponse[] = [
-  { id: 'r1', surveyId: 's1', surveyTitle: 'Coffee Farming Practices 2024', farmerName: 'James Okello', farmerCode: 'FRM-001', answers: { q1: 'Arabica', q2: 'Organic, Shade-grown', q3: '25' }, submittedAt: '2024-11-05' },
-  { id: 'r2', surveyId: 's1', surveyTitle: 'Coffee Farming Practices 2024', farmerName: 'Grace Achieng', farmerCode: 'FRM-012', answers: { q1: 'Robusta', q2: 'Conventional', q3: '40' }, submittedAt: '2024-11-06' },
-  { id: 'r3', surveyId: 's1', surveyTitle: 'Coffee Farming Practices 2024', farmerName: 'Peter Ochieng', farmerCode: 'FRM-031', answers: { q1: 'Both', q3: '15' }, submittedAt: '2024-11-07' },
-  { id: 'r4', surveyId: 's2', surveyTitle: 'Input Needs Assessment', farmerName: 'Sarah Nakamya', farmerCode: 'FRM-023', answers: { q5: 'Fertilizers, Seeds', q6: '150000' }, submittedAt: '2024-11-12' },
-  { id: 'r5', surveyId: 's2', surveyTitle: 'Input Needs Assessment', farmerName: 'Wangari Muthoni', farmerCode: 'FRM-045', answers: { q5: 'Seeds, Tarpaulins', q6: '85000' }, submittedAt: '2024-11-13' },
-  { id: 'r6', surveyId: 's4', surveyTitle: 'Farmer Satisfaction Q3 2024', farmerName: 'Kwame Asante', farmerCode: 'FRM-078', answers: { q10: '4', q11: 'Need more training on post-harvest handling' }, submittedAt: '2024-07-15' },
-  { id: 'r7', surveyId: 's4', surveyTitle: 'Farmer Satisfaction Q3 2024', farmerName: 'James Okello', farmerCode: 'FRM-001', answers: { q10: '5' }, submittedAt: '2024-07-18' },
-  { id: 'r8', surveyId: 's1', surveyTitle: 'Coffee Farming Practices 2024', farmerName: 'Kwame Asante', farmerCode: 'FRM-078', answers: { q1: 'Arabica', q2: 'Organic', q3: '60' }, submittedAt: '2024-11-10' },
-]
-
 export default function SurveysView() {
   const { } = useAppStore()
   const [surveys, setSurveys] = useState<Survey[]>([])
@@ -136,32 +83,28 @@ export default function SurveysView() {
     try {
       const sData = await safeFetch('/api/surveys')
       const rawSurveys = extractArray(sData, 'data', 'surveys')
-      if (rawSurveys.length === 0) {
-        setSurveys(mockSurveys)
-      } else {
-        const normalized: Survey[] = rawSurveys.map((s: any) => ({
-          id: s.id,
-          title: s.title || 'Untitled',
-          description: s.description || '',
-          status: s.status || 'DRAFT',
-          questions: Array.isArray(s.questions) ? s.questions.map((q: any) => ({
-            id: q.id,
-            text: q.question || q.text || '',
-            type: q.type || 'TEXT',
-            options: q.options ? (typeof q.options === 'string' ? safeJsonParse(q.options) : q.options) : [],
-            required: q.required ?? false,
-          })) : [],
-          responseCount: s._count?.responses ?? s.responseCount ?? 0,
-          createdAt: s.createdAt ? new Date(s.createdAt).toISOString().split('T')[0] : '',
-          updatedAt: s.createdAt ? new Date(s.createdAt).toISOString().split('T')[0] : '',
-          _count: s._count,
-        }))
-        setSurveys(normalized)
-      }
+      const normalized: Survey[] = rawSurveys.map((s: any) => ({
+        id: s.id,
+        title: s.title || 'Untitled',
+        description: s.description || '',
+        status: s.status || 'DRAFT',
+        questions: Array.isArray(s.questions) ? s.questions.map((q: any) => ({
+          id: q.id,
+          text: q.question || q.text || '',
+          type: q.type || 'TEXT',
+          options: q.options ? (typeof q.options === 'string' ? safeJsonParse(q.options) : q.options) : [],
+          required: q.required ?? false,
+        })) : [],
+        responseCount: s._count?.responses ?? s.responseCount ?? 0,
+        createdAt: s.createdAt ? new Date(s.createdAt).toISOString().split('T')[0] : '',
+        updatedAt: s.createdAt ? new Date(s.createdAt).toISOString().split('T')[0] : '',
+        _count: s._count,
+      }))
+      setSurveys(normalized)
       // Responses are no longer fetched up-front — see per-survey "View Responses" button.
       setResponses([])
     } catch {
-      setSurveys(mockSurveys)
+      setSurveys([])
       setResponses([])
     } finally {
       setLoading(false)
@@ -278,10 +221,11 @@ export default function SurveysView() {
           {loading ? (
             <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded" />)}</div>
           ) : filteredSurveys.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="font-medium">No surveys found</p>
-              <p className="text-sm mt-1">Create a new survey to get started</p>
+            <div className="text-center py-12">
+              <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-40 text-muted-foreground" />
+              <p className="font-medium">No surveys created yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Click 'Create Survey' to get started.</p>
+              <Button onClick={() => setShowCreateSurvey(true)} className="mt-4 gap-2"><Plus className="w-4 h-4" /> Create Survey</Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

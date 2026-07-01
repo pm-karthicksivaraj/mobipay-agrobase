@@ -29,13 +29,13 @@ export async function GET(request: Request) {
     }
 
     const [data, total] = await Promise.all([
-      db.subscription.findMany({
+      db.invoice.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      db.subscription.count({ where }),
+      db.invoice.count({ where }),
     ])
 
     return NextResponse.json({ data, total, page, totalPages: Math.ceil(total / limit) })

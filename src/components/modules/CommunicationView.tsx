@@ -33,24 +33,14 @@ const msgTypeColor: Record<string, string> = {
   IVR: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
 }
 
-// Mock messages for now
-const MOCK_MESSAGES = [
-  { id: '1', type: 'SMS', recipient: '+256781234567', content: 'Your VSLA meeting is scheduled for tomorrow at 10:00 AM', status: 'DELIVERED', sentAt: '2026-06-24T10:30:00Z' },
-  { id: '2', type: 'SMS', recipient: '+256782345678', content: 'Payment of UGX 50,000 has been processed successfully', status: 'DELIVERED', sentAt: '2026-06-24T09:15:00Z' },
-  { id: '3', type: 'SMS', recipient: '+256783456789', content: 'Reminder: Training on Good Agricultural Practices this Friday', status: 'SENT', sentAt: '2026-06-23T14:00:00Z' },
-  { id: '4', type: 'SMS', recipient: '+256784567890', content: 'Your loan application has been approved. Amount: UGX 500,000', status: 'DELIVERED', sentAt: '2026-06-23T11:20:00Z' },
-  { id: '5', type: 'EMAIL', recipient: 'farmer@example.com', content: 'Monthly VSLA savings report for June 2026', status: 'SENT', sentAt: '2026-06-22T16:00:00Z' },
-  { id: '6', type: 'SMS', recipient: '+256785678901', content: 'Market match found: 500kg Maize at UGX 1,200/kg', status: 'FAILED', sentAt: '2026-06-22T10:00:00Z' },
-  { id: '7', type: 'IVR', recipient: '+256786789012', content: 'Survey call: Crop yield assessment', status: 'PENDING', sentAt: '2026-06-25T08:00:00Z' },
-  { id: '8', type: 'SMS', recipient: '+256787890123', content: 'Welcome to Agrobase V3! Your account is now active.', status: 'DELIVERED', sentAt: '2026-06-21T09:00:00Z' },
-]
+// (Mock messages removed — UI now shows a real empty state when the API has no messages.)
 
 export default function CommunicationView() {
   const { activeSubTab, setActiveSubTab } = useAppStore()
   const [activeTab, setActiveTab] = useState(activeSubTab || 'compose')
   const [showCompose, setShowCompose] = useState(true)
   const [sending, setSending] = useState(false)
-  const [messages, setMessages] = useState(MOCK_MESSAGES)
+  const [messages, setMessages] = useState<any[]>([])
   const [channel, setChannel] = useState('SMS')
   const [recipient, setRecipient] = useState('')
   const [subject, setSubject] = useState('')
@@ -61,10 +51,6 @@ export default function CommunicationView() {
   const fetchMessages = useCallback(async () => {
     const data = await safeFetch('/api/messages')
     const arr = extractArray(data, 'data', 'messages')
-    if (arr.length === 0) {
-      setMessages(MOCK_MESSAGES)
-      return
-    }
     setMessages(arr.map((m: any) => ({
       id: m.id,
       type: m.type || 'SMS',
@@ -201,7 +187,20 @@ export default function CommunicationView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {messages.map(m => (
+                  {messages.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-12">
+                        <div className="text-center">
+                          <Inbox className="w-10 h-10 mx-auto mb-3 opacity-40 text-muted-foreground" />
+                          <p className="font-medium">No messages sent yet</p>
+                          <p className="text-sm text-muted-foreground mt-1">Use the form above to send your first message.</p>
+                          <Button variant="outline" className="mt-4 gap-2" onClick={() => handleTabChange('compose')}>
+                            <Send className="w-4 h-4" /> Go to Compose
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : messages.map(m => (
                     <TableRow key={m.id}>
                       <TableCell><Badge className={cn('text-[10px]', msgTypeColor[m.type] || '')}>{m.type}</Badge></TableCell>
                       <TableCell className="font-medium text-sm">{m.recipient}</TableCell>

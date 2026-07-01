@@ -221,3 +221,66 @@ export function getPlan(planName: string): PlanConfig {
 export function getAvailablePlans(): string[] {
   return Object.keys(PLANS)
 }
+
+// ---------------------------------------------------------------------------
+// Plan Limits (flat lookup for usage metering / billing dashboard)
+// ---------------------------------------------------------------------------
+
+/**
+ * Flat plan-limit definition used by the usage metering API and the tenant
+ * billing dashboard. Mirrors the `PLANS` table above but with a simpler shape
+ * (and the additional PROFESSIONAL + MARKETPLACE tiers that the billing
+ * dashboard surfaces).
+ *
+ * `modules: 'all'` is the literal string sentinel for the ENTERPRISE tier
+ * (every module enabled) — kept as a string rather than an array so the
+ * dashboard can render "All modules included" without enumerating 32 keys.
+ */
+export interface PlanLimitConfig {
+  maxFarmers: number
+  maxUsers: number
+  price: number
+  modules: string[] | 'all'
+}
+
+export const PLAN_LIMITS: Record<string, PlanLimitConfig> = {
+  BASIC: {
+    maxFarmers: 500,
+    maxUsers: 10,
+    price: 50,
+    modules: ['farmers', 'vsla', 'training', 'marketplace', 'reports'],
+  },
+  PROFESSIONAL: {
+    maxFarmers: 5000,
+    maxUsers: 50,
+    price: 200,
+    modules: [
+      // BASIC modules +
+      'farmers', 'vsla', 'training', 'marketplace', 'reports',
+      // upgraded modules
+      'loans', 'compliance', 'carbon', 'trace',
+    ],
+  },
+  ENTERPRISE: {
+    maxFarmers: Infinity,
+    maxUsers: Infinity,
+    price: 500,
+    modules: 'all',
+  },
+  MARKETPLACE: {
+    maxFarmers: 0,
+    maxUsers: 5,
+    price: 0,
+    modules: ['marketplace'],
+  },
+}
+
+/**
+ * Look up plan limits by name. Falls back to BASIC for unknown plans
+ * (including the FREE / STANDARD / CUSTOM tiers defined in `PLANS` above —
+ * for those, the BASIC metering limits are used as a safe default).
+ */
+export function getPlanLimits(plan: string): PlanLimitConfig {
+  const key = (plan || 'BASIC').toUpperCase()
+  return PLAN_LIMITS[key] ?? PLAN_LIMITS.BASIC
+}
