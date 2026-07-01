@@ -57,6 +57,12 @@ export async function GET() {
         `
       )
 
+  // Build relation-based tenant filter for models WITHOUT tenantId
+  // VslaSaving, VslaTransaction: filter through vslaGroup.tenantId
+  // Payment: filter through paymentAccount.tenantId (or skip if not available)
+  const vslaRelationFilter = ctx.isSuperAdmin ? {} : { vslaGroup: { tenantId: { in: ctx.tenantScope } } }
+  const paymentRelationFilter = ctx.isSuperAdmin ? {} : { paymentAccount: { tenantId: { in: ctx.tenantScope } } }
+
   const [
     farmerCount, vslaCount, totalSavingsResult, activeLoanCount,
     marketListings, trainingCount, maleCount, femaleCount, groupCount,
@@ -65,14 +71,16 @@ export async function GET() {
   ] = await Promise.all([
     db.farmerProfile.count({ where: { status: 'ACTIVE', ...tf } }),
     db.vslaGroup.count({ where: { isActive: true, isClosed: false, ...tf } }),
-    db.vslaSaving.aggregate({ _sum: { amount: true }, where: { status: 'COMPLETED', ...tf } }),
+    // VslaSaving has no tenantId — filter through vslaGroup relation
+    db.vslaSaving.aggregate({ _sum: { amount: true }, where: { status: 'COMPLETED', ...vslaRelationFilter } }),
     db.vslaLoan.count({ where: { status: { in: ['APPROVED', 'DISBURSED'] }, ...tf } }),
     db.marketProduct.count({ where: { status: 'AVAILABLE', ...tf } }),
     db.training.count({ where: tf }),
     db.farmerProfile.count({ where: { gender: 'Male', status: 'ACTIVE', ...tf } }),
     db.farmerProfile.count({ where: { gender: 'Female', status: 'ACTIVE', ...tf } }),
     db.farmerGroup.count({ where: { isActive: true, ...tf } }),
-    db.vslaTransaction.findMany({ where: tf, take: 10, orderBy: { createdAt: 'desc' } }),
+    // VslaTransaction has no tenantId — filter through vslaGroup relation
+    db.vslaTransaction.findMany({ where: vslaRelationFilter, take: 10, orderBy: { createdAt: 'desc' } }),
     db.vslaLoan.count({ where: tf }),
     db.vslaLoan.count({ where: { status: 'REPAID', ...tf } }),
     db.vslaLoan.count({ where: { status: 'OVERDUE', ...tf } }),
@@ -101,9 +109,16 @@ export async function GET() {
       ]
 
   // Use recent payments as transactions if no VSLA transactions
+  // Payment has no tenantId — filter through paymentAccount relation (or fetch all for super admin)
   const recentPayments = recentTransactions.length > 0
     ? recentTransactions
-    : await db.payment.findMany({ where: tf, take: 10, orderBy: { createdAt: 'desc' } })
+    : await db.payment.findMany({
+        where: paymentRelationFilter,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        // Include paymentAccount to get tenant info
+        include: { paymentAccount: { select: { tenantId: true } } },
+      })
 
   return NextResponse.json({
     stats: {

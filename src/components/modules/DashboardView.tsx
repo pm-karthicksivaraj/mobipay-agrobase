@@ -284,19 +284,26 @@ function TenantAdminDashboard() {
 function CountryAdminDashboard() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     fetch('/api/dashboard/stats')
-      .then(r => r.json())
-      .then(data => {
-        setData(data)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then(d => {
+        setData(d)
         setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch(() => {
+        setError(true)
+        setLoading(false)
+      })
   }, [])
 
   if (loading) return <DashboardSkeleton />
-  if (!data) return <DashboardError />
+  if (error || !data || !data.stats) return <DashboardError />
 
   const s = data.stats || {}
   const fmt = (n: number) => n?.toLocaleString() || '0'
