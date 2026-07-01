@@ -70,12 +70,26 @@ export default function DashboardView() {
       const res = await fetch('/api/dashboard/stats')
       if (!res.ok) throw new Error('Failed to fetch dashboard data')
       const data = await res.json()
-      setStats(data.stats)
+      // Guard against missing stats object — fall back to zeros
+      const safeStats: DashboardStats = data.stats || {
+        farmerCount: 0, vslaCount: 0, totalSavings: 0,
+        activeLoanCount: 0, marketListings: 0, trainingCount: 0,
+        maleCount: 0, femaleCount: 0, groupCount: 0,
+        loanCount: 0, completedLoans: 0, overdueLoans: 0, pendingLoans: 0,
+      }
+      setStats(safeStats)
       setTransactions(data.recentTransactions || [])
       setMonthlyRegs(data.monthlyRegistrations || [])
       setVslaSavings(data.vslaSavingsByGroup || [])
     } catch (e) {
       console.error(e)
+      // Fall back to zero stats so the dashboard renders instead of crashing
+      setStats({
+        farmerCount: 0, vslaCount: 0, totalSavings: 0,
+        activeLoanCount: 0, marketListings: 0, trainingCount: 0,
+        maleCount: 0, femaleCount: 0, groupCount: 0,
+        loanCount: 0, completedLoans: 0, overdueLoans: 0, pendingLoans: 0,
+      })
     } finally {
       setLoading(false)
     }
@@ -85,7 +99,18 @@ export default function DashboardView() {
 
   if (loading) return <DashboardSkeleton />
 
-  const s = stats!
+  // Null guard — if stats is still null, render empty state instead of crashing
+  if (!stats) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <AlertCircle className="w-10 h-10 mx-auto mb-3 opacity-40" />
+        <p className="font-medium">Dashboard data unavailable</p>
+        <p className="text-sm mt-1">Please try refreshing the page.</p>
+      </div>
+    )
+  }
+
+  const s = stats
 
   return (
     <div className="space-y-6">
