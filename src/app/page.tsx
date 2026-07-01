@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { TopBar } from '@/components/layout/TopBar'
 import { LoginPage } from '@/components/auth/LoginPage'
 import { Skeleton } from '@/components/ui/skeleton'
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard'
 
 // Core modules
 const DashboardView = lazy(() => import('@/components/modules/DashboardView'))
@@ -154,6 +155,7 @@ function AuthenticatedApp() {
           </div>
         </main>
       </div>
+      <OnboardingWizard />
     </div>
   )
 }

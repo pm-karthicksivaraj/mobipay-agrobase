@@ -620,7 +620,7 @@ function TrainingFlowGuide() {
             <RoleCard role="Extension Officer" color="blue" responsibilities={['Schedules trainings', 'Enrolls farmers from registry', 'Conducts group training & farm visits', 'Marks attendance after session', 'Collects farmer feedback']} />
             <RoleCard role="CBT (Community Based Trainer)" color="purple" responsibilities={['Conducts demo plot sessions', 'Lead trainer for field days', 'Logs materials used', 'Updates training notes']} />
             <RoleCard role="Agent" color="amber" responsibilities={['Mobilizes farmers for enrollment', 'Confirms farmer availability', 'Assists with on-site registration']} />
-            <RoleCard role="Farmer" color="emerald" responsibilities={['Attends scheduled training', 'Provides feedback rating', 'Receives training materials', 'Applies learned practices (tracked via Farm5X)']} />
+            <RoleCard role="Farmer" color="emerald" responsibilities={['Attends scheduled training', 'Provides feedback rating', 'Receives training materials', 'Applies learned practices (tracked via Mazao Safi)']} />
           </div>
         </CardContent>
       </Card>

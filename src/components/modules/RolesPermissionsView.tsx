@@ -90,7 +90,7 @@ const ROLE_DEFINITIONS: RoleDef[] = [
       'Enroll farmers in trainings and mark attendance',
       'Conduct farm visits and log observations',
       'Create and manage surveys',
-      'Log Farm5X practice adoptions for farmers',
+      'Log Mazao Safi practice adoptions for farmers',
       'View (read-only) compliance and carbon data',
     ],
     dataScope: 'Their own tenant — all farmers (no per-officer assignment filter yet)',

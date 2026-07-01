@@ -75,7 +75,7 @@ export default function Farm5xView() {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-semibold flex items-center gap-2"><Layers className="w-5 h-5 text-emerald-600" /> Farm5X &amp; DREAM MRV</h3>
+        <h3 className="text-lg font-semibold flex items-center gap-2"><Layers className="w-5 h-5 text-emerald-600" /> Mazao Safi Practices (MSP)</h3>
         <p className="text-sm text-muted-foreground">
           1 Mandatory practice + 5 Reduce practices per crop vertical · DREAM 5-phase MRV pipeline · Verra VM0042 / Gold Standard eligible
         </p>
@@ -298,7 +298,7 @@ export default function Farm5xView() {
       {/* Log Adoption Dialog */}
       <Dialog open={showLog} onOpenChange={setShowLog}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Log Practice Adoption</DialogTitle><CardDescription>Record that a farmer has adopted a Farm5x practice.</CardDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Log Practice Adoption</DialogTitle><CardDescription>Record that a farmer has adopted a Mazao Safi practice.</CardDescription></DialogHeader>
           <LogAdoptionForm onClose={() => setShowLog(false)} onSaved={() => { setShowLog(false); fetchAdoptions() }} />
         </DialogContent>
       </Dialog>

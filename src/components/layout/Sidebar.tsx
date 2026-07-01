@@ -42,7 +42,7 @@ const ALL_MODULES: NavItem[] = [
   { key: 'farm-visits', label: 'Farm Visits', icon: Leaf, group: 'Core Operations', permModule: 'farm_visits' },
   // Farm Management (Core Product)
   { key: 'crop-stages', label: 'Crop Stage Library', icon: BookOpen, group: 'Farm Management', permModule: 'farmers' },
-  { key: 'farm5x', label: 'Farm5X & DREAM MRV', icon: Layers, group: 'Farm Management', permModule: 'carbon' },
+  { key: 'farm5x', label: 'Mazao Safi Practices', icon: Layers, group: 'Farm Management', permModule: 'carbon' },
   { key: 'cost-of-cultivation', label: 'Cost of Cultivation', icon: Calculator, group: 'Farm Management', permModule: 'farmers' },
   { key: 'carbon', label: 'Carbon & Compliance', icon: Cloud, group: 'Farm Management', permModule: 'carbon' },
   // Supply Chain
