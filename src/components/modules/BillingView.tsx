@@ -12,6 +12,7 @@ import {
 import {
   DollarSign, CreditCard, Users, Sprout, Receipt, TrendingUp,
   AlertTriangle, Download, Calendar, RefreshCw, CheckCircle2, Clock, XCircle,
+  Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { exportToCSV } from '@/components/ui/empty-state'
@@ -188,6 +189,7 @@ export default function BillingView() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [paying, setPaying] = useState(false)
 
   const fetchAll = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
@@ -450,31 +452,65 @@ export default function BillingView() {
         </Card>
       </div>
 
-      {/* Payment method (placeholder) */}
+      {/* Payment method + Flutterwave payment */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-muted-foreground" />
-            Payment Method
+            Payment & Billing
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-4 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
                 <CreditCard className="w-5 h-5 text-muted-foreground" />
               </div>
               <div>
-                <p className="font-medium">No payment method on file</p>
+                <p className="font-medium">Pay via Flutterwave</p>
                 <p className="text-xs text-muted-foreground">
-                  Add a mobile money or card to enable automatic payments.
+                  Mobile Money (UGX/GHS/KES), Card, Bank Transfer, USSD
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => toast.info('Payment method setup coming soon')}>
-              Add payment method
+            <Button
+              size="sm"
+              className="gap-2"
+              disabled={paying}
+              onClick={async () => {
+                setPaying(true)
+                try {
+                  const res = await fetch('/api/billing/flutterwave/initiate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      plan: subscription?.plan || 'PROFESSIONAL',
+                      billingCycle: subscription?.billingCycle || 'MONTHLY',
+                    }),
+                  })
+                  const data = await res.json()
+                  if (data.success && data.paymentLink) {
+                    toast.success('Redirecting to Flutterwave...')
+                    window.location.href = data.paymentLink
+                  } else {
+                    toast.error(data.error || 'Payment not configured yet')
+                  }
+                } catch {
+                  toast.error('Failed to initiate payment')
+                } finally {
+                  setPaying(false)
+                }
+              }}
+            >
+              {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+              Pay Now
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            💡 To activate Flutterwave: add <code className="bg-muted px-1 rounded">FLW_SECRET_KEY</code> and
+            <code className="bg-muted px-1 rounded">FLW_PUBLIC_KEY</code> to your environment variables.
+            Get keys at <a href="https://flutterwave.com" target="_blank" rel="noreferrer" className="text-primary hover:underline">flutterwave.com</a>.
+          </p>
         </CardContent>
       </Card>
 

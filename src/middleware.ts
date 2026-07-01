@@ -34,9 +34,15 @@ function matchesRoute(path: string, patterns: string[]): boolean {
 
 function getAllowedTenantIds(
   role: string | undefined,
-  tenantId: string | undefined
+  tenantId: string | undefined,
+  tokenTenantScope: string[] | undefined
 ): string[] | null {
   if (role === 'SUPER_ADMIN') return null
+  // For COUNTRY_ADMIN, use the pre-computed tenantScope from the JWT token
+  // (resolved at login time via getDescendantTenantIds)
+  if (role === 'COUNTRY_ADMIN' && tokenTenantScope && tokenTenantScope.length > 0) {
+    return tokenTenantScope
+  }
   if (!tenantId) return []
   return [tenantId]
 }
@@ -203,7 +209,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // ─── 3. TENANT ISOLATION HEADER ─────────────────────────────────────────
-  const allowedTenantIds = getAllowedTenantIds(role, userTenantId)
+  const tokenTenantScope = token.tenantScope as string[] | undefined
+  const allowedTenantIds = getAllowedTenantIds(role, userTenantId, tokenTenantScope)
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-user-id', (token.userId as string) || '')

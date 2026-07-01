@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { verifyPassword } from '@/lib/password'
 import { entitlementEngine } from '@/lib/entitlements/engine'
 import { setTenantEntitlements } from '@/middleware/edge-entitlements'
+import { getDescendantTenantIds } from '@/lib/tenant'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -62,6 +63,18 @@ export const authOptions: NextAuthOptions = {
           token.tenantId = dbUser.tenantId
           token.role = dbUser.role
           token.name = `${dbUser.firstName} ${dbUser.lastName}`
+
+          // For COUNTRY_ADMIN, resolve all descendant tenant IDs and store in token
+          // so the middleware can set the correct x-tenant-scope header
+          if (dbUser.role === 'COUNTRY_ADMIN' && dbUser.tenantId) {
+            try {
+              const descendantIds = await getDescendantTenantIds(dbUser.tenantId)
+              token.tenantScope = descendantIds
+            } catch (e) {
+              console.error('[Auth] Failed to resolve descendant tenants:', e)
+              token.tenantScope = [dbUser.tenantId]
+            }
+          }
 
           // Auto-warm Edge entitlement cache on login/JWT refresh
           if (dbUser.tenantId) {

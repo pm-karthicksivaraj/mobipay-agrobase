@@ -57,6 +57,7 @@ const SuperAdminRevenueView = lazy(() => import('@/components/admin/SuperAdminRe
 const SuperAdminImpactView = lazy(() => import('@/components/admin/SuperAdminImpactView'))
 const SuperAdminAllUsersView = lazy(() => import('@/components/admin/SuperAdminAllUsersView'))
 const SuperAdminMobileView = lazy(() => import('@/components/admin/SuperAdminMobileView'))
+const SuperAdminConfigView = lazy(() => import('@/components/admin/SuperAdminConfigView'))
 
 // Farm Management (core product) views
 const CarbonView = lazy(() => import('@/components/modules/CarbonView'))
@@ -146,6 +147,7 @@ function ModuleRouter() {
     case 'super-admin-impact': return <SuperAdminImpactView />
     case 'super-admin-users': return <SuperAdminAllUsersView />
     case 'super-admin-mobile': return <SuperAdminMobileView />
+    case 'super-admin-config': return <SuperAdminConfigView />
     default: return <DashboardView />
   }
 }
