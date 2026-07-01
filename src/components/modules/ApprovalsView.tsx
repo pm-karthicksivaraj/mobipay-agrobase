@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 
 interface ApprovalItem {
@@ -70,6 +71,8 @@ export default function ApprovalsView() {
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState(activeSubTab || 'pending')
   const [showDetail, setShowDetail] = useState<ApprovalItem | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState<false | 'APPROVE' | 'REJECT'>(false)
 
   const fetchApprovals = useCallback(async () => {
     setLoading(true)
@@ -136,6 +139,56 @@ export default function ApprovalsView() {
     } catch {
       toast.error(`Failed to reject ${item.reference}`)
     }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => {
+      if (prev.size === filteredByTab.length && filteredByTab.length > 0) return new Set()
+      return new Set(filteredByTab.map(a => a.id))
+    })
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const handleBulkAction = async (action: 'APPROVE' | 'REJECT') => {
+    const items = approvals.filter(a => selectedIds.has(a.id))
+    if (items.length === 0) return
+    setBulkLoading(action)
+    let success = 0
+    let failure = 0
+    await Promise.all(items.map(async item => {
+      try {
+        const res = await fetch('/api/approvals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: item.id, type: item.type, action }),
+        })
+        if (!res.ok) throw new Error('Failed')
+        success++
+      } catch {
+        failure++
+      }
+    }))
+    setBulkLoading(false)
+    clearSelection()
+    const verb = action === 'APPROVE' ? 'approved' : 'rejected'
+    if (failure === 0) {
+      toast.success(`Successfully ${verb} ${success} item${success === 1 ? '' : 's'}`)
+    } else if (success === 0) {
+      toast.error(`Failed to ${action.toLowerCase()} all ${failure} item${failure === 1 ? '' : 's'}`)
+    } else {
+      toast.warning(`${success} ${verb}, ${failure} failed`)
+    }
+    fetchApprovals()
   }
 
   const formatAmount = (amount: number, currency: string) => {
@@ -252,6 +305,13 @@ export default function ApprovalsView() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-[40px]">
+                            <Checkbox
+                              aria-label="Select all"
+                              checked={filteredByTab.length > 0 && selectedIds.size === filteredByTab.length}
+                              onCheckedChange={toggleSelectAll}
+                            />
+                          </TableHead>
                           <TableHead className="w-[60px]">Type</TableHead>
                           <TableHead>Reference</TableHead>
                           <TableHead>Requester</TableHead>
@@ -266,6 +326,13 @@ export default function ApprovalsView() {
                       <TableBody>
                         {filteredByTab.map(a => (
                           <TableRow key={a.id}>
+                            <TableCell>
+                              <Checkbox
+                                aria-label={`Select ${a.reference}`}
+                                checked={selectedIds.has(a.id)}
+                                onCheckedChange={() => toggleSelect(a.id)}
+                              />
+                            </TableCell>
                             <TableCell>
                               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50">
                                 {typeIcon[a.type]}
@@ -438,6 +505,43 @@ export default function ApprovalsView() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-background border rounded-xl shadow-lg px-4 py-3">
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <div className="h-5 w-px bg-border" />
+          <Button
+            size="sm"
+            className="bg-emerald-600 hover:bg-emerald-700 gap-1.5"
+            disabled={bulkLoading !== false}
+            onClick={() => handleBulkAction('APPROVE')}
+          >
+            {bulkLoading === 'APPROVE' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+            Bulk Approve
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="gap-1.5"
+            disabled={bulkLoading !== false}
+            onClick={() => handleBulkAction('REJECT')}
+          >
+            {bulkLoading === 'REJECT' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+            Bulk Reject
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="gap-1.5"
+            disabled={bulkLoading !== false}
+            onClick={clearSelection}
+          >
+            <X className="w-3.5 h-3.5" />
+            Clear selection
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, PieChart, Pie, LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts'
 import { formatDistanceToNow } from 'date-fns'
+import { MapDashboard } from '@/components/dashboard/MapDashboard'
 
 const COLORS = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#06b6d4', '#0ea5e9', '#3b82f6', '#8b5cf6', '#a855f7']
 
@@ -243,6 +244,9 @@ function TenantAdminDashboard() {
           </div>
         </CardContent></Card>
       </div>
+
+      {/* Farmer Distribution Map */}
+      <MapDashboard />
 
       {/* Recent Activity */}
       <Card>

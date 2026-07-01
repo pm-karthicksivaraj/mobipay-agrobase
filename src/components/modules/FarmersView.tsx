@@ -7,7 +7,8 @@ import {
   Search, Plus, Eye, X, UserPlus, Phone, MapPin, Sprout, Calendar, CreditCard,
   ChevronLeft, ChevronRight, Filter, Loader2, Users, ArrowLeft, Star, AlertCircle,
   Layers, DollarSign, GraduationCap, PiggyBank, Leaf, Activity, QrCode, Download,
-  Shield, Banknote, Award, Upload, FileSpreadsheet, CheckCircle, XCircle, FileDown
+  Shield, Banknote, Award, Upload, FileSpreadsheet, CheckCircle, XCircle, FileDown,
+  Trash2
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
+import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { QRCodeSVG } from 'qrcode.react'
 import { FarmerTimeline } from '@/components/farmers/FarmerTimeline'
@@ -68,6 +70,8 @@ export default function FarmersView() {
   const [statusFilter, setStatusFilter] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const limit = 12
 
   const fetchFarmers = useCallback(async () => {
@@ -90,6 +94,53 @@ export default function FarmersView() {
   }, [page, search, genderFilter, statusFilter])
 
   useEffect(() => { fetchFarmers() }, [fetchFarmers])
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => {
+      if (prev.size === farmers.length && farmers.length > 0) return new Set()
+      return new Set(farmers.map(f => f.id))
+    })
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    const count = selectedIds.size
+    if (!window.confirm(`Are you sure you want to delete ${count} farmer${count === 1 ? '' : 's'}? This action cannot be undone.`)) return
+    setBulkDeleting(true)
+    let success = 0
+    let failure = 0
+    await Promise.all(Array.from(selectedIds).map(async id => {
+      try {
+        const res = await fetch(`/api/farmers/${id}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error('Failed')
+        success++
+      } catch {
+        failure++
+      }
+    }))
+    setBulkDeleting(false)
+    clearSelection()
+    if (failure === 0) {
+      toast.success(`Successfully deleted ${success} farmer${success === 1 ? '' : 's'}`)
+    } else if (success === 0) {
+      toast.error(`Failed to delete all ${failure} farmer${failure === 1 ? '' : 's'}`)
+    } else {
+      toast.warning(`${success} deleted, ${failure} failed`)
+    }
+    setPage(1)
+    fetchFarmers()
+  }
 
   // Detail view
   if (selectedFarmerId) {
@@ -170,6 +221,13 @@ export default function FarmersView() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px]">
+                    <Checkbox
+                      aria-label="Select all farmers"
+                      checked={farmers.length > 0 && selectedIds.size === farmers.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Farmer</TableHead>
                   <TableHead className="hidden md:table-cell">Phone</TableHead>
                   <TableHead className="hidden sm:table-cell">Gender</TableHead>
@@ -181,6 +239,13 @@ export default function FarmersView() {
               <TableBody>
                 {farmers.map(f => (
                   <TableRow key={f.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedFarmerId(f.id)}>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        aria-label={`Select ${f.firstName} ${f.lastName}`}
+                        checked={selectedIds.has(f.id)}
+                        onCheckedChange={() => toggleSelect(f.id)}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
@@ -251,6 +316,34 @@ export default function FarmersView() {
           <CsvImportForm onClose={() => setShowImport(false)} onSaved={() => { setShowImport(false); fetchFarmers() }} />
         </DialogContent>
       </Dialog>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-background border rounded-xl shadow-lg px-4 py-3">
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <div className="h-5 w-px bg-border" />
+          <Button
+            size="sm"
+            variant="destructive"
+            className="gap-1.5"
+            disabled={bulkDeleting}
+            onClick={handleBulkDelete}
+          >
+            {bulkDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            Bulk Delete
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="gap-1.5"
+            disabled={bulkDeleting}
+            onClick={clearSelection}
+          >
+            <X className="w-3.5 h-3.5" />
+            Clear selection
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

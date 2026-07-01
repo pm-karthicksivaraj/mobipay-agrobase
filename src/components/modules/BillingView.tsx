@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { exportToCSV } from '@/components/ui/empty-state'
+import { printInvoice } from '@/lib/billing/invoice-pdf'
 
 // ---------------------------------------------------------------------------
 // Types (mirror the API response shapes)
@@ -24,6 +25,7 @@ import { exportToCSV } from '@/components/ui/empty-state'
 interface SubscriptionData {
   id: string
   tenantId: string
+  tenantName?: string
   plan: string
   amount: number
   billingCycle: string
@@ -558,6 +560,7 @@ export default function BillingView() {
                   <TableHead>Due Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -584,6 +587,34 @@ export default function BillingView() {
                       <TableCell>{statusBadge(eff)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {formatDate(inv.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1.5 text-xs h-7"
+                          onClick={() => {
+                            const items = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || [])
+                            printInvoice({
+                              invoiceNumber: inv.invoiceNumber,
+                              tenantName: subscription?.tenantName || '—',
+                              tenantCountry: '',
+                              plan: inv.plan,
+                              billingCycle: inv.billingCycle,
+                              items: Array.isArray(items) ? items : [{ description: `${inv.plan} Plan`, amount: inv.subtotal, quantity: 1, total: inv.subtotal }],
+                              subtotal: inv.subtotal,
+                              tax: inv.tax,
+                              total: inv.total,
+                              currency: inv.currency,
+                              status: eff,
+                              dueDate: inv.dueDate,
+                              paidAt: inv.paidAt || undefined,
+                              createdAt: inv.createdAt,
+                            })
+                          }}
+                        >
+                          <Download className="w-3 h-3" /> PDF
+                        </Button>
                       </TableCell>
                     </TableRow>
                   )
